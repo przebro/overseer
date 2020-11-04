@@ -1,0 +1,324 @@
+package taskdef
+
+import (
+	"encoding/json"
+	"errors"
+	"goscheduler/common/types"
+	"io/ioutil"
+	"strings"
+)
+
+//Type - task type
+type Type types.TaskType
+
+//OdateValue - Holds possible odate values.
+//ODATE - Expect a ticket with current order date
+//
+type OdateValue string
+
+//InTicketRelation - Restricts possible values of tickets relation.
+//Possible values are: AND, OR
+type InTicketRelation string
+
+//FlagType - Restricts possible values of flags type
+type FlagType string
+
+//SchedulingOption - how job will be ordered
+//Possible values are: SHR,EXL
+type SchedulingOption string
+
+//OutAction - Restricts possible out ticket action
+//Possible values are ADD,REM
+type OutAction string
+
+//MonthData - month data
+type MonthData int
+
+//ExecutionValue - schedule specific values
+type ExecutionValue string
+
+//InTicketData - Holds information about the required tickets to start a task
+type InTicketData struct {
+	Name  string     `json:"name" validate:"len=20"`
+	Odate OdateValue `json:"odate"`
+}
+
+//OutTicketData - Holds an action for a given ticket that is performed after the successful execution of a task.
+type OutTicketData struct {
+	Name   string     `json:"name"`
+	Odate  OdateValue `json:"odate"`
+	Action OutAction  `json:"action"`
+}
+
+//FlagData - Holds information about required flag resources.
+//If type is set to exclusive then the state of a flag in resources manager can be only none
+//If type is set to shared then the state of a flag in resources manager can be none or shared but not exclusive
+type FlagData struct {
+	Name string   `json:"name" validate:"lte=20"`
+	Type FlagType `json:"type" validate:"oneof=SHR EXL"`
+}
+
+//VariableData - Holds variables that will be passed to the task.
+type VariableData struct {
+	Name  string `json:"name" validate:"lte=32,startswith=%%"`
+	Value string `json:"value"`
+}
+
+//Expand - Expands name
+func (data VariableData) Expand() string {
+	return strings.Replace(data.Name, "%%", "OVS_", 1)
+}
+
+//SchedulingData - Holds informations how task should be scheduled.
+type SchedulingData struct {
+	OrderType    SchedulingOption  `json:"type"`
+	FromTime     types.HourMinTime `json:"from"`
+	ToTime       types.HourMinTime `json:"to"`
+	AllowPastSub bool              `json:"pastsub"`
+	Months       []MonthData       `json:"months" validate:"unique"`
+	Values       []ExecutionValue  `json:"values"`
+}
+
+type baseTaskDefinition struct {
+	TaskType      Type             `json:"type" validate:"oneof= dummy os"`
+	Name          string           `json:"name" validate:"lte=32"`
+	Group         string           `json:"group" validate:"lte=16"`
+	Description   string           `json:"description" validate:"lte=200"`
+	ConfirmFlag   bool             `json:"confirm"`
+	DataRetention int              `json:"retention" validate:"min=0,max=10"`
+	Schedule      SchedulingData   `json:"schedule"`
+	InTickets     []InTicketData   `json:"inticket"`
+	InRelation    InTicketRelation `json:"relation"`
+	FlagsTab      []FlagData       `json:"flags"`
+	OutTickets    []OutTicketData  `json:"outticket"`
+	TaskVariables []VariableData   `json:"variables"`
+	Data          json.RawMessage  `json:"spec" validate:"json"`
+}
+
+//Task types
+const (
+	TypeDummy    Type = "dummy"
+	TypeOs       Type = "os"
+	TypeFtp      Type = "ftp"
+	TypeDatabase Type = "database"
+	TypeService  Type = "service"
+	TypeMessage  Type = "message"
+)
+
+//Ordering options
+const (
+	OrderingManual     SchedulingOption = "manual"
+	OrderingDaily      SchedulingOption = "daily"
+	OrderingWeek       SchedulingOption = "weekday"
+	OrderingDayOfMonth SchedulingOption = "dayofmonth"
+	OrderingExact      SchedulingOption = "exact"
+)
+
+//Possible odate values
+const (
+	OdateDate OdateValue = "ODATE"
+	OdateNext OdateValue = "NEXT"
+	OdatePrev OdateValue = "PREV"
+	OdateAny  OdateValue = "*"
+	OdateNone OdateValue = ""
+)
+
+//Possible flag types
+const (
+	FlagShared    FlagType = "SHR"
+	FlagExclusive FlagType = "EXL"
+)
+
+//Possible out actions
+const (
+	OutActionAdd    OutAction = "ADD"
+	OutActionRemove OutAction = "REM"
+)
+
+//Relation between input tickets
+//Expect all: COND-1 AND COND-2 AND ...
+//Expect one of them COND-1 OR COND-2 ...
+const (
+	InTicketAND InTicketRelation = "AND"
+	InTicketOR  InTicketRelation = "OR"
+)
+
+//UnmarshalJSON - unmarshal and validate type of out action.
+func (p *OutAction) UnmarshalJSON(data []byte) error {
+
+	var s string
+	var err error
+	if err = json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+	switch strings.ToUpper(s) {
+	case string(OutActionAdd):
+		*p = OutActionAdd
+	case string(OutActionRemove):
+		*p = OutActionRemove
+	default:
+		return errors.New("invalid out action")
+	}
+
+	return nil
+}
+
+//TaskScheduling  - Provides information about the schedule of a task.
+type TaskScheduling interface {
+	OrderType() SchedulingOption
+	TimeSpan() (types.HourMinTime, types.HourMinTime)
+	Months() []MonthData
+	AllowPast() bool
+	Values() []ExecutionValue
+}
+
+func (task *baseTaskDefinition) OrderType() SchedulingOption {
+	return task.Schedule.OrderType
+}
+func (task *baseTaskDefinition) TimeSpan() (types.HourMinTime, types.HourMinTime) {
+	return task.Schedule.FromTime, task.Schedule.ToTime
+}
+func (task *baseTaskDefinition) Months() []MonthData {
+	return task.Schedule.Months
+}
+func (task *baseTaskDefinition) AllowPast() bool {
+	return task.Schedule.AllowPastSub
+}
+
+func (task *baseTaskDefinition) Values() []ExecutionValue {
+	return task.Schedule.Values
+}
+
+//BaseInfo - returns base informations
+type BaseInfo interface {
+	GetInfo() (string, string, string)
+}
+
+//GetInfo - gets base informations about task: Name,group and description
+func (task *baseTaskDefinition) GetInfo() (string, string, string) {
+	return task.Name, task.Group, task.Description
+}
+
+//TaskInTicket - Provides information about required tickets
+type TaskInTicket interface {
+	TicketsIn() []InTicketData
+	Relation() InTicketRelation
+}
+
+func (task *baseTaskDefinition) TicketsIn() []InTicketData {
+
+	return task.InTickets
+}
+func (task *baseTaskDefinition) Relation() InTicketRelation {
+
+	return task.InRelation
+}
+
+//TaskOutTicket - Provides information about issue tickets after task end.
+type TaskOutTicket interface {
+	TicketsOut() []OutTicketData
+}
+
+func (task *baseTaskDefinition) TicketsOut() []OutTicketData {
+
+	return task.OutTickets
+}
+
+//TaskFlag - Provides information about required flags.
+type TaskFlag interface {
+	Flags() []FlagData
+}
+
+func (task *baseTaskDefinition) Flags() []FlagData {
+
+	return task.FlagsTab
+}
+
+//TaskDefinition - Definition of an active task.
+type TaskDefinition interface {
+	BaseInfo
+	TaskScheduling
+	TaskInTicket
+	TaskOutTicket
+	TaskFlag
+	TypeName() Type
+	Confirm() bool
+	Retention() int
+	Variables() []VariableData
+	Action() interface{}
+}
+
+//TypeName - returns task's type
+func (task *baseTaskDefinition) TypeName() Type {
+	return task.TaskType
+}
+
+//Confirm - Is manual confirmation by operator required
+func (task *baseTaskDefinition) Confirm() bool {
+	return task.ConfirmFlag
+}
+
+//Retention - How many days task should be kept in active task pool after successful ending
+func (task *baseTaskDefinition) Retention() int {
+	return task.DataRetention
+}
+
+//For dummy task this method returns empty string, for other specific tasks
+//method returns information required to execute action
+func (task *baseTaskDefinition) Action() interface{} {
+	return ""
+}
+
+//Variables - Gets variables from tasks definition
+func (task *baseTaskDefinition) Variables() []VariableData {
+	return task.TaskVariables
+}
+
+//FromDefinitionFile - Load task from file, Wrapper function for load from string
+func FromDefinitionFile(path string) (TaskDefinition, error) {
+
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	return FromString(string(data))
+}
+
+//FromString - loads a task definition from input string. Performs validations for enum types.
+func FromString(data string) (TaskDefinition, error) {
+
+	var result TaskDefinition
+	def := baseTaskDefinition{}
+	err := json.Unmarshal([]byte(data), &def)
+	if err != nil {
+		return nil, err
+	}
+
+	if def.TaskType == TypeDummy {
+		result = &def
+	}
+
+	if def.TaskType == TypeOs {
+		data := OsTaskData{}
+		json.Unmarshal([]byte(def.Data), &data)
+		result = &OsTaskDefinition{baseTaskDefinition: def, Spec: data}
+	}
+
+	return result, nil
+}
+
+//WriteDefinitionFile - Writes task definition to file.
+func WriteDefinitionFile(definition TaskDefinition) (string, error) {
+
+	var result string
+
+	data, err := json.Marshal(definition)
+	if err != nil {
+		return "", err
+	}
+
+	result = string(data)
+
+	return result, nil
+}

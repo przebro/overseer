@@ -1,0 +1,11 @@
+{
+    "worker" : {
+        "name":"worker_01",
+        "host" : "127.0.0.1",
+        "port" : 7055
+    },
+    "logConfiguration" :{
+        "logLevel" : 3,
+        "logDirectory" : "./logs"
+        }
+}

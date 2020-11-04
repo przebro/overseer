@@ -1,0 +1,9 @@
+.vscode/*
+.VS*
+bin/*
+pkg/*
+coverage.out
+goscheduler.out
+schedulerprofile.out
+schedulerprofile.prof
+workerprofile.prof

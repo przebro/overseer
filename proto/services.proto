@@ -1,0 +1,145 @@
+syntax = "proto3";
+package proto;
+option go_package = "proto/services";
+
+service AuthorizeService{
+    rpc Authorize(AuthorizeActionMsg) returns (ActionResultMsg){}
+}
+
+service ResourceService{
+    rpc AddTicket(TicketActionMsg) returns (ActionResultMsg){}
+    rpc DeleteTicket(TicketActionMsg) returns (ActionResultMsg){}
+    rpc CheckTicket(TicketActionMsg) returns (ActionResultMsg){}
+    rpc ListTickets(TicketActionMsg) returns (stream TicketListResultMsg){}
+    rpc SetFlag(FlagActionMsg) returns (ActionResultMsg){}
+    rpc ListFlags(FlagActionMsg) returns (stream FlagListResultMsg){}
+}
+service TaskService{
+    rpc OrderTask(TaskOrderMsg) returns (ActionResultMsg){}
+    rpc ForceTask(TaskOrderMsg) returns (ActionResultMsg){}
+    rpc RerunTask(TaskActionMsg) returns (ActionResultMsg){}
+    rpc HoldTask(TaskActionMsg) returns (ActionResultMsg){}
+    rpc FreeTask(TaskActionMsg) returns (ActionResultMsg){}
+    rpc SetToOk(TaskActionMsg) returns (ActionResultMsg){}
+    rpc ListTasks(TaskFilterMsg) returns (stream TaskListResultMsg){}
+    rpc TaskDetail(TaskActionMsg) returns (TaskDetailResultMsg){}
+}
+
+service DefinitionService{
+    rpc GetDefinition(DefinitionActionMsg) returns (DefinitionResultMsg){}
+    rpc LockDefinition(DefinitionActionMsg) returns (LockResultMsg){}
+    rpc UnlockDefinition(DefinitionActionMsg) returns (LockResultMsg){}
+    rpc ListGroups(GroupActionMsg) returns (stream DefinitionListGroupResultMsg){}
+    rpc ListDefinitionsFromGroup(DefinitionActionMsg) returns (stream DefinitionListResultMsg){}
+}
+
+message AuthorizeActionMsg{
+    string username = 1;
+    string password = 2;
+}
+
+message TicketActionMsg {
+    string token = 1;
+    string name = 2;
+    string odate = 3;
+}
+message FlagActionMsg {
+    string token = 1;
+    string name = 2;
+    int32 state = 3;
+}
+
+message TaskActionMsg{
+    string token = 1;
+    string taskID = 2; 
+}
+
+message TaskFilterMsg{
+    string token = 1;
+    string group = 2;
+    string name = 3;
+    string taskID = 4;
+    string odateFrom = 5;
+    string odateTo = 6;
+    string status = 7;
+
+}
+
+message TaskOrderMsg{
+    string token = 1;
+    string taskGroup = 2;
+    string taskName = 3;
+    string odate = 4;   
+}
+
+message DefinitionMsg{
+    string groupName = 1;
+    string taskName = 2;
+    uint32 lockID = 3;
+}
+message DefinitionActionMsg{
+    string token = 1;
+    repeated DefinitionMsg definitionMsg = 2;
+}
+
+message LockResult {
+    bool success = 1;
+    uint32 lockID = 2;
+    string message = 3;
+}
+message LockResultMsg{
+    repeated LockResult lockResult = 1;
+}
+
+message DefinitionResult{
+    bool success = 1;
+    string message  = 2;   
+}
+message DefinitionResultMsg{
+    repeated DefinitionResult definitionMsg = 1;
+}
+
+message  GroupActionMsg{
+    string token = 1;
+}
+
+message ActionResultMsg{
+    bool success = 1;
+    string message = 2; 
+}
+message FlagListResultMsg{
+    string flagName = 1;
+    int32 state = 2;    
+}
+message TicketListResultMsg{
+    string name = 1;
+    string odate = 2;    
+}
+message TaskListResultMsg{
+    string groupName = 1;
+    string taskName = 2;
+    string taskId = 3;
+    string orderDate = 4;
+    int32 taskStatus = 5;
+    string waiting = 6;
+}
+
+message TaskDetailResultMsg{
+    TaskListResultMsg  baseData = 1;
+    bool hold = 2;
+    bool confirm = 3;
+    int32 runNumber = 4;
+    string startTime  = 5;
+    string endTime = 6;
+    string worker = 7;
+    repeated string output = 8;
+
+}
+
+message DefinitionListGroupResultMsg{
+    string groupName = 1;
+}
+message DefinitionListResultMsg{
+    string groupName = 1;
+    string taskName = 2;
+}

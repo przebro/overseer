@@ -1,0 +1,22 @@
+{
+    "type" : "dummy",
+    "name" :"sample_02C",
+    "group" : "samples",
+    "description" :"sample dummy task definition",
+    "inticket" : [
+        {"name" : "IN-SAMPLE02C","odate" : "ODATE" },
+        {"name" : "IN-SAMPLE02X","odate" : "ODATE" }
+    ],
+    "relation" :"AND",
+    "flags" : [],
+    "outticket" :[        
+    ],
+    "schedule" :{
+        "type" : "daily",
+        "from" : "",
+        "to" : "",
+        "months" :[1,2,3,4,5,6,7,8,9,10,11,12],
+        "values" :[]
+    }
+
+}

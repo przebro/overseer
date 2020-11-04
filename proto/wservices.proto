@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+import "google/protobuf/any.proto";
+import "google/protobuf/empty.proto";
+
+package proto;
+option go_package = "proto/wservices";
+
+service TaskExecutionService{
+	rpc StartTask(StartTaskMsg) returns (TaskExecutionResponseMsg){}
+	rpc TaskStatus(TaskIdMsg) returns (TaskExecutionResponseMsg) {}
+	rpc WorkerStatus(google.protobuf.Empty) returns(WorkerStatusResponseMsg){}
+}
+
+message TaskIdMsg{
+	string taskID =1;
+}
+
+message StartTaskMsg{
+    TaskIdMsg taskID  =1;
+    string type = 2;
+    map<string,string> variables = 4;
+	google.protobuf.Any Command = 5;
+}
+
+message TaskExecutionResponseMsg{
+	bool started      = 1;
+	bool ended        = 2;
+	int32 returnCode  = 3;
+	int32 statusCode  = 4;
+	int32 pid         = 5;
+	repeated string output = 6;
+}
+
+message WorkerStatusResponseMsg{
+	int32 tasks  = 1;
+	int32 cpuload = 2;
+	int32 memused = 3;
+	int32 memtotal = 4;
+}

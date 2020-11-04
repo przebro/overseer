@@ -1,0 +1,32 @@
+{
+    "type" : "os",
+    "name" :"sample_03A",
+    "group" : "samples",
+    "description" :"sample os task definition",
+    "inticket" : [
+        {"name" : "IN-SAMPLE02C","odate" : "ODATE" },
+        {"name" : "IN-SAMPLE02X","odate" : "ODATE" }
+    ],
+    "relation" :"AND",
+    "flags" : [],
+    "outticket" :[
+        {"name" : "IN-SAMPLE02X","odate" : "ODATE" ,"action":"REM"},
+        {"name" : "IN-SAMPLE04B","odate" : "ODATE" ,"action":"ADD"}
+    ],
+    "variables" : [
+        {"name": "%%ABEND","value":"N"},
+        {"name": "%%MAX","value":"1"}
+    ]
+    ,
+    "schedule" :{
+        "type" : "daily",
+        "from" : "",
+        "to" : "",
+        "months" :[1,2,3,4,5,6,7,8,9,10,11,12],
+        "values" :[]
+    },
+    "spec" :{
+        "type" : "command","command" :"./chkprg argument -o %%ABEND"
+    }
+
+}

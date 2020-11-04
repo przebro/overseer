@@ -1,0 +1,25 @@
+{
+    "type" : "dummy",
+    "name" :"dummy_03",
+    "group" : "test",
+    "description" :"sample dummy task definition",
+    "inticket" : [
+        {"name" : "IN-DUMMY03","odate" : "ODATE" }
+    ],
+    "relation" :"AND",
+    "flags" : [],
+    "outticket" :[
+        {"name" : "OK-DUMMY03","odate" : "ODATE" ,"action":"ADD"},
+        {"name" : "IN-DUMMY03","odate" : "ODATE" ,"action":"REM"}
+        
+    ],
+    "schedule" :{
+        "type" : "manual",
+        "from" : "",
+        "to" : "",
+        "months" :[1,2,3,4,5,6,7,8,9,10,11,12],
+        "values" :[]
+    },
+    "other" : {"name" :"xxx","val" :"yyyy"}
+
+}

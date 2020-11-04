@@ -1,0 +1,30 @@
+{
+    "type" : "dummy",
+    "name" :"sample_04",
+    "group" : "samples",
+    "description" :"sample dummy task definition",
+    "inticket" : [
+        {"name" : "IN-SAMPLE04A","odate" : "ODATE" },
+        {"name" : "IN-SAMPLE04B","odate" : "ODATE" },
+        {"name" : "IN-SAMPLE04C","odate" : "ODATE" }
+    ],
+    "relation" :"AND",
+    "flags" : [],
+    "outticket" :[
+        {"name" : "IN-SAMPLE02C","odate" : "ODATE" ,"action":"REM"},
+        {"name" : "IN-SAMPLE02X","odate" : "ODATE" ,"action":"REM"},
+        {"name" : "IN-SAMPLE01A","odate" : "ODATE" ,"action":"REM"},
+        {"name" : "IN-SAMPLE04A","odate" : "ODATE" ,"action":"REM"},
+        {"name" : "IN-SAMPLE04B","odate" : "ODATE" ,"action":"REM"},
+        {"name" : "IN-SAMPLE04C","odate" : "ODATE" ,"action":"REM"}
+        
+    ],
+    "schedule" :{
+        "type" : "daily",
+        "from" : "",
+        "to" : "",
+        "months" :[1,2,3,4,5,6,7,8,9,10,11,12],
+        "values" :[]
+    }
+
+}

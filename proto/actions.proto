@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package proto;
+option go_package = "proto/actions";
+
+message DummyTaskAction {
+    string data = 1;
+}
+
+message OsTaskAction {
+    string type = 1;
+    string commandLine  = 2;
+    string runas = 3;
+}
