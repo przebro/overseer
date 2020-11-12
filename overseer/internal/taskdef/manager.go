@@ -275,7 +275,7 @@ func (m *taskManager) DeleteGroup(name string) error {
 	path := filepath.Join(m.dirPath, name)
 	finfo, err := os.Open(path)
 	if err != nil {
-		return err
+		return errors.New("can't find directory")
 	}
 
 	var stat os.FileInfo
