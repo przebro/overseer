@@ -1,5 +1,5 @@
 # goscheduler
-[![Build Status](https://travis-ci.com/przebro/goscheduler.svg?token=BuDzHpxjhcjeKFWW17aH&branch=main)](https://travis-ci.com/przebro/goscheduler)
+[![Build Status](https://travis-ci.com/przebro/goscheduler.svg?token=BuDzHpxjhcjeKFWW17aH&branch=develop)](https://travis-ci.com/przebro/goscheduler)
 ## About
 Goscheduler is a workflow manager and a task scheduler. Unlike cron-like schedulers,running tasks in goscheduler are controlled by resources: tickets and flags. this feature makes it easy to create robust and flexible workflows. Gosheduler is inspired by Control-M from BMC.
 
