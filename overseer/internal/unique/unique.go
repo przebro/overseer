@@ -3,8 +3,10 @@ package unique
 import (
 	"encoding/binary"
 	"encoding/hex"
+	"errors"
 	"goscheduler/overseer/internal/date"
 	"math/rand"
+	"regexp"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -20,20 +22,18 @@ type MsgID [12]byte
 //TaskOrderID - unique order id of a task
 type TaskOrderID string
 
-var oidSeq int32 = 0
+var (
+	oidSeq         int32   = 0
+	unq            *unique = nil
+	once           sync.Once
+	errInvalidLen  = errors.New("TaskOrderID invalid length")
+	errInvalidChar = errors.New("TaskOrderID contains invalid characters")
+)
 
-const maxOidSeq = 238328
-const base62Str = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-
-//Hex - Returns hex representation of a MsgID
-func (msgid MsgID) Hex() string {
-	bytes := make([]byte, 12)
-	copy(bytes, msgid[:])
-	return hex.EncodeToString(bytes)
-}
-
-var unq *unique = nil
-var once sync.Once
+const (
+	maxOidSeq = 238328
+	base62Str = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+)
 
 func initialize() {
 	unq = &unique{m: sync.Mutex{}}
@@ -54,6 +54,27 @@ func NewID() MsgID {
 
 	bytes := getUniqueBytes()
 	return bytes
+}
+
+//Hex - Returns hex representation of a MsgID
+func (msgid MsgID) Hex() string {
+	bytes := make([]byte, 12)
+	copy(bytes, msgid[:])
+	return hex.EncodeToString(bytes)
+}
+
+//ValidateValue - Validates TaskOrderID
+func (orderID TaskOrderID) validateValue() (bool, error) {
+
+	if len(orderID) != 5 {
+		return false, errInvalidLen
+	}
+	match, _ := regexp.MatchString(`[0-9A-Za-z]{5}`, string(orderID))
+
+	if !match {
+		return false, errInvalidChar
+	}
+	return true, nil
 }
 
 func getUniqueBytes() MsgID {

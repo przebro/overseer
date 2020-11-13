@@ -13,17 +13,14 @@ type (
 	//FlagResourcePolicy - type of flag
 	FlagResourcePolicy int8
 
-	//Name - Common property for all resources
-	Name string
-
 	//TicketResource - Condition resources
 	TicketResource struct {
-		Name  string
-		Odate date.Odate
+		Name  string     `validate:"required,max=32"`
+		Odate date.Odate `validate:"required,odate"`
 	}
 	//FlagResource - Semaphore like resources
 	FlagResource struct {
-		Name   string
+		Name   string `validate:"required,max=32"`
 		Policy FlagResourcePolicy
 		Count  int
 	}

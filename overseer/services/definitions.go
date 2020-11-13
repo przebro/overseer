@@ -5,23 +5,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"goscheduler/common/logger"
+	"goscheduler/common/validator"
 	"goscheduler/overseer/internal/taskdef"
+	"goscheduler/overseer/taskdata"
 	"goscheduler/proto/services"
 )
-
-//Servicer
-// type Servicer interface {
-// 	Service() int
-// }
 
 type ovsDefinitionService struct {
 	log        logger.AppLogger
 	defManager taskdef.TaskDefinitionManager
 }
-
-// func (srv *ovsDefinitionService) Service() int {
-// 	return 0
-// }
 
 //NewDefinistionService - Creates a new Definition service
 func NewDefinistionService(dm taskdef.TaskDefinitionManager) services.DefinitionServiceServer {
@@ -35,10 +28,18 @@ func (srv *ovsDefinitionService) GetDefinition(ctx context.Context, msg *service
 
 	var success bool = false
 	var resultMsg string = ""
-	tdata := make([]taskdef.TaskData, 0)
+	tdata := make([]taskdata.GroupNameData, 0)
 	result := &services.DefinitionResultMsg{}
+
 	for _, e := range msg.DefinitionMsg {
-		tdata = append(tdata, taskdef.TaskData{Group: e.GroupName, Name: e.TaskName})
+
+		data := taskdata.GroupNameData{Group: e.GroupName, Name: e.TaskName}
+		err := validator.Valid.Validate(data)
+		if err != nil {
+			result.DefinitionMsg = append(result.DefinitionMsg, &services.DefinitionResult{Success: false, Message: err.Error()})
+		} else {
+			tdata = append(tdata, data)
+		}
 	}
 
 	tasks, err := srv.defManager.GetTasks(tdata...)
@@ -72,7 +73,16 @@ func (srv *ovsDefinitionService) LockDefinition(ctx context.Context, msg *servic
 
 	result := &services.LockResultMsg{}
 	for _, e := range msg.DefinitionMsg {
-		lockID, err := srv.defManager.Lock(taskdef.TaskData{Group: e.GroupName, Name: e.TaskName})
+
+		data := taskdata.GroupNameData{Group: e.GroupName, Name: e.TaskName}
+		err := validator.Valid.Validate(data)
+
+		if err != nil {
+			result.LockResult = append(result.LockResult, &services.LockResult{Success: false, Message: err.Error()})
+			continue
+		}
+
+		lockID, err := srv.defManager.Lock(data)
 
 		if err != nil {
 			resultMsg = fmt.Sprintf("Unable to acquire lock for task group:%s task:%s", e.GroupName, e.TaskName)

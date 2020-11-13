@@ -133,6 +133,8 @@ message TaskDetailResultMsg{
     string endTime = 6;
     string worker = 7;
     repeated string output = 8;
+    bool success = 9;
+    string message = 10;
 
 }
 

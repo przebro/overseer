@@ -1,5 +1,10 @@
 package taskdef
 
+import (
+	"goscheduler/common/types"
+	"time"
+)
+
 //TaskBuilder - task builder.
 type TaskBuilder interface {
 	FromTemplate(def TaskDefinition) TaskBuilder
@@ -39,13 +44,14 @@ func (builder *DummyTaskBuilder) FromTemplate(templ TaskDefinition) TaskBuilder 
 	copy(builder.def.FlagsTab, templ.Flags())
 
 	builder.def.Schedule = SchedulingData{}
+
 	builder.def.Schedule.FromTime, builder.def.Schedule.ToTime = templ.TimeSpan()
 	builder.def.Schedule.AllowPastSub = templ.AllowPast()
 	builder.def.Schedule.OrderType = templ.OrderType()
-	builder.def.Schedule.Months = make([]MonthData, len(templ.Months()))
+	builder.def.Schedule.Months = make([]time.Month, len(templ.Months()))
 	copy(builder.def.Schedule.Months, templ.Months())
 
-	builder.def.Schedule.Values = make([]ExecutionValue, len(templ.Values()))
+	builder.def.Schedule.Values = make([]string, len(templ.Values()))
 	copy(builder.def.Schedule.Values, templ.Values())
 
 	return builder
@@ -120,7 +126,7 @@ func (builder *DummyTaskBuilder) WithRetention(days int) TaskBuilder {
 //Build - Builds a new task definition.
 func (builder *DummyTaskBuilder) Build() (TaskDefinition, error) {
 
-	builder.def.TaskType = TypeDummy
+	builder.def.TaskType = types.TypeDummy
 
 	//make a copy of a final product and clear builder instance of an object
 	prod := builder.def

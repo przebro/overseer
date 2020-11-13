@@ -8,6 +8,7 @@ import (
 	"goscheduler/overseer/internal/events"
 	"goscheduler/overseer/internal/taskdef"
 	"goscheduler/overseer/internal/unique"
+	"goscheduler/overseer/taskdata"
 	"strings"
 	"sync"
 )
@@ -37,9 +38,9 @@ func NewActiveTaskPoolManager(dispatcher events.Dispatcher, tdm taskdef.TaskDefi
 }
 
 //Order - Orders a new task, this method checks if all precoditions are met before it adds a new task
-func (manager *ActiveTaskPoolManager) Order(group, name string, odate date.Odate) (string, error) {
+func (manager *ActiveTaskPoolManager) Order(task taskdata.GroupNameData, odate date.Odate) (string, error) {
 
-	def, err := manager.tdm.GetTasks(taskdef.TaskData{Group: group, Name: name})
+	def, err := manager.tdm.GetTasks(task)
 	if err != nil {
 		return "", err
 	}
@@ -53,9 +54,9 @@ func (manager *ActiveTaskPoolManager) Order(group, name string, odate date.Odate
 }
 
 //Force - forces a new task, this method does not check for precondtions
-func (manager *ActiveTaskPoolManager) Force(group, name string, odate date.Odate) (string, error) {
+func (manager *ActiveTaskPoolManager) Force(task taskdata.GroupNameData, odate date.Odate) (string, error) {
 
-	def, err := manager.tdm.GetTasks(taskdef.TaskData{Group: group, Name: name})
+	def, err := manager.tdm.GetTasks(task)
 	if err != nil {
 		return "", err
 	}
@@ -123,7 +124,7 @@ func (manager *ActiveTaskPoolManager) Hold(id unique.TaskOrderID) (string, error
 	}
 	task.Hold()
 
-	return "", nil
+	return fmt.Sprintf("hold task:%s ok", id), nil
 }
 
 //Free - Frees a holded task
@@ -138,7 +139,7 @@ func (manager *ActiveTaskPoolManager) Free(id unique.TaskOrderID) (string, error
 	}
 	task.Free()
 
-	return "", nil
+	return fmt.Sprintf("free task:%s ok", id), nil
 }
 
 func (manager *ActiveTaskPoolManager) orderNewTasks() {
@@ -321,7 +322,7 @@ func (manager *ActiveTaskPoolManager) processAddToActivePool(msg events.RouteTas
 	var id unique.TaskOrderID
 	var result events.RouteTaskActionResponseFormat
 
-	def, err := manager.tdm.GetTasks(taskdef.TaskData{Name: msg.Name, Group: msg.Group})
+	def, err := manager.tdm.GetTasks(taskdata.GroupNameData{Name: msg.Name, Group: msg.Group})
 
 	if err != nil {
 		manager.log.Error(err)

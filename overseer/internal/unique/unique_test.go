@@ -47,5 +47,40 @@ func TestUnique(t *testing.T) {
 			t.Error("none value not equal zero")
 		}
 	}
+}
+
+func TestValidateOrderID(t *testing.T) {
+
+	ok, err := TaskOrderID("00000").validateValue()
+	if !ok {
+		t.Error(err)
+	}
+
+	ok, err = TaskOrderID("1111").validateValue()
+	if ok {
+		t.Error("Unexpected value, expected", false)
+	}
+
+	if err != errInvalidLen {
+		t.Error("Unexpected value, expected:", errInvalidLen, "actual:", err)
+	}
+
+	ok, err = TaskOrderID("112211").validateValue()
+	if ok {
+		t.Error("Unexpected value, expected", false)
+	}
+
+	if err != errInvalidLen {
+		t.Error("Unexpected value, expected:", errInvalidLen, "actual:", err)
+	}
+
+	ok, err = TaskOrderID("1aA2_").validateValue()
+	if ok {
+		t.Error("Unexpected value, expected", false)
+	}
+
+	if err != errInvalidChar {
+		t.Error("Unexpected value, expected:", errInvalidChar, "actual:", err)
+	}
 
 }

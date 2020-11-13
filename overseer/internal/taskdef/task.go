@@ -4,17 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"goscheduler/common/types"
+	"goscheduler/common/validator"
+	"goscheduler/overseer/internal/date"
 	"io/ioutil"
 	"strings"
+	"time"
 )
-
-//Type - task type
-type Type types.TaskType
-
-//OdateValue - Holds possible odate values.
-//ODATE - Expect a ticket with current order date
-//
-type OdateValue string
 
 //InTicketRelation - Restricts possible values of tickets relation.
 //Possible values are: AND, OR
@@ -24,43 +19,36 @@ type InTicketRelation string
 type FlagType string
 
 //SchedulingOption - how job will be ordered
-//Possible values are: SHR,EXL
 type SchedulingOption string
 
 //OutAction - Restricts possible out ticket action
 //Possible values are ADD,REM
 type OutAction string
 
-//MonthData - month data
-type MonthData int
-
-//ExecutionValue - schedule specific values
-type ExecutionValue string
-
 //InTicketData - Holds information about the required tickets to start a task
 type InTicketData struct {
-	Name  string     `json:"name" validate:"len=20"`
-	Odate OdateValue `json:"odate"`
+	Name  string          `json:"name" validate:"required,max=32,resname"`
+	Odate date.OdateValue `json:"odate" validate:"odateval"`
 }
 
 //OutTicketData - Holds an action for a given ticket that is performed after the successful execution of a task.
 type OutTicketData struct {
-	Name   string     `json:"name"`
-	Odate  OdateValue `json:"odate"`
-	Action OutAction  `json:"action"`
+	Name   string          `json:"name" validate:"required,max=32,resname"`
+	Odate  date.OdateValue `json:"odate" validate:"odateval"`
+	Action OutAction       `json:"action" validate:"required,oneof=ADD REM"`
 }
 
 //FlagData - Holds information about required flag resources.
 //If type is set to exclusive then the state of a flag in resources manager can be only none
 //If type is set to shared then the state of a flag in resources manager can be none or shared but not exclusive
 type FlagData struct {
-	Name string   `json:"name" validate:"lte=20"`
+	Name string   `json:"name" validate:"required,max=32,resname"`
 	Type FlagType `json:"type" validate:"oneof=SHR EXL"`
 }
 
 //VariableData - Holds variables that will be passed to the task.
 type VariableData struct {
-	Name  string `json:"name" validate:"lte=32,startswith=%%"`
+	Name  string `json:"name" validate:"required,max=32,varname"`
 	Value string `json:"value"`
 }
 
@@ -71,39 +59,29 @@ func (data VariableData) Expand() string {
 
 //SchedulingData - Holds informations how task should be scheduled.
 type SchedulingData struct {
-	OrderType    SchedulingOption  `json:"type"`
-	FromTime     types.HourMinTime `json:"from"`
-	ToTime       types.HourMinTime `json:"to"`
+	OrderType    SchedulingOption  `json:"type" validate:"required,oneof=manual daily weekday dayofmonth exact"`
+	FromTime     types.HourMinTime `json:"from" validate:"omitempty,hmtime"`
+	ToTime       types.HourMinTime `json:"to" validate:"omitempty,hmtime"`
 	AllowPastSub bool              `json:"pastsub"`
-	Months       []MonthData       `json:"months" validate:"unique"`
-	Values       []ExecutionValue  `json:"values"`
+	Months       []time.Month      `json:"months" validate:"unique"`
+	Values       []string          `json:"values"`
 }
 
 type baseTaskDefinition struct {
-	TaskType      Type             `json:"type" validate:"oneof= dummy os"`
-	Name          string           `json:"name" validate:"lte=32"`
-	Group         string           `json:"group" validate:"lte=16"`
+	TaskType      types.TaskType   `json:"type" validate:"oneof=dummy os"`
+	Name          string           `json:"name" validate:"required,max=32,resname"`
+	Group         string           `json:"group" validate:"required,max=20,resname"`
 	Description   string           `json:"description" validate:"lte=200"`
 	ConfirmFlag   bool             `json:"confirm"`
-	DataRetention int              `json:"retention" validate:"min=0,max=10"`
-	Schedule      SchedulingData   `json:"schedule"`
-	InTickets     []InTicketData   `json:"inticket"`
-	InRelation    InTicketRelation `json:"relation"`
-	FlagsTab      []FlagData       `json:"flags"`
-	OutTickets    []OutTicketData  `json:"outticket"`
-	TaskVariables []VariableData   `json:"variables"`
-	Data          json.RawMessage  `json:"spec" validate:"json"`
+	DataRetention int              `json:"retention" validate:"min=0,max=14"`
+	Schedule      SchedulingData   `json:"schedule" validate:"omitempty"`
+	InTickets     []InTicketData   `json:"inticket" validate:"omitempty,dive"`
+	InRelation    InTicketRelation `json:"relation" validate:"required_with=InTickets,omitempty,oneof=AND OR"`
+	FlagsTab      []FlagData       `json:"flags"  validate:"omitempty,dive"`
+	OutTickets    []OutTicketData  `json:"outticket"  validate:"omitempty,dive"`
+	TaskVariables []VariableData   `json:"variables"  validate:"omitempty,dive"`
+	Data          json.RawMessage  `json:"spec"`
 }
-
-//Task types
-const (
-	TypeDummy    Type = "dummy"
-	TypeOs       Type = "os"
-	TypeFtp      Type = "ftp"
-	TypeDatabase Type = "database"
-	TypeService  Type = "service"
-	TypeMessage  Type = "message"
-)
 
 //Ordering options
 const (
@@ -112,15 +90,6 @@ const (
 	OrderingWeek       SchedulingOption = "weekday"
 	OrderingDayOfMonth SchedulingOption = "dayofmonth"
 	OrderingExact      SchedulingOption = "exact"
-)
-
-//Possible odate values
-const (
-	OdateDate OdateValue = "ODATE"
-	OdateNext OdateValue = "NEXT"
-	OdatePrev OdateValue = "PREV"
-	OdateAny  OdateValue = "*"
-	OdateNone OdateValue = ""
 )
 
 //Possible flag types
@@ -167,9 +136,9 @@ func (p *OutAction) UnmarshalJSON(data []byte) error {
 type TaskScheduling interface {
 	OrderType() SchedulingOption
 	TimeSpan() (types.HourMinTime, types.HourMinTime)
-	Months() []MonthData
+	Months() []time.Month
 	AllowPast() bool
-	Values() []ExecutionValue
+	Values() []string
 }
 
 func (task *baseTaskDefinition) OrderType() SchedulingOption {
@@ -178,14 +147,14 @@ func (task *baseTaskDefinition) OrderType() SchedulingOption {
 func (task *baseTaskDefinition) TimeSpan() (types.HourMinTime, types.HourMinTime) {
 	return task.Schedule.FromTime, task.Schedule.ToTime
 }
-func (task *baseTaskDefinition) Months() []MonthData {
+func (task *baseTaskDefinition) Months() []time.Month {
 	return task.Schedule.Months
 }
 func (task *baseTaskDefinition) AllowPast() bool {
 	return task.Schedule.AllowPastSub
 }
 
-func (task *baseTaskDefinition) Values() []ExecutionValue {
+func (task *baseTaskDefinition) Values() []string {
 	return task.Schedule.Values
 }
 
@@ -241,7 +210,7 @@ type TaskDefinition interface {
 	TaskInTicket
 	TaskOutTicket
 	TaskFlag
-	TypeName() Type
+	TypeName() types.TaskType
 	Confirm() bool
 	Retention() int
 	Variables() []VariableData
@@ -249,7 +218,7 @@ type TaskDefinition interface {
 }
 
 //TypeName - returns task's type
-func (task *baseTaskDefinition) TypeName() Type {
+func (task *baseTaskDefinition) TypeName() types.TaskType {
 	return task.TaskType
 }
 
@@ -295,11 +264,14 @@ func FromString(data string) (TaskDefinition, error) {
 		return nil, err
 	}
 
-	if def.TaskType == TypeDummy {
+	if def.TaskType == types.TypeDummy {
 		result = &def
 	}
+	if err = validator.Valid.Validate(def); err != nil {
+		return nil, err
+	}
 
-	if def.TaskType == TypeOs {
+	if def.TaskType == types.TypeOs {
 		data := OsTaskData{}
 		json.Unmarshal([]byte(def.Data), &data)
 		result = &OsTaskDefinition{baseTaskDefinition: def, Spec: data}

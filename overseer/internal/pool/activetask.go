@@ -48,11 +48,11 @@ type activeTask struct {
 
 func newActiveTask(orderID unique.TaskOrderID, odate date.Odate, definition taskdef.TaskDefinition) *activeTask {
 
-	resolvedOdate := map[taskdef.OdateValue]string{
-		taskdef.OdateDate: string(odate),
-		taskdef.OdatePrev: string(odate),
-		taskdef.OdateNext: string(odate),
-		taskdef.OdateAny:  string(taskdef.OdateAny),
+	resolvedOdate := map[date.OdateValue]string{
+		date.OdateValueDate: string(odate),
+		date.OdateValuePrev: string(odate),
+		date.OdateValueNext: string(odate),
+		date.OdateValueAny:  string(date.OdateValueNone),
 	}
 
 	tickets := make([]taskInTicket, 0)

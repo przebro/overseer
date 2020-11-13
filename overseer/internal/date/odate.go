@@ -1,14 +1,41 @@
 package date
 
 import (
+	"errors"
 	"fmt"
-	"goscheduler/overseer/internal/taskdef"
+
 	"strconv"
 	"time"
 )
 
 //Odate - helper type for order date format YYYYMMDD
 type Odate string
+
+//OdateValue - Holds possible odate values.
+type OdateValue string
+
+const (
+	//OdateNone - Empty Odate
+	OdateNone Odate = ""
+	//OdateValueDate ODATE - Expect a ticket with current order date
+	OdateValueDate OdateValue = "ODATE"
+	//OdateValueNext NEXT - Expect a ticket with next planned order date of a job
+	OdateValueNext OdateValue = "NEXT"
+	//OdateValuePrev PREV - Expect a ticket with previous successful execution of a job
+	OdateValuePrev OdateValue = "PREV"
+	//OdateValueAny * - Expect a ticket with any odate
+	OdateValueAny OdateValue = "*"
+	//OdateValueNone - Expect a ticket without specific odate
+	OdateValueNone OdateValue = ""
+)
+
+var (
+	errOdateInvalidYear  = errors.New("Odate invalid year")
+	errOdateInvalidLen   = errors.New("Odate invalid length")
+	errOdateNotNumeric   = errors.New("Odate contains non numeric data")
+	errOdateInvalidMonth = errors.New("Odate invalid month")
+	errOdateInvalidDay   = errors.New("Odate invalid day of month")
+)
 
 //ODATE -returns odate in format YYMMDD
 func (date Odate) ODATE() string {
@@ -91,7 +118,7 @@ func CurrentOdate() Odate {
 }
 
 //IsInDayOfWeek - check if tasks day of week is in odate
-func IsInDayOfWeek(odate Odate, values []taskdef.ExecutionValue) bool {
+func IsInDayOfWeek(odate Odate, values []string) bool {
 
 	wday := odate.Wday()
 	for _, val := range values {
@@ -106,7 +133,7 @@ func IsInDayOfWeek(odate Odate, values []taskdef.ExecutionValue) bool {
 }
 
 //IsInDayOfMonth - check if day of execution is in odate
-func IsInDayOfMonth(odate Odate, values []taskdef.ExecutionValue) bool {
+func IsInDayOfMonth(odate Odate, values []string) bool {
 
 	day := odate.Oday()
 	for _, val := range values {
@@ -119,7 +146,7 @@ func IsInDayOfMonth(odate Odate, values []taskdef.ExecutionValue) bool {
 }
 
 //IsInExactDate check if tasks execiution date is in odate
-func IsInExactDate(odate Odate, values []taskdef.ExecutionValue) bool {
+func IsInExactDate(odate Odate, values []string) bool {
 
 	dt := odate.FormatDate()
 	for _, val := range values {
@@ -133,7 +160,7 @@ func IsInExactDate(odate Odate, values []taskdef.ExecutionValue) bool {
 }
 
 //IsInMonth - check if tasks month is in odate
-func IsInMonth(odate Odate, values []taskdef.MonthData) bool {
+func IsInMonth(odate Odate, values []time.Month) bool {
 
 	mth, _ := strconv.Atoi(odate.Omonth())
 	for _, val := range values {

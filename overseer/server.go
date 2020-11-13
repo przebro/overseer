@@ -86,6 +86,8 @@ func (s *Overseer) Start() error {
 		daily.DailyProcedure()
 	}
 
+	s.registerValidators()
+
 	s.logger.Info("Start grpc")
 	rservice := services.NewResourceService(s.resources)
 	dservice := services.NewDefinistionService(s.taskdef)
@@ -95,6 +97,10 @@ func (s *Overseer) Start() error {
 	err = s.ovsGrpcSrv.Listen(s.conf.Host, s.conf.Port)
 
 	return err
+
+}
+
+func (s *Overseer) registerValidators() {
 
 }
 

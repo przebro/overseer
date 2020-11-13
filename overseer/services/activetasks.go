@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"goscheduler/common/logger"
+	"goscheduler/common/validator"
 	"goscheduler/overseer/internal/date"
 	"goscheduler/overseer/internal/pool"
 	"goscheduler/overseer/internal/unique"
+	"goscheduler/overseer/taskdata"
 	"goscheduler/proto/services"
 )
 
@@ -27,7 +29,25 @@ func NewTaskService(m *pool.ActiveTaskPoolManager, p pool.TaskViewer) services.T
 func (srv *ovsActiveTaskService) OrderTask(ctx context.Context, in *services.TaskOrderMsg) (*services.ActionResultMsg, error) {
 
 	response := &services.ActionResultMsg{}
-	result, err := srv.manager.Order(in.TaskGroup, in.TaskName, date.Odate(in.Odate))
+
+	odate := date.Odate(in.Odate)
+
+	if err := validator.Valid.Validate(odate); err != nil {
+		response.Success = false
+		response.Message = err.Error()
+		return response, nil
+	}
+
+	data := taskdata.GroupNameData{Group: in.TaskGroup, Name: in.TaskName}
+
+	if err := validator.Valid.Validate(data); err != nil {
+		response.Success = false
+		response.Message = err.Error()
+		return response, nil
+
+	}
+
+	result, err := srv.manager.Order(data, odate)
 	if err != nil {
 		response.Success = false
 		response.Message = err.Error()
@@ -43,7 +63,24 @@ func (srv *ovsActiveTaskService) OrderTask(ctx context.Context, in *services.Tas
 func (srv *ovsActiveTaskService) ForceTask(ctx context.Context, in *services.TaskOrderMsg) (*services.ActionResultMsg, error) {
 
 	response := &services.ActionResultMsg{}
-	result, err := srv.manager.Force(in.TaskGroup, in.TaskName, date.Odate(in.Odate))
+
+	odate := date.Odate(in.Odate)
+	if err := validator.Valid.Validate(odate); err != nil {
+		response.Success = false
+		response.Message = err.Error()
+		return response, nil
+	}
+
+	data := taskdata.GroupNameData{Group: in.TaskGroup, Name: in.TaskName}
+
+	if err := validator.Valid.Validate(data); err != nil {
+		response.Success = false
+		response.Message = err.Error()
+		return response, nil
+
+	}
+
+	result, err := srv.manager.Force(data, odate)
 	if err != nil {
 		response.Success = false
 		response.Message = err.Error()
@@ -59,7 +96,17 @@ func (srv *ovsActiveTaskService) ForceTask(ctx context.Context, in *services.Tas
 func (srv *ovsActiveTaskService) RerunTask(ctx context.Context, in *services.TaskActionMsg) (*services.ActionResultMsg, error) {
 
 	response := &services.ActionResultMsg{}
-	result, err := srv.manager.Rerun(unique.TaskOrderID(in.TaskID))
+
+	orderID := unique.TaskOrderID(in.TaskID)
+
+	if err := validator.Valid.Validate(orderID); err != nil {
+
+		response.Success = false
+		response.Message = err.Error()
+		return response, nil
+	}
+
+	result, err := srv.manager.Rerun(orderID)
 	if err != nil {
 		response.Success = false
 		response.Message = err.Error()
@@ -76,33 +123,62 @@ func (srv *ovsActiveTaskService) RerunTask(ctx context.Context, in *services.Tas
 func (srv *ovsActiveTaskService) HoldTask(ctx context.Context, in *services.TaskActionMsg) (*services.ActionResultMsg, error) {
 
 	response := &services.ActionResultMsg{}
-	result, err := srv.manager.Hold(unique.TaskOrderID(in.TaskID))
-	if err != nil {
 
+	orderID := unique.TaskOrderID(in.TaskID)
+
+	if err := validator.Valid.Validate(orderID); err != nil {
+
+		response.Success = false
+		response.Message = err.Error()
 	}
 
+	result, err := srv.manager.Hold(orderID)
 	response.Message = result
-	response.Success = true
+
+	if err != nil {
+		response.Success = false
+	} else {
+		response.Success = true
+	}
 
 	return response, nil
 }
 func (srv *ovsActiveTaskService) FreeTask(ctx context.Context, in *services.TaskActionMsg) (*services.ActionResultMsg, error) {
 
 	response := &services.ActionResultMsg{}
-	result, err := srv.manager.Free(unique.TaskOrderID(in.TaskID))
-	if err != nil {
 
+	orderID := unique.TaskOrderID(in.TaskID)
+
+	if err := validator.Valid.Validate(orderID); err != nil {
+
+		response.Success = false
+		response.Message = err.Error()
 	}
 
+	result, err := srv.manager.Free(orderID)
 	response.Message = result
-	response.Success = true
+
+	if err != nil {
+		response.Success = false
+	} else {
+		response.Success = true
+	}
 
 	return response, nil
 }
 func (srv *ovsActiveTaskService) SetToOk(ctx context.Context, in *services.TaskActionMsg) (*services.ActionResultMsg, error) {
 
 	response := &services.ActionResultMsg{}
-	result, err := srv.manager.SetOk(unique.TaskOrderID(in.TaskID))
+
+	orderID := unique.TaskOrderID(in.TaskID)
+
+	if err := validator.Valid.Validate(orderID); err != nil {
+
+		response.Success = false
+		response.Message = err.Error()
+	}
+
+	result, err := srv.manager.SetOk(orderID)
 	if err != nil {
 
 	}
@@ -131,8 +207,18 @@ func (srv *ovsActiveTaskService) TaskDetail(ctx context.Context, in *services.Ta
 
 	response := &services.TaskDetailResultMsg{}
 
-	result, err := srv.poolView.Detail(unique.TaskOrderID(in.TaskID))
+	orderID := unique.TaskOrderID(in.TaskID)
+
+	if err := validator.Valid.Validate(orderID); err != nil {
+
+		response.Success = false
+		response.Message = err.Error()
+	}
+
+	result, err := srv.poolView.Detail(orderID)
 	if err != nil {
+		response.Success = false
+		response.Message = err.Error()
 		return response, err
 	}
 
@@ -152,6 +238,7 @@ func (srv *ovsActiveTaskService) TaskDetail(ctx context.Context, in *services.Ta
 	response.RunNumber = result.RunNumber
 	response.Worker = result.Worker
 	response.Output = result.Output
+	response.Success = true
 
 	return response, nil
 }

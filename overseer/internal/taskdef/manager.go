@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"goscheduler/common/logger"
+	"goscheduler/overseer/taskdata"
 	"io"
 	"io/ioutil"
 	"os"
@@ -13,12 +14,6 @@ import (
 	"sync"
 	"sync/atomic"
 )
-
-//TaskData  - helper data for managing task
-type TaskData struct {
-	Group string
-	Name  string
-}
 
 //:TODO lock multithread
 var lockIDSeq uint32 = 1
@@ -38,15 +33,15 @@ type taskManager struct {
 
 //TaskDefinitionManager - main component responsible for a task CRUD
 type TaskDefinitionManager interface {
-	GetTasks(tasks ...TaskData) ([]TaskDefinition, error)
+	GetTasks(tasks ...taskdata.GroupNameData) ([]TaskDefinition, error)
 	GetGroups() []string
-	GetTasksFromGroup(groups []string) ([]TaskData, error)
-	Lock(task TaskData) (uint32, error)
+	GetTasksFromGroup(groups []string) ([]taskdata.GroupNameData, error)
+	Lock(task taskdata.GroupNameData) (uint32, error)
 	Unlock(lockID uint32) error
 	Create(task TaskDefinition) error
 	CreateGroup(name string) error
 	Update(lockID uint32, task TaskDefinition) error
-	Delete(lockID uint32, task TaskData) error
+	Delete(lockID uint32, task taskdata.GroupNameData) error
 	DeleteGroup(name string) error
 }
 
@@ -61,7 +56,7 @@ func NewManager(path string) (TaskDefinitionManager, error) {
 	return t, nil
 }
 
-func (m *taskManager) GetTasks(tasks ...TaskData) ([]TaskDefinition, error) {
+func (m *taskManager) GetTasks(tasks ...taskdata.GroupNameData) ([]TaskDefinition, error) {
 
 	result := make([]TaskDefinition, 0)
 	for _, n := range tasks {
@@ -79,9 +74,9 @@ func (m *taskManager) GetTasks(tasks ...TaskData) ([]TaskDefinition, error) {
 	return result, nil
 }
 
-func (m *taskManager) GetTasksFromGroup(groups []string) ([]TaskData, error) {
+func (m *taskManager) GetTasksFromGroup(groups []string) ([]taskdata.GroupNameData, error) {
 
-	result := make([]TaskData, 0)
+	result := make([]taskdata.GroupNameData, 0)
 
 	for _, grp := range groups {
 
@@ -96,7 +91,7 @@ func (m *taskManager) GetTasksFromGroup(groups []string) ([]TaskData, error) {
 			if nfo.IsDir() == false {
 
 				nameExt := strings.Split(nfo.Name(), ".")
-				result = append(result, TaskData{Group: grp, Name: nameExt[0]})
+				result = append(result, taskdata.GroupNameData{Group: grp, Name: nameExt[0]})
 			}
 		}
 	}
@@ -122,7 +117,7 @@ func (m *taskManager) GetGroups() []string {
 
 	return groups
 }
-func (m *taskManager) Lock(task TaskData) (uint32, error) {
+func (m *taskManager) Lock(task taskdata.GroupNameData) (uint32, error) {
 	defer m.lock.Unlock()
 	m.lock.Lock()
 
@@ -244,7 +239,7 @@ func (m *taskManager) Update(lockID uint32, task TaskDefinition) error {
 
 	return nil
 }
-func (m *taskManager) Delete(lockID uint32, task TaskData) error {
+func (m *taskManager) Delete(lockID uint32, task taskdata.GroupNameData) error {
 
 	defer m.lock.Unlock()
 	m.lock.Lock()

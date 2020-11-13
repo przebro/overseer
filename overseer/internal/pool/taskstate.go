@@ -382,11 +382,11 @@ func (state ostatePostProcessing) processState(ctx *TaskExecutionContext) bool {
 
 	for i, t := range outticket {
 		//:TODO in future this should be computed from history and from projection
-		resolvedOdate := map[taskdef.OdateValue]string{
-			taskdef.OdateDate: string(ctx.odate),
-			taskdef.OdatePrev: string(ctx.odate),
-			taskdef.OdateNext: string(ctx.odate),
-			taskdef.OdateAny:  string(taskdef.OdateAny),
+		resolvedOdate := map[date.OdateValue]string{
+			date.OdateValueDate: string(ctx.odate),
+			date.OdateValuePrev: string(ctx.odate),
+			date.OdateValueNext: string(ctx.odate),
+			date.OdateValueAny:  string(date.OdateValueAny),
 		}
 
 		ticketMsg.Tickets[i].Name = t.Name

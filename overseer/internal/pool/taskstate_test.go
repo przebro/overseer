@@ -227,10 +227,10 @@ func TestStateCheckCond(t *testing.T) {
 	definition, err := builder.WithBase("test", "dummy_04", "test task").
 		WithInTicekts([]taskdef.InTicketData{
 			taskdef.InTicketData{
-				Name: "TESTABC01", Odate: taskdef.OdateDate,
+				Name: "TESTABC01", Odate: date.OdateValueDate,
 			},
 			taskdef.InTicketData{
-				Name: "TESTABC02", Odate: taskdef.OdateDate,
+				Name: "TESTABC02", Odate: date.OdateValueDate,
 			},
 		}, "AND").
 		Build()
@@ -277,10 +277,10 @@ func TestStateCheckCond(t *testing.T) {
 	definition, err = builder.FromTemplate(definition).
 		WithInTicekts([]taskdef.InTicketData{
 			taskdef.InTicketData{
-				Name: "TESTABC01", Odate: taskdef.OdateDate,
+				Name: "TESTABC01", Odate: date.OdateValueDate,
 			},
 			taskdef.InTicketData{
-				Name: "TESTABC02", Odate: taskdef.OdateDate,
+				Name: "TESTABC02", Odate: date.OdateValueDate,
 			},
 		}, "OR").Build()
 
@@ -307,10 +307,10 @@ func TestStateCheckCond(t *testing.T) {
 	definition, err = builder.FromTemplate(definition).
 		WithInTicekts([]taskdef.InTicketData{
 			taskdef.InTicketData{
-				Name: "TESTABC01", Odate: taskdef.OdateDate,
+				Name: "TESTABC01", Odate: date.OdateValueDate,
 			},
 			taskdef.InTicketData{
-				Name: "TESTABC02", Odate: taskdef.OdateDate,
+				Name: "TESTABC02", Odate: date.OdateValueDate,
 			},
 		}, "AND").Build()
 
@@ -328,10 +328,10 @@ func TestStateCheckCond(t *testing.T) {
 	definition, err = builder.FromTemplate(definition).
 		WithInTicekts([]taskdef.InTicketData{
 			taskdef.InTicketData{
-				Name: "TESTABC01", Odate: taskdef.OdateDate,
+				Name: "TESTABC01", Odate: date.OdateValueDate,
 			},
 			taskdef.InTicketData{
-				Name: "TESTABC02", Odate: taskdef.OdateDate,
+				Name: "TESTABC02", Odate: date.OdateValueDate,
 			},
 		}, "OR").Build()
 
@@ -462,7 +462,7 @@ func TestStateCheckCalendar(t *testing.T) {
 	definition, err = builder.FromTemplate(definition).
 		WithSchedule(taskdef.SchedulingData{
 			OrderType: taskdef.OrderingDaily,
-			Months:    []taskdef.MonthData{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
+			Months:    []time.Month{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
 		}).Build()
 
 	ctx.def = definition
@@ -478,8 +478,8 @@ func TestStateCheckCalendar(t *testing.T) {
 	definition, err = builder.FromTemplate(definition).
 		WithSchedule(taskdef.SchedulingData{
 			OrderType: taskdef.OrderingWeek,
-			Months:    []taskdef.MonthData{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
-			Values:    []taskdef.ExecutionValue{taskdef.ExecutionValue(fmt.Sprintf("%d", wday))},
+			Months:    []time.Month{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
+			Values:    []string{fmt.Sprintf("%d", wday)},
 		}).Build()
 
 	ctx.def = definition
@@ -492,8 +492,8 @@ func TestStateCheckCalendar(t *testing.T) {
 	definition, err = builder.FromTemplate(definition).
 		WithSchedule(taskdef.SchedulingData{
 			OrderType: taskdef.OrderingWeek,
-			Months:    []taskdef.MonthData{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
-			Values:    []taskdef.ExecutionValue{taskdef.ExecutionValue(fmt.Sprintf("%d", nday))},
+			Months:    []time.Month{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
+			Values:    []string{fmt.Sprintf("%d", nday)},
 		}).Build()
 
 	ctx.def = definition
@@ -509,8 +509,8 @@ func TestStateCheckCalendar(t *testing.T) {
 	definition, err = builder.FromTemplate(definition).
 		WithSchedule(taskdef.SchedulingData{
 			OrderType: taskdef.OrderingDayOfMonth,
-			Months:    []taskdef.MonthData{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
-			Values:    []taskdef.ExecutionValue{taskdef.ExecutionValue(fmt.Sprintf("%02d", dofmonth))},
+			Months:    []time.Month{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
+			Values:    []string{fmt.Sprintf("%02d", dofmonth)},
 		}).Build()
 
 	ctx.def = definition
@@ -523,8 +523,8 @@ func TestStateCheckCalendar(t *testing.T) {
 	definition, err = builder.FromTemplate(definition).
 		WithSchedule(taskdef.SchedulingData{
 			OrderType: taskdef.OrderingDayOfMonth,
-			Months:    []taskdef.MonthData{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
-			Values:    []taskdef.ExecutionValue{taskdef.ExecutionValue(fmt.Sprintf("%02d", ndofmonth))},
+			Months:    []time.Month{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
+			Values:    []string{fmt.Sprintf("%02d", ndofmonth)},
 		}).Build()
 
 	ctx.def = definition
@@ -542,8 +542,8 @@ func TestStateCheckCalendar(t *testing.T) {
 	definition, err = builder.FromTemplate(definition).
 		WithSchedule(taskdef.SchedulingData{
 			OrderType: taskdef.OrderingExact,
-			Months:    []taskdef.MonthData{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
-			Values:    []taskdef.ExecutionValue{taskdef.ExecutionValue(edate)},
+			Months:    []time.Month{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
+			Values:    []string{edate},
 		}).Build()
 
 	ctx.def = definition
@@ -556,8 +556,8 @@ func TestStateCheckCalendar(t *testing.T) {
 	definition, err = builder.FromTemplate(definition).
 		WithSchedule(taskdef.SchedulingData{
 			OrderType: taskdef.OrderingExact,
-			Months:    []taskdef.MonthData{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
-			Values:    []taskdef.ExecutionValue{taskdef.ExecutionValue(nedate)},
+			Months:    []time.Month{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
+			Values:    []string{nedate},
 		}).Build()
 
 	ctx.def = definition
@@ -570,8 +570,8 @@ func TestStateCheckCalendar(t *testing.T) {
 	definition, err = builder.FromTemplate(definition).
 		WithSchedule(taskdef.SchedulingData{
 			OrderType: taskdef.OrderingManual,
-			Months:    []taskdef.MonthData{},
-			Values:    []taskdef.ExecutionValue{taskdef.ExecutionValue(nedate)},
+			Months:    []time.Month{},
+			Values:    []string{nedate},
 		}).Build()
 
 	ctx.def = definition

@@ -3,55 +3,59 @@ package taskdef
 import (
 	"fmt"
 	"goscheduler/common/logger"
+	"goscheduler/common/types"
+	"goscheduler/overseer/internal/date"
+	"goscheduler/overseer/taskdata"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 var log logger.AppLogger = logger.NewTestLogger()
 
 var expect TaskDefinition = &baseTaskDefinition{
 	Name: "dummy_01", Group: "", Description: "sample dummy task definition", ConfirmFlag: false, TaskType: "dummy",
-	InTickets:  []InTicketData{InTicketData{Name: "OK-COND-01", Odate: OdateDate}},
+	InTickets:  []InTicketData{InTicketData{Name: "OK-COND-01", Odate: date.OdateValueDate}},
 	InRelation: InTicketAND,
-	OutTickets: []OutTicketData{OutTicketData{Name: "OK-COND-02", Action: OutActionAdd, Odate: OdateDate}},
+	OutTickets: []OutTicketData{OutTicketData{Name: "OK-COND-02", Action: OutActionAdd, Odate: date.OdateValueDate}},
 	FlagsTab:   []FlagData{FlagData{Name: "flag01", Type: FlagShared}},
 	Schedule: SchedulingData{
 		OrderType: "weekday",
 		FromTime:  "11:30",
 		ToTime:    "",
-		Months:    []MonthData{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
-		Values:    []ExecutionValue{"1", "3", "5"},
+		Months:    []time.Month{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
+		Values:    []string{"1", "3", "5"},
 	},
 }
 var expect2 TaskDefinition = &baseTaskDefinition{
 	Name: "dummy_02", Group: "", Description: "sample modified dummy task definition", ConfirmFlag: false, TaskType: "dummy",
-	InTickets:  []InTicketData{InTicketData{Name: "OK-COND-01", Odate: OdateDate}},
+	InTickets:  []InTicketData{InTicketData{Name: "OK-COND-01", Odate: date.OdateValueDate}},
 	InRelation: InTicketAND,
-	OutTickets: []OutTicketData{OutTicketData{Name: "OK-COND-02", Action: OutActionAdd, Odate: OdateDate}},
+	OutTickets: []OutTicketData{OutTicketData{Name: "OK-COND-02", Action: OutActionAdd, Odate: date.OdateValueDate}},
 	FlagsTab:   []FlagData{FlagData{Name: "flag01", Type: FlagShared}},
 	Schedule: SchedulingData{
 		OrderType: "weekday",
 		FromTime:  "15:30",
 		ToTime:    "",
-		Months:    []MonthData{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
-		Values:    []ExecutionValue{"1", "3", "5"},
+		Months:    []time.Month{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
+		Values:    []string{"1", "3", "5"},
 	},
 }
 
 var expect3 TaskDefinition = &baseTaskDefinition{
-	Name: "dummy_04", Group: "test", Description: "sample modified dummy task definition", ConfirmFlag: false, TaskType: TypeOs,
+	Name: "dummy_04", Group: "test", Description: "sample modified dummy task definition", ConfirmFlag: false, TaskType: types.TypeOs,
 	DataRetention: 1,
-	InTickets:     []InTicketData{InTicketData{Name: "OK-COND-01", Odate: OdateDate}},
+	InTickets:     []InTicketData{InTicketData{Name: "OK-COND-01", Odate: date.OdateValueDate}},
 	InRelation:    InTicketAND,
-	OutTickets:    []OutTicketData{OutTicketData{Name: "OK-COND-02", Action: OutActionAdd, Odate: OdateDate}},
+	OutTickets:    []OutTicketData{OutTicketData{Name: "OK-COND-02", Action: OutActionAdd, Odate: date.OdateValueDate}},
 	FlagsTab:      []FlagData{FlagData{Name: "flag01", Type: FlagExclusive}},
 	Schedule: SchedulingData{
 		OrderType:    OrderingDayOfMonth,
 		FromTime:     "15:30",
 		ToTime:       "",
-		Months:       []MonthData{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
-		Values:       []ExecutionValue{"1", "3", "5"},
+		Months:       []time.Month{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
+		Values:       []string{"1", "3", "5"},
 		AllowPastSub: false,
 	},
 }
@@ -84,7 +88,7 @@ func TestTaskData(t *testing.T) {
 	if len(expect3.Months()) != 12 {
 		t.Error("task data invalid  months")
 	}
-	if expect3.TypeName() != TypeOs {
+	if expect3.TypeName() != types.TypeOs {
 		t.Error("task data invalid  tasktype")
 	}
 }
@@ -195,25 +199,25 @@ func TestManagerLock(t *testing.T) {
 	}
 
 	//locking an empty task is not possible
-	_, err = manager.Lock(TaskData{Group: "", Name: ""})
+	_, err = manager.Lock(taskdata.GroupNameData{Group: "", Name: ""})
 	if !strings.Contains(err.Error(), "task name not given") {
 		t.Error("Lock error,empty task name not allowed")
 	}
 
 	// acquire new lock
-	lID, err := manager.Lock(TaskData{Group: "test", Name: "dummy_01"})
+	lID, err := manager.Lock(taskdata.GroupNameData{Group: "test", Name: "dummy_01"})
 	if err != nil {
 		t.Error("Lock error")
 	}
 
 	//acquiring a new lock for a task that is already locked isn't possible
-	_, err = manager.Lock(TaskData{Group: "test", Name: "dummy_01"})
+	_, err = manager.Lock(taskdata.GroupNameData{Group: "test", Name: "dummy_01"})
 	if !strings.Contains(err.Error(), "Unable to acquire lock") {
 		t.Error("Lock error, object already locked")
 	}
 
 	// locking a task that doesn't exisits isn't possible
-	_, err = manager.Lock(TaskData{Group: "test", Name: "dummy_0123"})
+	_, err = manager.Lock(taskdata.GroupNameData{Group: "test", Name: "dummy_0123"})
 	if err == nil {
 		t.Error("Lock error,a file that not exists locked")
 	}
@@ -232,11 +236,11 @@ func TestManagerUpdate(t *testing.T) {
 	manager, _ := NewManager(path)
 	modTask, modTask2, modTask3, modTask4 := helperCreateTasks()
 
-	lockID, err := manager.Lock(TaskData{Name: "dummy_01", Group: "test"})
+	lockID, err := manager.Lock(taskdata.GroupNameData{Name: "dummy_01", Group: "test"})
 	if err != nil {
 		t.Fatal("Unable to lock task", err)
 	}
-	def, err := manager.GetTasks(TaskData{Name: "dummy_01", Group: "test"})
+	def, err := manager.GetTasks(taskdata.GroupNameData{Name: "dummy_01", Group: "test"})
 
 	if len(def) == 0 {
 		t.Fatal("def expected not empty")
@@ -287,20 +291,20 @@ func TestManagerCreateDelete(t *testing.T) {
 	name, grp, _ := modTask.GetInfo()
 	name2, grp2, _ := modTask2.GetInfo()
 
-	err := manager.Delete(0, TaskData{Group: grp, Name: name})
+	err := manager.Delete(0, taskdata.GroupNameData{Group: grp, Name: name})
 	if !strings.Contains(err.Error(), "given lockID does not exists") {
 		t.Error("Delete error", err)
 
 	}
 
-	lockID, err := manager.Lock(TaskData{Name: "dummy_01", Group: "test"})
+	lockID, err := manager.Lock(taskdata.GroupNameData{Name: "dummy_01", Group: "test"})
 
-	err = manager.Delete(lockID, TaskData{Name: "", Group: ""})
+	err = manager.Delete(lockID, taskdata.GroupNameData{Name: "", Group: ""})
 	if !strings.Contains(err.Error(), "group and name does not match with lockID") {
 		t.Error("Delete error", err)
 
 	}
-	err = manager.Delete(lockID, TaskData{Name: name2, Group: grp2})
+	err = manager.Delete(lockID, taskdata.GroupNameData{Name: name2, Group: grp2})
 	if !strings.Contains(err.Error(), "group and name does not match with lockID") {
 		t.Error("Delete error", err)
 
@@ -320,9 +324,9 @@ func TestManagerCreateDelete(t *testing.T) {
 
 	}
 
-	lockID, err = manager.Lock(TaskData{Name: "dummy_AA", Group: "test"})
+	lockID, err = manager.Lock(taskdata.GroupNameData{Name: "dummy_AA", Group: "test"})
 
-	err = manager.Delete(lockID, TaskData{Name: "dummy_AA", Group: "test"})
+	err = manager.Delete(lockID, taskdata.GroupNameData{Name: "dummy_AA", Group: "test"})
 	if err != nil {
 		t.Error("Delete error", err)
 	}
@@ -336,7 +340,7 @@ func TestGetTask(t *testing.T) {
 		t.Fatal("unable to intialize manager")
 	}
 
-	result, err := manager.GetTasks(TaskData{Name: "dummy_01", Group: "test"}, TaskData{Name: "task_that_does_not_exists", Group: "test"})
+	result, err := manager.GetTasks(taskdata.GroupNameData{Name: "dummy_01", Group: "test"}, taskdata.GroupNameData{Name: "task_that_does_not_exists", Group: "test"})
 	if err == nil {
 		t.Error("unexpected value, task does not exists")
 	}
@@ -393,63 +397,63 @@ func helperCreateTasks() (t1, t2, t3, t4 TaskDefinition) {
 	t1 = &baseTaskDefinition{
 		TaskType: "dummy",
 		Name:     "dummy_02", Group: "test", Description: "sample modified dummy task definition", ConfirmFlag: false,
-		InTickets:  []InTicketData{InTicketData{Name: "OK-COND-01", Odate: OdateDate}},
+		InTickets:  []InTicketData{InTicketData{Name: "OK-COND-01", Odate: date.OdateValueDate}},
 		InRelation: InTicketAND,
-		OutTickets: []OutTicketData{OutTicketData{Name: "OK-COND-02", Action: OutActionAdd, Odate: OdateDate}},
+		OutTickets: []OutTicketData{OutTicketData{Name: "OK-COND-02", Action: OutActionAdd, Odate: date.OdateValueDate}},
 		FlagsTab:   []FlagData{FlagData{Name: "flag01", Type: FlagShared}},
 		Schedule: SchedulingData{
 			OrderType: "weekday",
 			FromTime:  "15:30",
 			ToTime:    "",
-			Months:    []MonthData{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
-			Values:    []ExecutionValue{"1", "3", "5"},
+			Months:    []time.Month{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
+			Values:    []string{"1", "3", "5"},
 		},
 	}
 
 	t2 = &baseTaskDefinition{
 		TaskType: "dummy",
 		Name:     "dummy_AA", Group: "test", Description: "sample modified dummy task definition", ConfirmFlag: false,
-		InTickets:  []InTicketData{InTicketData{Name: "OK-COND-01", Odate: OdateDate}},
+		InTickets:  []InTicketData{InTicketData{Name: "OK-COND-01", Odate: date.OdateValueDate}},
 		InRelation: InTicketAND,
-		OutTickets: []OutTicketData{OutTicketData{Name: "OK-COND-02", Action: OutActionAdd, Odate: OdateDate}},
+		OutTickets: []OutTicketData{OutTicketData{Name: "OK-COND-02", Action: OutActionAdd, Odate: date.OdateValueDate}},
 		FlagsTab:   []FlagData{FlagData{Name: "flag01", Type: FlagShared}},
 		Schedule: SchedulingData{
 			OrderType: "weekday",
 			FromTime:  "11:30",
 			ToTime:    "",
-			Months:    []MonthData{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
-			Values:    []ExecutionValue{"1", "3", "5"},
+			Months:    []time.Month{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
+			Values:    []string{"1", "3", "5"},
 		},
 	}
 
 	t3 = &baseTaskDefinition{
 		TaskType: "dummy",
 		Name:     "", Group: "test", Description: "sample modified dummy task definition", ConfirmFlag: false,
-		InTickets:  []InTicketData{InTicketData{Name: "OK-COND-01", Odate: OdateDate}},
+		InTickets:  []InTicketData{InTicketData{Name: "OK-COND-01", Odate: date.OdateValueDate}},
 		InRelation: InTicketAND,
-		OutTickets: []OutTicketData{OutTicketData{Name: "OK-COND-02", Action: OutActionAdd, Odate: OdateDate}},
+		OutTickets: []OutTicketData{OutTicketData{Name: "OK-COND-02", Action: OutActionAdd, Odate: date.OdateValueDate}},
 		FlagsTab:   []FlagData{FlagData{Name: "flag01", Type: FlagShared}},
 		Schedule: SchedulingData{
 			OrderType: "weekday",
 			FromTime:  "11:30",
 			ToTime:    "",
-			Months:    []MonthData{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
-			Values:    []ExecutionValue{"1", "3", "5"},
+			Months:    []time.Month{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
+			Values:    []string{"1", "3", "5"},
 		},
 	}
 	t4 = &baseTaskDefinition{
 		TaskType: "dummy",
 		Name:     "dummy_01", Group: "test", Description: "sample modified dummy task definition", ConfirmFlag: false,
-		InTickets:  []InTicketData{InTicketData{Name: "OK-COND-01", Odate: OdateDate}},
+		InTickets:  []InTicketData{InTicketData{Name: "OK-COND-01", Odate: date.OdateValueDate}},
 		InRelation: InTicketAND,
-		OutTickets: []OutTicketData{OutTicketData{Name: "OK-COND-02", Action: OutActionAdd, Odate: OdateDate}},
+		OutTickets: []OutTicketData{OutTicketData{Name: "OK-COND-02", Action: OutActionAdd, Odate: date.OdateValueDate}},
 		FlagsTab:   []FlagData{FlagData{Name: "flag01", Type: FlagShared}},
 		Schedule: SchedulingData{
 			OrderType: "weekday",
 			FromTime:  "11:30",
 			ToTime:    "",
-			Months:    []MonthData{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
-			Values:    []ExecutionValue{"1", "3", "5"},
+			Months:    []time.Month{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
+			Values:    []string{"1", "3", "5"},
 		},
 	}
 	return
