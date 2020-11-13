@@ -165,8 +165,8 @@ func TestManagerGroups(t *testing.T) {
 	}
 
 	err = manager.DeleteGroup("test2")
-	if err == nil || !strings.Contains(err.Error(), "no such file") {
-		t.Error("Delete group")
+	if err == nil || !strings.Contains(err.Error(), "can't find directory") {
+		t.Error("Delete group", err)
 	}
 
 	err = manager.CreateGroup("test2")
@@ -340,13 +340,13 @@ func TestGetTask(t *testing.T) {
 		t.Fatal("unable to intialize manager")
 	}
 
-	result, err := manager.GetTasks(taskdata.GroupNameData{Name: "dummy_01", Group: "test"}, taskdata.GroupNameData{Name: "task_that_does_not_exists", Group: "test"})
+	_, err = manager.GetTasks(taskdata.GroupNameData{Name: "dummy_01", Group: "test"}, taskdata.GroupNameData{Name: "task_that_does_not_exists", Group: "test"})
 	if err == nil {
 		t.Error("unexpected value, task does not exists")
 	}
 
 	_, err = manager.GetTasksFromGroup([]string{"test", "no_group_name"})
-	if result != nil {
+	if err == nil {
 		t.Error("unexpected value,group does not exists")
 	}
 
