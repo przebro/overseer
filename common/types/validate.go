@@ -1,7 +1,6 @@
 package types
 
 import (
-	"fmt"
 	"goscheduler/common/validator"
 	"regexp"
 
@@ -15,15 +14,12 @@ func init() {
 //HourMinTimeValidator - validator function for HH:MM format
 func HourMinTimeValidator(fl vl.FieldLevel) bool {
 
-	xx := fl.Field().Interface()
-	fmt.Println(xx)
 	if val, ok := fl.Field().Interface().(HourMinTime); ok {
 		result, _ := validateValueHourMinTime(val)
 		return result
 	}
 
 	return false
-
 }
 
 func validateValueHourMinTime(resource HourMinTime) (bool, error) {

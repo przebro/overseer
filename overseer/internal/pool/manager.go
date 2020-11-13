@@ -40,12 +40,15 @@ func NewActiveTaskPoolManager(dispatcher events.Dispatcher, tdm taskdef.TaskDefi
 //Order - Orders a new task, this method checks if all precoditions are met before it adds a new task
 func (manager *ActiveTaskPoolManager) Order(task taskdata.GroupNameData, odate date.Odate) (string, error) {
 
-	def, err := manager.tdm.GetTasks(task)
-	if err != nil {
-		return "", err
+	result := manager.tdm.GetTasks(task)
+
+	if len(result) != 1 || (len(result) == 1 && result[0].Result == false) {
+		return "", errors.New("order definition failed")
 	}
 
-	orderID, descr := manager.orderDefinition(def[0], odate)
+	definition := result[0].Definition
+
+	orderID, descr := manager.orderDefinition(definition, odate)
 	if descr != "" {
 		return descr, errors.New("failed force task")
 	}
@@ -56,12 +59,15 @@ func (manager *ActiveTaskPoolManager) Order(task taskdata.GroupNameData, odate d
 //Force - forces a new task, this method does not check for precondtions
 func (manager *ActiveTaskPoolManager) Force(task taskdata.GroupNameData, odate date.Odate) (string, error) {
 
-	def, err := manager.tdm.GetTasks(task)
-	if err != nil {
-		return "", err
+	result := manager.tdm.GetTasks(task)
+
+	if len(result) != 1 || (len(result) == 1 && result[0].Result == false) {
+		return "", errors.New("order definition failed")
 	}
 
-	orderID, descr := manager.forceDefinition(def[0], odate)
+	definition := result[0].Definition
+
+	orderID, descr := manager.forceDefinition(definition, odate)
 	if descr != "" {
 		return descr, errors.New("failed force task")
 	}
@@ -150,15 +156,16 @@ func (manager *ActiveTaskPoolManager) orderNewTasks() {
 	groups = append(groups, manager.tdm.GetGroups()...)
 	taskData, _ := manager.tdm.GetTasksFromGroup(groups)
 
-	tasks, err := manager.tdm.GetTasks(taskData...)
-	if err != nil {
-		manager.log.Error(err)
-	}
+	result := manager.tdm.GetTasks(taskData...)
 
-	for _, t := range tasks {
+	for _, t := range result {
 		//It is a new day procedure so skip tasks that are ordered manually
-		if t.OrderType() != taskdef.OrderingManual {
-			manager.orderDefinition(t, manager.pool.currentOdate)
+		if t.Result == false {
+			manager.log.Error(t.Msg)
+			continue
+		}
+		if t.Definition.OrderType() != taskdef.OrderingManual {
+			manager.orderDefinition(t.Definition, manager.pool.currentOdate)
 		}
 
 	}
@@ -322,27 +329,29 @@ func (manager *ActiveTaskPoolManager) processAddToActivePool(msg events.RouteTas
 	var id unique.TaskOrderID
 	var result events.RouteTaskActionResponseFormat
 
-	def, err := manager.tdm.GetTasks(taskdata.GroupNameData{Name: msg.Name, Group: msg.Group})
+	defresult := manager.tdm.GetTasks(taskdata.GroupNameData{Name: msg.Name, Group: msg.Group})
 
-	if err != nil {
-		manager.log.Error(err)
-		return result, err
+	if len(defresult) != 1 {
+		return result, errors.New("unable to find definition")
 	}
 
+	if len(defresult) == 1 && defresult[0].Result == false {
+		return result, defresult[0].Msg
+	}
+
+	definition := defresult[0].Definition
+
 	if msg.Force {
-		id, rmsg = manager.forceDefinition(def[0], date.Odate(msg.Odate))
+		id, rmsg = manager.forceDefinition(definition, date.Odate(msg.Odate))
 
 	} else {
-		id, rmsg = manager.orderDefinition(def[0], date.Odate(msg.Odate))
+		id, rmsg = manager.orderDefinition(definition, date.Odate(msg.Odate))
 	}
 
 	result.Data = make([]events.TaskInfoResultMsg, 1)
 	result.Data[0].TaskID = id
 	result.Data[0].WaitingInfo = rmsg
-	if err != nil {
-		result.Data[0].WaitingInfo = strings.Join([]string{result.Data[0].WaitingInfo, err.Error()}, ",")
-	}
-	result.Data[0].Name, result.Data[0].Group, _ = def[0].GetInfo()
+	result.Data[0].Name, result.Data[0].Group, _ = definition.GetInfo()
 
 	return result, nil
 }

@@ -240,13 +240,13 @@ func TestManagerUpdate(t *testing.T) {
 	if err != nil {
 		t.Fatal("Unable to lock task", err)
 	}
-	def, err := manager.GetTasks(taskdata.GroupNameData{Name: "dummy_01", Group: "test"})
+	def := manager.GetTasks(taskdata.GroupNameData{Name: "dummy_01", Group: "test"})
 
 	if len(def) == 0 {
 		t.Fatal("def expected not empty")
 	}
 
-	fmt.Println(def[0].GetInfo())
+	fmt.Println(def[0].Definition.GetInfo())
 	if err != nil {
 		t.Fatal("Unable to acquire lock")
 	}
@@ -340,9 +340,15 @@ func TestGetTask(t *testing.T) {
 		t.Fatal("unable to intialize manager")
 	}
 
-	_, err = manager.GetTasks(taskdata.GroupNameData{Name: "dummy_01", Group: "test"}, taskdata.GroupNameData{Name: "task_that_does_not_exists", Group: "test"})
-	if err == nil {
-		t.Error("unexpected value, task does not exists")
+	tlist := []taskdata.GroupNameData{taskdata.GroupNameData{Name: "dummy_01", Group: "test"}, taskdata.GroupNameData{Name: "task_that_does_not_exists", Group: "test"}}
+
+	result := manager.GetTasks(tlist...)
+	if len(result) != len(tlist) {
+		t.Error("unexpected result, expected :", len(tlist), "got:", len(result))
+	}
+
+	if result[0].Result == false || result[1].Result == true {
+		t.Error("unexpected values expected:", true, false, "got:", result[0].Result, result[1].Result)
 	}
 
 	_, err = manager.GetTasksFromGroup([]string{"test", "no_group_name"})

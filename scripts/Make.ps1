@@ -20,7 +20,7 @@ if ($targetname -eq "build"){
 	go build -race -o bin/ cmd/ovswork/ovswork.go
 	go build -o bin/tools/ cmd/ovstools/ovsres/ovsres.go
 	go build -o bin/tools/ cmd/ovstools/ovstask/ovstask.go
-	go build -o bin/ chkprg/main.go
+	go build -o bin/chkprg chkprg/main.go
 }
 if ($targetname -eq "tests"){
     go test ./... --coverpkg=./... --coverprofile='goscheduler.out'

@@ -22,6 +22,11 @@ func NewFragmentLauncher() *FragmentLauncher {
 
 func (exec *FragmentLauncher) addFragment(fragment fragments.WorkFragment) error {
 
+	f, exists := exec.store.Get(fragment.TaskID())
+	if exists && f.StatusFragment().MarkForDelete {
+		exec.store.Remove(fragment.TaskID())
+	}
+
 	return exec.store.Add(fragment.TaskID(), fragment)
 }
 

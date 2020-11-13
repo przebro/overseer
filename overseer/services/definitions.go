@@ -42,21 +42,26 @@ func (srv *ovsDefinitionService) GetDefinition(ctx context.Context, msg *service
 		}
 	}
 
-	tasks, err := srv.defManager.GetTasks(tdata...)
-	if err != nil {
-		return nil, err
-	}
+	tasks := srv.defManager.GetTasks(tdata...)
+
 	for _, t := range tasks {
 
-		data, err := json.Marshal(t)
-
-		if err != nil {
+		if t.Result == false {
 			success = false
-			n, grp, _ := t.GetInfo()
-			resultMsg = fmt.Sprintf("unable to parse definition group:%s name:%s", n, grp)
+			resultMsg = t.Msg.Error()
+
 		} else {
-			success = true
-			resultMsg = string(data)
+			data, err := json.Marshal(t.Definition)
+
+			if err != nil {
+				success = false
+				n, grp, _ := t.Definition.GetInfo()
+				resultMsg = fmt.Sprintf("unable to parse definition group:%s name:%s", n, grp)
+			} else {
+				success = true
+				resultMsg = string(data)
+			}
+
 		}
 
 		result.DefinitionMsg = append(result.DefinitionMsg, &services.DefinitionResult{Success: success, Message: resultMsg})

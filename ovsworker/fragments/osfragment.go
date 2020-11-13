@@ -71,11 +71,13 @@ func (frag *OsWorkFragment) StartFragment(ctx context.Context) FragmentStatus {
 	frag.stdout, err = cmd.StdoutPipe()
 	if err != nil {
 		frag.Status.Set(FragmentStatus{TaskID: frag.taskID,
-			Started:    false,
-			Ended:      true,
-			ReturnCode: 999,
-			PID:        0,
-			Output:     []string{err.Error()}})
+			Started:       false,
+			Ended:         true,
+			ReturnCode:    999,
+			PID:           0,
+			Output:        []string{err.Error()},
+			MarkForDelete: true,
+		})
 		return frag.Status.Get()
 	}
 	ch := make(chan struct{})
@@ -105,11 +107,12 @@ func (frag *OsWorkFragment) run(cmd *exec.Cmd, s chan<- struct{}) {
 	err = cmd.Start()
 	if err != nil {
 		frag.Status.Set(FragmentStatus{TaskID: frag.taskID,
-			Started:    false,
-			Ended:      true,
-			ReturnCode: 999,
-			PID:        0,
-			Output:     []string{err.Error()},
+			Started:       false,
+			Ended:         true,
+			ReturnCode:    999,
+			PID:           0,
+			Output:        []string{err.Error()},
+			MarkForDelete: true,
 		})
 		s <- struct{}{}
 		return
