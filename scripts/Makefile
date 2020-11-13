@@ -1,5 +1,9 @@
 #Makefile
+OUTDIR=bin
+TOOLDIR=bin/tools
 build:
+	[ -d $(OUTDIR) ] || mkdir -p $(OUTDIR)
+	[ -d $(TOOLDIR) ] || mkdir -p $(TOOLDIR)
 	go build -race -o bin cmd/overseer/ovs.go
 	go build -race -o bin cmd/ovswork/ovswork.go
 	go build -o bin/tools/ cmd/ovstools/ovsres/ovsres.go
