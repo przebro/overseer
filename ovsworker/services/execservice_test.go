@@ -46,11 +46,6 @@ func TestStartTaskDummy(t *testing.T) {
 		t.Error("exec response started ended, invalid values", response.Started, response.Ended)
 	}
 
-	response, err = exservice.StartTask(context.Background(), msg)
-	if err == nil || err.Error() != "fragment with id:00000 already exists" {
-		t.Error(err)
-	}
-
 	response, err = exservice.TaskStatus(context.Background(), &wservices.TaskIdMsg{TaskID: "00000"})
 	if err != nil {
 		t.Error(err)
