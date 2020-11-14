@@ -4,3 +4,6 @@ go:
 - master
 script:
 - make -f scripts/Makefile build
+- make -f scripts/Makefile tests
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
