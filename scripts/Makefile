@@ -10,7 +10,7 @@ build:
 	go build -o bin/tools/ cmd/ovstools/ovstask/ovstask.go
 	go build -o bin/chkprg chkprg/main.go
 tests:
-	go test `go list ./... | grep -v ./proto` --coverpkg=./... -covermode=count --coverprofile='coverage.out'
+	go test `go list ./... | grep -v ./proto` -covermode=count --coverprofile='coverage.out'
 sprof:
 	go tool pprof -http localhost:9090 schedulerprofile.prof
 wprof:
