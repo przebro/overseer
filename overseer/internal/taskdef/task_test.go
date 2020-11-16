@@ -372,7 +372,7 @@ func TestMarshalTests2(t *testing.T) {
 	}
 
 	_, err = FromString(`{"type" : "dummy","name" :"sample_01A","group" : "samples"`)
-	if err.Error() != "unexpected end of JSON input" {
+	if !strings.Contains(err.Error(), "unexpected end of JSON") {
 		t.Error(err)
 	}
 
