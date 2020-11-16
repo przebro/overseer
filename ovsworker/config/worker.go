@@ -35,7 +35,6 @@ func Load(path string) (*Config, error) {
 		return nil, errors.New("Unable to loadConfiguration from file")
 	}
 	err = json.Unmarshal(data, &config)
-
 	if err != nil {
 		return nil, err
 	}

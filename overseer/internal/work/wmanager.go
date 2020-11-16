@@ -119,7 +119,7 @@ func (w *workerManager) Process(receiver events.EventReceiver, routename events.
 		{
 			data, isOk := msg.Message().(events.RouteTaskExecutionMsg)
 			if isOk == false {
-				err := errors.New("worker invalid message format")
+				err := events.ErrUnrecognizedMsgFormat
 				w.log.Debug("worker,", events.RouteWorkLaunch, ",", err)
 				events.ResponseToReceiver(receiver, err)
 				break
@@ -130,7 +130,7 @@ func (w *workerManager) Process(receiver events.EventReceiver, routename events.
 		{
 			data, isOk := msg.Message().(events.WorkRouteCheckStatusMsg)
 			if isOk == false {
-				err := errors.New("worker invalid message format")
+				err := events.ErrUnrecognizedMsgFormat
 				w.log.Debug("worker,", events.RouteWorkCheck, ",", err)
 				events.ResponseToReceiver(receiver, err)
 				break

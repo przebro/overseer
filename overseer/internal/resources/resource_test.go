@@ -290,7 +290,7 @@ func TestDispatch(t *testing.T) {
 	if err == nil {
 		t.Error("expected response")
 	}
-	if err.Error() != "unexpected msg format" {
+	if err != events.ErrUnrecognizedMsgFormat {
 		t.Error("unexpected data")
 	}
 

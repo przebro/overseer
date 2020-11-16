@@ -1,98 +1,16 @@
 package pool
 
 import (
-	"errors"
 	"fmt"
 	"goscheduler/common/logger"
 	"goscheduler/common/types"
 	"goscheduler/overseer/internal/date"
-	"goscheduler/overseer/internal/events"
 	"goscheduler/overseer/internal/taskdef"
 
 	"goscheduler/overseer/internal/unique"
 	"testing"
 	"time"
 )
-
-type mockDispatcher struct {
-	Tickets         map[string]string
-	processNotEnded bool
-	withError       bool
-}
-
-var log logger.AppLogger = logger.NewTestLogger()
-
-func (m *mockDispatcher) PushEvent(receiver events.EventReceiver, route events.RouteName, msg events.DispatchedMessage) error {
-
-	go func() {
-		if route == events.RouteWorkLaunch {
-			if m.withError {
-				receiver.Done(errors.New(""))
-			} else {
-				dat := events.RouteWorkResponseMsg{
-					Started: true,
-				}
-				events.ResponseToReceiver(receiver, dat)
-			}
-
-		}
-		if route == events.RouteTicketIn {
-
-		}
-		if route == events.RouteWorkCheck {
-
-			if m.withError {
-				receiver.Done(errors.New(""))
-			} else {
-
-				_, iskOk := msg.Message().(events.WorkRouteCheckStatusMsg)
-				if iskOk == false {
-					events.ResponseToReceiver(receiver, errors.New(""))
-				}
-				if m.processNotEnded {
-					receiver.Done(events.RouteWorkResponseMsg{Ended: false, ReturnCode: 0})
-				} else {
-					receiver.Done(events.RouteWorkResponseMsg{Ended: true, ReturnCode: 0})
-				}
-
-			}
-		}
-		if route == events.RouteTicketCheck {
-
-			if m.withError {
-
-				receiver.Done(errors.New(""))
-
-			} else {
-				result, iskOk := msg.Message().(events.RouteTicketCheckMsgFormat)
-				if iskOk == false {
-					events.ResponseToReceiver(receiver, errors.New(""))
-				}
-
-				for i, t := range result.Tickets {
-
-					_, exists := m.Tickets[t.Name]
-					if exists {
-						result.Tickets[i].Fulfilled = true
-					}
-				}
-
-				receiver.Done(result)
-
-			}
-
-		}
-	}()
-	return nil
-}
-func (m *mockDispatcher) Subscribe(route events.RouteName, participant events.EventParticipant) {
-
-}
-func (m *mockDispatcher) Unsubscribe(route events.RouteName, participant events.EventParticipant) {
-
-}
-
-var disp = &mockDispatcher{Tickets: make(map[string]string, 0)}
 
 func TestStateCheckTime(t *testing.T) {
 
@@ -120,7 +38,7 @@ func TestStateCheckTime(t *testing.T) {
 	ctx := TaskExecutionContext{
 		log:        logger.NewTestLogger(),
 		odate:      date.CurrentOdate(),
-		dispatcher: disp,
+		dispatcher: mDispatcher,
 		time:       now,
 	}
 	ctx.task = newActiveTask(unique.NewOrderID(), date.CurrentOdate(), definition)
@@ -241,13 +159,13 @@ func TestStateCheckCond(t *testing.T) {
 	ctx := TaskExecutionContext{
 		log:        log,
 		odate:      date.CurrentOdate(),
-		dispatcher: disp,
+		dispatcher: mDispatcher,
 		time:       now,
 	}
 
 	ctx.task = newActiveTask(unique.NewOrderID(), date.CurrentOdate(), definition)
 
-	disp.withError = true
+	mDispatcher.withError = true
 	state := ostateCheckConditions{}
 	result = state.processState(&ctx)
 
@@ -255,7 +173,7 @@ func TestStateCheckCond(t *testing.T) {
 		t.Error("expected result: ", true, " actual:", result, " ")
 	}
 
-	disp.withError = false
+	mDispatcher.withError = false
 	result = state.processState(&ctx)
 
 	if result == true {
@@ -266,7 +184,7 @@ func TestStateCheckCond(t *testing.T) {
 		t.Error("expected result: ", true, " actual:", result, " ")
 	}
 
-	disp.Tickets["TESTABC01"] = string(date.CurrentOdate())
+	mDispatcher.Tickets["TESTABC01"] = string(date.CurrentOdate())
 
 	result = state.processState(&ctx)
 
@@ -290,17 +208,17 @@ func TestStateCheckCond(t *testing.T) {
 
 	if result != true {
 		t.Error("expected result: ", true, " actual:", result, " ")
-		t.Log(disp.Tickets)
+		t.Log(mDispatcher.Tickets)
 		t.Log(ctx.task.TicketsIn())
 	}
 
-	disp.Tickets["TESTABC02"] = string(date.CurrentOdate())
+	mDispatcher.Tickets["TESTABC02"] = string(date.CurrentOdate())
 
 	result = state.processState(&ctx)
 
 	if result != true {
 		t.Error("expected result: ", true, " actual:", result, " ")
-		t.Log(disp.Tickets)
+		t.Log(mDispatcher.Tickets)
 		t.Log(ctx.task.TicketsIn())
 	}
 
@@ -321,7 +239,7 @@ func TestStateCheckCond(t *testing.T) {
 
 	if result != true {
 		t.Error("expected result: ", true, " actual:", result, " ")
-		t.Log(disp.Tickets)
+		t.Log(mDispatcher.Tickets)
 		t.Log(ctx.task.TicketsIn())
 	}
 
@@ -336,14 +254,14 @@ func TestStateCheckCond(t *testing.T) {
 		}, "OR").Build()
 
 	ctx.task = newActiveTask(unique.NewOrderID(), date.CurrentOdate(), definition)
-	disp.Tickets = make(map[string]string, 0)
-	ctx.dispatcher = disp
+	mDispatcher.Tickets = make(map[string]string, 0)
+	ctx.dispatcher = mDispatcher
 
 	result = state.processState(&ctx)
 
 	if result == true {
 		t.Error("expected result: ", false, " actual:", result, " ")
-		t.Log(disp.Tickets)
+		t.Log(mDispatcher.Tickets)
 		t.Log(ctx.task.TicketsIn())
 
 	}
@@ -402,7 +320,7 @@ func TestStateConfirm(t *testing.T) {
 	ctx := TaskExecutionContext{
 		log:        log,
 		odate:      date.CurrentOdate(),
-		dispatcher: disp,
+		dispatcher: mDispatcher,
 		time:       time.Now(),
 	}
 
@@ -668,7 +586,7 @@ func TestStatesExecEndHold(t *testing.T) {
 	ctx := TaskExecutionContext{
 		log:        log,
 		odate:      date.CurrentOdate(),
-		dispatcher: disp,
+		dispatcher: mDispatcher,
 		time:       time.Now(),
 	}
 
@@ -685,23 +603,23 @@ func TestStatesExecEndHold(t *testing.T) {
 		t.Error("expected result: ", true, " actual:", result, " ", ctx.state)
 	}
 
-	disp.processNotEnded = true
-	disp.withError = false
+	mDispatcher.processNotEnded = true
+	mDispatcher.withError = false
 	result = runState.processState(&ctx)
 
 	if result != false && ctx.state != runState {
 		t.Error("expected result: ", true, " actual:", result, " ", ctx.state)
 	}
 
-	disp.withError = true
+	mDispatcher.withError = true
 	result = runState.processState(&ctx)
 
 	if result != false && ctx.state != runState {
 		t.Error("expected result: ", false, " actual:", result, " ", ctx.state)
 	}
 
-	disp.withError = false
-	disp.processNotEnded = false
+	mDispatcher.withError = false
+	mDispatcher.processNotEnded = false
 	result = postState.processState(&ctx)
 	if result != false {
 		t.Error("expected result: ", false, " actual:", result)

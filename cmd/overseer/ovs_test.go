@@ -7,10 +7,6 @@ import (
 	"testing"
 )
 
-func TestMain(m *testing.M) {
-
-}
-
 func TestInitialize(t *testing.T) {
 
 	tempdir := os.TempDir()

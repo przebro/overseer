@@ -1,36 +1,18 @@
 package pool
 
 import (
+	"fmt"
 	"goscheduler/common/logger"
-	"goscheduler/overseer/config"
+	"goscheduler/common/types"
+	"goscheduler/overseer/internal/date"
 	"goscheduler/overseer/internal/events"
 	"sync"
 	"testing"
 	"time"
 )
 
-type dDispatcher struct {
-	Tickets         map[string]string
-	processNotEnded bool
-	withError       bool
-}
-
-func (m *dDispatcher) PushEvent(receiver events.EventReceiver, route events.RouteName, msg events.DispatchedMessage) error {
-	return nil
-}
-
-func (m *dDispatcher) Subscribe(route events.RouteName, participant events.EventParticipant) {
-
-}
-func (m *dDispatcher) Unsubscribe(route events.RouteName, participant events.EventParticipant) {
-
-}
-
-var ddsp events.Dispatcher = &dDispatcher{}
-var dpool *ActiveTaskPool = NewTaskPool(dsp, config.ActivePoolConfiguration{ForceNewDayProc: true, MaxOkReturnCode: 4, NewDayProc: "!0:30"})
-
 var pManager *ActiveTaskPoolManager = &ActiveTaskPoolManager{}
-var daily *DailyExecutor = NewDailyExecutor(ddsp, pManager, dpool)
+var daily *DailyExecutor = NewDailyExecutor(mDispatcher, pManager, taskPoolT)
 
 func TestDailyExecutor(t *testing.T) {
 
@@ -69,4 +51,46 @@ func TestProcessDaily(t *testing.T) {
 
 	tmsg := events.NewMsg(events.RouteTimeOutMsgFormat{Year: y, Month: int(mth), Day: d, Hour: h, Min: m, Sec: s})
 	daily.Process(nil, events.RouteTimeOut, tmsg)
+}
+
+func TestCheckDailyProcedure(t *testing.T) {
+
+	daily.log = logger.NewTestLogger()
+
+	tm := time.Now()
+	h, m, _ := tm.Clock()
+
+	result := daily.CheckDailyProcedure(tm)
+	if result != false {
+		t.Error("Unexpected value:", result)
+	}
+
+	taskPoolT.config.NewDayProc = types.HourMinTime(fmt.Sprintf("%2d:%2d", h, m-2))
+	taskPoolT.currentOdate, _ = date.AddDays(taskPoolT.currentOdate, -1)
+
+	result = daily.CheckDailyProcedure(tm)
+	if result != true {
+		t.Error("Unexpected value:", result)
+	}
+
+	taskPoolT.config.NewDayProc = types.HourMinTime(fmt.Sprintf("%2d:%2d", h, m+2))
+	taskPoolT.currentOdate = date.CurrentOdate()
+
+	result = daily.CheckDailyProcedure(tm)
+	if result == true {
+		t.Error("Unexpected value:", result)
+	}
+}
+
+func TestDailyProc(t *testing.T) {
+
+	t.SkipNow()
+	daily.log = logger.NewTestLogger()
+	taskPoolT.log = daily.log
+	pManager.log = daily.log
+	del, ord := daily.DailyProcedure()
+	if del != 0 || ord != 0 {
+		t.Error("Unexpected values")
+	}
+
 }

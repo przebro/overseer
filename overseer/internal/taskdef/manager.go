@@ -16,7 +16,12 @@ import (
 )
 
 //:TODO lock multithread
-var lockIDSeq uint32 = 1
+var (
+	ErrLockIDNotExists error  = errors.New("given lockID does not exists")
+	ErrTaskNameEmpty   error  = errors.New("task name cannot be empty")
+	ErrGroupNameEmpty  error  = errors.New("group name cannot be empty")
+	lockIDSeq          uint32 = 1
+)
 
 type lockData struct {
 	group string
@@ -121,7 +126,7 @@ func (m *taskManager) Lock(task taskdata.GroupNameData) (uint32, error) {
 	m.lock.Lock()
 
 	if task.Name == "" {
-		return 0, errors.New("task name not given")
+		return 0, ErrTaskNameEmpty
 	}
 
 	for _, n := range m.lockTab {
@@ -145,7 +150,7 @@ func (m *taskManager) Unlock(lockID uint32) error {
 	m.lock.Lock()
 	d, x := m.lockTab[lockID]
 	if x == false {
-		return errors.New("given lockID does not exists")
+		return ErrLockIDNotExists
 	}
 	d.file.Close()
 
@@ -176,7 +181,7 @@ func (m *taskManager) Create(task TaskDefinition) error {
 func (m *taskManager) CreateGroup(name string) error {
 
 	if name == "" {
-		return errors.New("group name cannot be empty")
+		return ErrGroupNameEmpty
 	}
 	err := os.Mkdir(filepath.Join(m.dirPath, name), os.ModeDir|0640)
 	if err != nil {
@@ -190,13 +195,13 @@ func (m *taskManager) Update(lockID uint32, task TaskDefinition) error {
 
 	d, x := m.lockTab[lockID]
 	if x == false {
-		return errors.New("given lockID does not exists")
+		return ErrLockIDNotExists
 	}
 
 	name, grp, _ := task.GetInfo()
 
 	if name == "" {
-		return errors.New("task name cannot be empty")
+		return ErrTaskNameEmpty
 	}
 	//ensure also if task with new name or new group does not exists
 	if d.name != name || d.group != grp {
@@ -245,7 +250,7 @@ func (m *taskManager) Delete(lockID uint32, task taskdata.GroupNameData) error {
 
 	d, x := m.lockTab[lockID]
 	if x == false {
-		return errors.New("given lockID does not exists")
+		return ErrLockIDNotExists
 	}
 	if task.Name != d.name || task.Group != d.group {
 		return errors.New("group and name does not match with lockID")
@@ -263,7 +268,7 @@ func (m *taskManager) DeleteGroup(name string) error {
 	m.lock.Lock()
 
 	if name == "" {
-		return errors.New("group name cannot be empty")
+		return ErrGroupNameEmpty
 	}
 
 	path := filepath.Join(m.dirPath, name)

@@ -4,6 +4,13 @@ import (
 	"errors"
 )
 
+var (
+	//ErrUnrecognizedMsgFormat - Common error for wrong messages
+	ErrUnrecognizedMsgFormat = errors.New("unrecognized message format")
+	//ErrInvalidRouteName  - Common error for invslid route
+	ErrInvalidRouteName = errors.New("invalid route name")
+)
+
 //EventParticipant - Participant of events dispatching
 type EventParticipant interface {
 	Process(receiver EventReceiver, sroutename RouteName, msg DispatchedMessage)
@@ -56,7 +63,7 @@ func (r *activeTaskListReceiver) WaitForResult() (RouteTaskActionResponseFormat,
 		}
 	default:
 		{
-			err = errors.New("Unrecognized type")
+			err = ErrUnrecognizedMsgFormat
 		}
 	}
 
@@ -96,7 +103,7 @@ func (r *ticketCheckReciever) WaitForResult() (RouteTicketCheckMsgFormat, error)
 		}
 	default:
 		{
-			err = errors.New("Unrecognized type")
+			err = ErrUnrecognizedMsgFormat
 		}
 	}
 	return result, err
@@ -136,7 +143,7 @@ func (r *workLaunchReceiver) WaitForResult() (RouteWorkResponseMsg, error) {
 		}
 	default:
 		{
-			err = errors.New("Unrecognized type")
+			err = ErrUnrecognizedMsgFormat
 		}
 	}
 	return result, err
@@ -176,7 +183,7 @@ func (r *changeTaskStateReceiver) WaitForResult() (RouteChangeStateResponseMsg, 
 		}
 	default:
 		{
-			err = errors.New("Unrecognized type")
+			err = ErrUnrecognizedMsgFormat
 		}
 	}
 	return result, err

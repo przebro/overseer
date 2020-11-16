@@ -215,3 +215,102 @@ func TestEvent(t *testing.T) {
 	}
 
 }
+func TestWorkLaunchReceiver(t *testing.T) {
+
+	wlr := NewWorkLaunchReceiver()
+
+	go func() {
+
+		ResponseToReceiver(wlr, RouteWorkResponseMsg{Ended: true})
+	}()
+
+	data, err := wlr.WaitForResult()
+
+	if err != nil {
+		t.Error("Unexpected result", err)
+	}
+	if data.Ended != true {
+		t.Error("Unexpected value", data.Ended)
+	}
+
+	go func() {
+
+		ResponseToReceiver(wlr, "invalid value")
+	}()
+
+	data, err = wlr.WaitForResult()
+
+	if err == nil {
+		t.Error("Unexpected result")
+	}
+	if err != ErrUnrecognizedMsgFormat {
+		t.Error("Unexpected result", err, "expected:", ErrUnrecognizedMsgFormat)
+	}
+
+	customError := errors.New("Custom error")
+
+	go func() {
+
+		ResponseToReceiver(wlr, customError)
+	}()
+
+	data, err = wlr.WaitForResult()
+
+	if err == nil {
+		t.Error("Unexpected result")
+	}
+	if err != customError {
+		t.Error("Unexpected result", err, "expected:", customError)
+	}
+
+}
+
+func TestChangeTaskStateReceiver(t *testing.T) {
+
+	wlr := NewChangeTaskStateReceiver()
+
+	go func() {
+
+		ResponseToReceiver(wlr, RouteChangeStateResponseMsg{Message: "Message"})
+	}()
+
+	data, err := wlr.WaitForResult()
+
+	if err != nil {
+		t.Error("Unexpected result", err)
+	}
+	if data.Message != "Message" {
+		t.Error("Unexpected value", data.Message)
+	}
+
+	go func() {
+
+		ResponseToReceiver(wlr, "invalid value")
+	}()
+
+	data, err = wlr.WaitForResult()
+
+	if err == nil {
+		t.Error("Unexpected result")
+	}
+	if err != ErrUnrecognizedMsgFormat {
+		t.Error("Unexpected result", err, "expected:", ErrUnrecognizedMsgFormat)
+	}
+
+	customError := errors.New("Custom error")
+
+	go func() {
+
+		ResponseToReceiver(wlr, customError)
+	}()
+
+	data, err = wlr.WaitForResult()
+
+	if err == nil {
+		t.Error("Unexpected result")
+	}
+	if err != customError {
+		t.Error("Unexpected result", err, "expected:", customError)
+	}
+
+}

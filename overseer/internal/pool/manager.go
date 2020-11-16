@@ -13,6 +13,10 @@ import (
 	"sync"
 )
 
+var (
+	ErrUnableFindDef = errors.New("unable to find definition")
+)
+
 //ActiveTaskPoolManager - Manages tasks in Active task pool
 type ActiveTaskPoolManager struct {
 	lock sync.RWMutex
@@ -42,15 +46,19 @@ func (manager *ActiveTaskPoolManager) Order(task taskdata.GroupNameData, odate d
 
 	result := manager.tdm.GetTasks(task)
 
-	if len(result) != 1 || (len(result) == 1 && result[0].Result == false) {
-		return "", errors.New("order definition failed")
+	if len(result) != 1 {
+		return "", ErrUnableFindDef
+	}
+
+	if len(result) == 1 && result[0].Result == false {
+		return "", result[0].Msg
 	}
 
 	definition := result[0].Definition
 
 	orderID, descr := manager.orderDefinition(definition, odate)
 	if descr != "" {
-		return descr, errors.New("failed force task")
+		return descr, errors.New("failed order task")
 	}
 
 	return string(orderID), nil
@@ -61,8 +69,12 @@ func (manager *ActiveTaskPoolManager) Force(task taskdata.GroupNameData, odate d
 
 	result := manager.tdm.GetTasks(task)
 
-	if len(result) != 1 || (len(result) == 1 && result[0].Result == false) {
-		return "", errors.New("order definition failed")
+	if len(result) != 1 {
+		return "", ErrUnableFindDef
+	}
+
+	if len(result) == 1 && result[0].Result == false {
+		return "", result[0].Msg
 	}
 
 	definition := result[0].Definition
@@ -148,8 +160,9 @@ func (manager *ActiveTaskPoolManager) Free(id unique.TaskOrderID) (string, error
 	return fmt.Sprintf("free task:%s ok", id), nil
 }
 
-func (manager *ActiveTaskPoolManager) orderNewTasks() {
+func (manager *ActiveTaskPoolManager) orderNewTasks() int {
 
+	ordered := 0
 	manager.log.Info("Ordering new tasks")
 
 	groups := make([]string, 0)
@@ -166,9 +179,11 @@ func (manager *ActiveTaskPoolManager) orderNewTasks() {
 		}
 		if t.Definition.OrderType() != taskdef.OrderingManual {
 			manager.orderDefinition(t.Definition, manager.pool.currentOdate)
+			ordered++
 		}
 
 	}
+	return ordered
 }
 
 //orderDefinition - Adds a new task to the Active Task Pool
@@ -257,7 +272,7 @@ func (manager *ActiveTaskPoolManager) Process(receiver events.EventReceiver, rou
 			manager.log.Debug("task action message, route:", events.RouteTaskAct, "id:", msg.MsgID())
 			addmsg, istype := msg.Message().(events.RouteTaskActionMsgFormat)
 			if !istype {
-				er := errors.New("msg not in format")
+				er := events.ErrUnrecognizedMsgFormat
 				manager.log.Error(er)
 				events.ResponseToReceiver(receiver, er)
 				break
@@ -276,9 +291,10 @@ func (manager *ActiveTaskPoolManager) Process(receiver events.EventReceiver, rou
 			manager.log.Debug("task action message, route:", events.RouteChangeTaskState)
 			actmsg, istype := msg.Message().(events.RouteChangeStateMsg)
 			if !istype {
-				er := errors.New("msg not in format")
+				er := events.ErrUnrecognizedMsgFormat
 				manager.log.Error(er)
 				events.ResponseToReceiver(receiver, er)
+				break
 			}
 
 			result, err := manager.changeTaskState(actmsg)
@@ -290,7 +306,7 @@ func (manager *ActiveTaskPoolManager) Process(receiver events.EventReceiver, rou
 		}
 	default:
 		{
-			err := errors.New("Invalid route name")
+			err := events.ErrInvalidRouteName
 			manager.log.Debug(err)
 			events.ResponseToReceiver(receiver, err)
 		}
@@ -301,6 +317,19 @@ func (manager *ActiveTaskPoolManager) changeTaskState(msg events.RouteChangeStat
 
 	var result string
 	var err error
+	test := 1
+
+	tab := map[bool]int{true: 1, false: 0}
+	//One and only one flag can be set
+	test = test << tab[msg.Free] << tab[msg.Hold] << tab[msg.Rerun] << tab[msg.SetOK]
+
+	if test != 2 {
+
+		err = errors.New("invalid flag combination")
+		fmt.Println(test, msg)
+		return events.RouteChangeStateResponseMsg{Message: result, OrderID: msg.OrderID}, err
+	}
+
 	switch true {
 	case msg.Free:
 		{
@@ -332,7 +361,7 @@ func (manager *ActiveTaskPoolManager) processAddToActivePool(msg events.RouteTas
 	defresult := manager.tdm.GetTasks(taskdata.GroupNameData{Name: msg.Name, Group: msg.Group})
 
 	if len(defresult) != 1 {
-		return result, errors.New("unable to find definition")
+		return result, ErrUnableFindDef
 	}
 
 	if len(defresult) == 1 && defresult[0].Result == false {

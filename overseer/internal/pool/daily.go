@@ -1,7 +1,7 @@
 package pool
 
 import (
-	"errors"
+	"fmt"
 	"goscheduler/common/logger"
 	"goscheduler/overseer/internal/date"
 	"goscheduler/overseer/internal/events"
@@ -26,7 +26,7 @@ func NewDailyExecutor(dispatcher events.Dispatcher, manager *ActiveTaskPoolManag
 	return daily
 }
 
-//CheckDailyProcedure - Cleanups and place new tasks in the Active Pool
+//CheckDailyProcedure - Check if it is time to start daily procedure
 func (exec *DailyExecutor) CheckDailyProcedure(tm time.Time) bool {
 
 	h, m := exec.pool.config.NewDayProc.AsTime()
@@ -34,18 +34,21 @@ func (exec *DailyExecutor) CheckDailyProcedure(tm time.Time) bool {
 
 	odt1 := time.Date(y, time.Month(mth), d, h, m, 0, 0, time.Local)
 
+	fmt.Println(odt1, tm, exec.pool.currentOdate, date.CurrentOdate())
 	return odt1.Before(tm) && date.IsBeforeCurrent(exec.pool.currentOdate, date.CurrentOdate())
 
 }
 
 //DailyProcedure - Cleanups and place new tasks in the Active Pool
-func (exec *DailyExecutor) DailyProcedure() {
+func (exec *DailyExecutor) DailyProcedure() (int, int) {
 
 	exec.log.Info("Starting new day procedure")
 	exec.pool.currentOdate = date.CurrentOdate()
 
-	exec.pool.cleanupCompletedTasks()
-	exec.manager.orderNewTasks()
+	deleted := exec.pool.cleanupCompletedTasks()
+	ordered := exec.manager.orderNewTasks()
+
+	return deleted, ordered
 
 }
 
@@ -59,7 +62,7 @@ func (exec *DailyExecutor) Process(receiver events.EventReceiver, routename even
 
 			msgdata, istype := msg.Message().(events.RouteTimeOutMsgFormat)
 			if !istype {
-				er := errors.New("msg not in format")
+				er := events.ErrUnrecognizedMsgFormat
 				exec.log.Error(er)
 				events.ResponseToReceiver(receiver, er)
 				break
@@ -73,7 +76,7 @@ func (exec *DailyExecutor) Process(receiver events.EventReceiver, routename even
 		}
 	default:
 		{
-			err := errors.New("Invalid route name")
+			err := events.ErrInvalidRouteName
 			exec.log.Debug(err)
 			events.ResponseToReceiver(receiver, err)
 		}

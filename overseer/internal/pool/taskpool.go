@@ -47,7 +47,7 @@ func NewTaskPool(dispatcher events.Dispatcher, cfg config.ActivePoolConfiguratio
 	return pool
 }
 
-func (pool *ActiveTaskPool) cleanupCompletedTasks() {
+func (pool *ActiveTaskPool) cleanupCompletedTasks() int {
 
 	pool.log.Info("Cleanup tasks")
 	var numDeleted = 0
@@ -62,6 +62,7 @@ func (pool *ActiveTaskPool) cleanupCompletedTasks() {
 	})
 
 	pool.log.Info(fmt.Sprintf("cleanup comlpete. %d tasks deleted.", numDeleted))
+	return numDeleted
 }
 func (pool *ActiveTaskPool) addTask(orderID unique.TaskOrderID, t *activeTask) {
 
@@ -203,7 +204,7 @@ func (pool *ActiveTaskPool) Process(receiver events.EventReceiver, routename eve
 
 			msgdata, istype := msg.Message().(events.RouteTimeOutMsgFormat)
 			if !istype {
-				er := errors.New("msg not in format")
+				er := events.ErrUnrecognizedMsgFormat
 				pool.log.Error(er)
 				events.ResponseToReceiver(receiver, er)
 				break
@@ -213,7 +214,7 @@ func (pool *ActiveTaskPool) Process(receiver events.EventReceiver, routename eve
 		}
 	default:
 		{
-			err := errors.New("Invalid route name")
+			err := events.ErrInvalidRouteName
 			pool.log.Error(err)
 			events.ResponseToReceiver(receiver, err)
 		}

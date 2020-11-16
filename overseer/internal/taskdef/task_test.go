@@ -200,7 +200,7 @@ func TestManagerLock(t *testing.T) {
 
 	//locking an empty task is not possible
 	_, err = manager.Lock(taskdata.GroupNameData{Group: "", Name: ""})
-	if !strings.Contains(err.Error(), "task name not given") {
+	if err != ErrTaskNameEmpty {
 		t.Error("Lock error,empty task name not allowed")
 	}
 
@@ -369,6 +369,65 @@ func TestMarshalTests2(t *testing.T) {
 	_, err := FromString(data)
 	if err != nil {
 		t.Error("Unmarshal error")
+	}
+
+	_, err = FromString(`{"type" : "dummy","name" :"sample_01A","group" : "samples"`)
+	if err.Error() != "unexpected end of JSON input" {
+		t.Error(err)
+	}
+
+	_, err = FromString(`{"type" : "dummy","name" :"","group" : "samples"}`)
+	if err == nil {
+		t.Error("Unexpected result")
+	}
+
+}
+
+func TestGetTimeSpan(t *testing.T) {
+
+	schdata := SchedulingData{FromTime: "10:30", ToTime: "11:30"}
+
+	builder := DummyTaskBuilder{}
+	def, err := builder.WithBase("test", "dummy_time_span", "description").
+		WithSchedule(schdata).
+		WithFlags([]FlagData{FlagData{Name: "FLAG01", Type: FlagShared}}).
+		WithConfirm().WithRetention(1).WithVariables([]VariableData{VariableData{Name: "%%var", Value: "xx"}}).Build()
+
+	if err != nil {
+		t.Error("task builder error")
+	}
+
+	from, to := def.TimeSpan()
+	if from.String() != "10:30" || to.String() != "11:30" {
+		t.Error("Unexpected values:", from, to)
+	}
+}
+
+func TestGetAction(t *testing.T) {
+
+	schdata := SchedulingData{FromTime: "10:30", ToTime: "11:30"}
+
+	builder := DummyTaskBuilder{}
+	def, err := builder.WithBase("test", "dummy_time_span", "description").
+		WithSchedule(schdata).
+		WithFlags([]FlagData{FlagData{Name: "FLAG01", Type: FlagShared}}).
+		WithConfirm().WithRetention(1).WithVariables([]VariableData{VariableData{Name: "%%var", Value: "xx"}}).Build()
+
+	if err != nil {
+		t.Error("task builder error")
+	}
+
+	if def.Action() != "" {
+		t.Error("Unexpected value")
+	}
+}
+
+func TestExpandVariable(t *testing.T) {
+
+	expect := "OVS_VARIBALE"
+	variable := VariableData{Name: "%%VARIBALE", Value: ""}
+	if variable.Expand() != expect {
+		t.Error("Unexpected value expected:", expect, "actual", variable.Expand())
 	}
 
 }

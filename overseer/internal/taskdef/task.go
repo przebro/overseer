@@ -2,7 +2,6 @@ package taskdef
 
 import (
 	"encoding/json"
-	"errors"
 	"goscheduler/common/types"
 	"goscheduler/common/validator"
 	"goscheduler/overseer/internal/date"
@@ -111,26 +110,6 @@ const (
 	InTicketAND InTicketRelation = "AND"
 	InTicketOR  InTicketRelation = "OR"
 )
-
-//UnmarshalJSON - unmarshal and validate type of out action.
-func (p *OutAction) UnmarshalJSON(data []byte) error {
-
-	var s string
-	var err error
-	if err = json.Unmarshal(data, &s); err != nil {
-		return err
-	}
-	switch strings.ToUpper(s) {
-	case string(OutActionAdd):
-		*p = OutActionAdd
-	case string(OutActionRemove):
-		*p = OutActionRemove
-	default:
-		return errors.New("invalid out action")
-	}
-
-	return nil
-}
 
 //TaskScheduling  - Provides information about the schedule of a task.
 type TaskScheduling interface {

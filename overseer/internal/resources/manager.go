@@ -235,7 +235,7 @@ func (rm *resourceManager) Process(receiver events.EventReceiver, route events.R
 			if !isOk {
 				rm.log.Error("ResourceManager: route processing error, unexpected msg format")
 				if receiver != nil {
-					receiver.Done(errors.New("unexpected msg format"))
+					receiver.Done(events.ErrUnrecognizedMsgFormat)
 				}
 				return
 			}
@@ -249,7 +249,7 @@ func (rm *resourceManager) Process(receiver events.EventReceiver, route events.R
 			if !isOk {
 				rm.log.Error("ResourceManager: route processing error, unexpected msg format")
 				if receiver != nil {
-					receiver.Done(errors.New("unexpected msg format"))
+					receiver.Done(events.ErrUnrecognizedMsgFormat)
 				}
 
 			}
@@ -258,7 +258,7 @@ func (rm *resourceManager) Process(receiver events.EventReceiver, route events.R
 		}
 	default:
 		{
-			err := errors.New("Invalid route name")
+			err := events.ErrInvalidRouteName
 			rm.log.Debug(err)
 			events.ResponseToReceiver(receiver, err)
 		}
