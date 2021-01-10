@@ -1,13 +1,13 @@
 package resources
 
 import (
+	"os"
 	"overseer/common/logger"
 	"overseer/datastore"
 	"overseer/overseer/config"
 	"overseer/overseer/internal/date"
 	"overseer/overseer/internal/events"
 	"overseer/overseer/internal/taskdef"
-	"os"
 	"testing"
 	"time"
 )
@@ -315,7 +315,7 @@ func TestDispatch(t *testing.T) {
 		t.Fatal(e)
 	}
 
-	frw, err := NewTicketReadWriter("resources", "fla", provider)
+	frw, err := NewTicketReadWriter("resources", "flags", provider)
 	if e != nil {
 		t.Fatal(e)
 	}
