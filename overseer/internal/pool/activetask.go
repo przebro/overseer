@@ -1,9 +1,9 @@
 package pool
 
 import (
-	"goscheduler/overseer/internal/date"
-	"goscheduler/overseer/internal/taskdef"
-	"goscheduler/overseer/internal/unique"
+	"overseer/overseer/internal/date"
+	"overseer/overseer/internal/taskdef"
+	"overseer/overseer/internal/unique"
 	"sync"
 	"time"
 )

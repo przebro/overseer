@@ -2,8 +2,8 @@ package events
 
 import (
 	"errors"
-	"goscheduler/common/logger"
-	"goscheduler/overseer/internal/unique"
+	"overseer/common/logger"
+	"overseer/overseer/internal/unique"
 	"testing"
 	"time"
 )

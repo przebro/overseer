@@ -2,10 +2,10 @@ package work
 
 import (
 	"errors"
-	"goscheduler/common/logger"
-	"goscheduler/overseer/config"
-	"goscheduler/overseer/internal/events"
-	"goscheduler/overseer/internal/unique"
+	"overseer/common/logger"
+	"overseer/overseer/config"
+	"overseer/overseer/internal/events"
+	"overseer/overseer/internal/unique"
 )
 
 type taskExecuteMsg struct {

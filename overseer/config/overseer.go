@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"goscheduler/common/types"
+	"overseer/common/types"
 	"io/ioutil"
 )
 

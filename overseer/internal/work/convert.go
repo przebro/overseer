@@ -1,9 +1,9 @@
 package work
 
 import (
-	"goscheduler/common/logger"
-	"goscheduler/overseer/internal/taskdef"
-	"goscheduler/proto/actions"
+	"overseer/common/logger"
+	"overseer/overseer/internal/taskdef"
+	"overseer/proto/actions"
 	"regexp"
 	"strings"
 

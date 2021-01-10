@@ -1,9 +1,9 @@
 package events
 
 import (
-	"goscheduler/overseer/internal/date"
-	task "goscheduler/overseer/internal/taskdef"
-	"goscheduler/overseer/internal/unique"
+	"overseer/overseer/internal/date"
+	task "overseer/overseer/internal/taskdef"
+	"overseer/overseer/internal/unique"
 )
 
 //RouteTimeOutMsgFormat - outgoing message from ticker

@@ -2,9 +2,9 @@ package launcher
 
 import (
 	"errors"
-	common "goscheduler/common/types"
-	"goscheduler/ovsworker/fragments"
-	"goscheduler/ovsworker/msgheader"
+	common "overseer/common/types"
+	"overseer/ovsworker/fragments"
+	"overseer/ovsworker/msgheader"
 )
 
 type factMethod func(header msgheader.TaskHeader, data []byte) (fragments.WorkFragment, error)

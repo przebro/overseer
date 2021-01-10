@@ -3,7 +3,7 @@ package ovscli
 import (
 	"context"
 	"fmt"
-	"goscheduler/proto/services"
+	"overseer/proto/services"
 	"io"
 	"strings"
 

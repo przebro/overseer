@@ -1,10 +1,10 @@
 package pool
 
 import (
-	"goscheduler/overseer/internal/date"
-	"goscheduler/overseer/internal/events"
-	"goscheduler/overseer/internal/taskdef"
-	"goscheduler/overseer/internal/unique"
+	"overseer/overseer/internal/date"
+	"overseer/overseer/internal/events"
+	"overseer/overseer/internal/taskdef"
+	"overseer/overseer/internal/unique"
 	"sync"
 	"testing"
 	"time"

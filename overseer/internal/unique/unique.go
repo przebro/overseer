@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
-	"goscheduler/overseer/internal/date"
+	"overseer/overseer/internal/date"
 	"math/rand"
 	"regexp"
 	"sync"

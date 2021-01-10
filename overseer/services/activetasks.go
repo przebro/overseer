@@ -3,14 +3,14 @@ package services
 import (
 	"context"
 	"fmt"
-	"goscheduler/common/logger"
-	"goscheduler/common/validator"
-	"goscheduler/overseer/auth"
-	"goscheduler/overseer/internal/date"
-	"goscheduler/overseer/internal/pool"
-	"goscheduler/overseer/internal/unique"
-	"goscheduler/overseer/taskdata"
-	"goscheduler/proto/services"
+	"overseer/common/logger"
+	"overseer/common/validator"
+	"overseer/overseer/auth"
+	"overseer/overseer/internal/date"
+	"overseer/overseer/internal/pool"
+	"overseer/overseer/internal/unique"
+	"overseer/overseer/taskdata"
+	"overseer/proto/services"
 )
 
 type ovsActiveTaskService struct {

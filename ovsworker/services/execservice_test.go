@@ -2,10 +2,10 @@ package services
 
 import (
 	"context"
-	"goscheduler/common/logger"
-	"goscheduler/ovsworker/launcher"
-	"goscheduler/proto/actions"
-	"goscheduler/proto/wservices"
+	"overseer/common/logger"
+	"overseer/ovsworker/launcher"
+	"overseer/proto/actions"
+	"overseer/proto/wservices"
 	"testing"
 	"time"
 

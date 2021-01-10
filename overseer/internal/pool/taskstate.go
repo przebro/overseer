@@ -2,10 +2,10 @@ package pool
 
 import (
 	"fmt"
-	"goscheduler/common/logger"
-	"goscheduler/overseer/internal/date"
-	"goscheduler/overseer/internal/events"
-	"goscheduler/overseer/internal/taskdef"
+	"overseer/common/logger"
+	"overseer/overseer/internal/date"
+	"overseer/overseer/internal/events"
+	"overseer/overseer/internal/taskdef"
 	"strconv"
 	"strings"
 	"time"

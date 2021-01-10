@@ -3,8 +3,8 @@ package fragments
 import (
 	"errors"
 	"fmt"
-	"goscheduler/ovsworker/msgheader"
-	"goscheduler/proto/actions"
+	"overseer/ovsworker/msgheader"
+	"overseer/proto/actions"
 	"io"
 	"os"
 	"os/exec"

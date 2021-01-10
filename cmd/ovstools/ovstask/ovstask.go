@@ -4,7 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"goscheduler/ovscli"
+	"overseer/ovscli"
 	"os"
 )
 

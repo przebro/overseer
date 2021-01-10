@@ -2,7 +2,7 @@ package pool
 
 import (
 	"fmt"
-	"goscheduler/overseer/internal/unique"
+	"overseer/overseer/internal/unique"
 	"sync"
 	"testing"
 	"time"

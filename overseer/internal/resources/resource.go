@@ -1,7 +1,7 @@
 package resources
 
 import (
-	"goscheduler/overseer/internal/date"
+	"overseer/overseer/internal/date"
 )
 
 type (

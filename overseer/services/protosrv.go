@@ -2,12 +2,12 @@ package services
 
 import (
 	"fmt"
-	"goscheduler/common/logger"
-	"goscheduler/overseer/internal/events"
-	"goscheduler/overseer/internal/resources"
-	"goscheduler/overseer/internal/taskdef"
-	"goscheduler/overseer/services/middleware"
-	"goscheduler/proto/services"
+	"overseer/common/logger"
+	"overseer/overseer/internal/events"
+	"overseer/overseer/internal/resources"
+	"overseer/overseer/internal/taskdef"
+	"overseer/overseer/services/middleware"
+	"overseer/proto/services"
 	"net"
 
 	"google.golang.org/grpc"

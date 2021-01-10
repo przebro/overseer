@@ -1,7 +1,7 @@
 package msgheader
 
 import (
-	common "goscheduler/common/types"
+	common "overseer/common/types"
 )
 
 //TaskHeader - Common data for all tasks

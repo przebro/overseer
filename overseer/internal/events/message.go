@@ -1,7 +1,7 @@
 package events
 
 import (
-	"goscheduler/overseer/internal/unique"
+	"overseer/overseer/internal/unique"
 	"time"
 )
 

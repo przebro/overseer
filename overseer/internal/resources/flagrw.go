@@ -2,7 +2,7 @@ package resources
 
 import (
 	"context"
-	"goscheduler/datastore"
+	"overseer/datastore"
 
 	"github.com/przebro/databazaar/collection"
 )

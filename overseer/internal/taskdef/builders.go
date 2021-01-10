@@ -1,7 +1,7 @@
 package taskdef
 
 import (
-	"goscheduler/common/types"
+	"overseer/common/types"
 	"time"
 )
 

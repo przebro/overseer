@@ -3,10 +3,10 @@ package work
 import (
 	"context"
 	"fmt"
-	"goscheduler/common/logger"
-	"goscheduler/overseer/internal/events"
-	"goscheduler/overseer/internal/unique"
-	"goscheduler/proto/wservices"
+	"overseer/common/logger"
+	"overseer/overseer/internal/events"
+	"overseer/overseer/internal/unique"
+	"overseer/proto/wservices"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"

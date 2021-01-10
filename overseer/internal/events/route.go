@@ -1,7 +1,7 @@
 package events
 
 import (
-	"goscheduler/common/logger"
+	"overseer/common/logger"
 )
 
 //RouteName - possible routes

@@ -2,10 +2,10 @@ package taskdef
 
 import (
 	"fmt"
-	"goscheduler/common/logger"
-	"goscheduler/common/types"
-	"goscheduler/overseer/internal/date"
-	"goscheduler/overseer/taskdata"
+	"overseer/common/logger"
+	"overseer/common/types"
+	"overseer/overseer/internal/date"
+	"overseer/overseer/taskdata"
 	"path/filepath"
 	"strings"
 	"testing"

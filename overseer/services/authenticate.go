@@ -2,11 +2,11 @@ package services
 
 import (
 	"context"
-	"goscheduler/common/logger"
-	"goscheduler/datastore"
-	"goscheduler/overseer/auth"
-	"goscheduler/overseer/config"
-	"goscheduler/proto/services"
+	"overseer/common/logger"
+	"overseer/datastore"
+	"overseer/overseer/auth"
+	"overseer/overseer/config"
+	"overseer/proto/services"
 )
 
 type ovsAuthenticateService struct {

@@ -1,7 +1,7 @@
 package unique
 
 import (
-	"goscheduler/common/validator"
+	"overseer/common/validator"
 
 	vl "github.com/go-playground/validator/v10"
 )

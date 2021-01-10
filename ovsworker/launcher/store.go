@@ -2,7 +2,7 @@ package launcher
 
 import (
 	"fmt"
-	"goscheduler/ovsworker/fragments"
+	"overseer/ovsworker/fragments"
 	"sync"
 )
 

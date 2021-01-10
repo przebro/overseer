@@ -1,9 +1,9 @@
 package taskdef
 
 import (
-	"goscheduler/common/types"
-	_ "goscheduler/common/types"
-	"goscheduler/common/validator"
+	"overseer/common/types"
+	_ "overseer/common/types"
+	"overseer/common/validator"
 	"testing"
 	"time"
 )

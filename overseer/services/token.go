@@ -2,8 +2,8 @@ package services
 
 import (
 	"encoding/base64"
-	"goscheduler/overseer/auth"
-	"goscheduler/overseer/config"
+	"overseer/overseer/auth"
+	"overseer/overseer/config"
 )
 
 //NewTokenCreatorVerifier - Creates a new token creator verifier

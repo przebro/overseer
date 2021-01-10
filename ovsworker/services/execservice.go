@@ -3,11 +3,11 @@ package services
 import (
 	"context"
 	"errors"
-	"goscheduler/common/logger"
-	common "goscheduler/common/types"
-	"goscheduler/ovsworker/launcher"
-	"goscheduler/ovsworker/msgheader"
-	"goscheduler/proto/wservices"
+	"overseer/common/logger"
+	common "overseer/common/types"
+	"overseer/ovsworker/launcher"
+	"overseer/ovsworker/msgheader"
+	"overseer/proto/wservices"
 
 	"github.com/golang/protobuf/ptypes/empty"
 )

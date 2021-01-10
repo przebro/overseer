@@ -2,9 +2,9 @@ package taskdef
 
 import (
 	"encoding/json"
-	"goscheduler/common/types"
-	"goscheduler/common/validator"
-	"goscheduler/overseer/internal/date"
+	"overseer/common/types"
+	"overseer/common/validator"
+	"overseer/overseer/internal/date"
 	"io/ioutil"
 	"strings"
 	"time"

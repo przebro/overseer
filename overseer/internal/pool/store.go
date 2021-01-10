@@ -1,7 +1,7 @@
 package pool
 
 import (
-	"goscheduler/overseer/internal/unique"
+	"overseer/overseer/internal/unique"
 	"sync"
 )
 

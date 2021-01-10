@@ -3,10 +3,10 @@ package handlers
 import (
 	"context"
 	"errors"
-	"goscheduler/common/logger"
-	"goscheduler/datastore"
-	"goscheduler/overseer/auth"
-	"goscheduler/overseer/config"
+	"overseer/common/logger"
+	"overseer/datastore"
+	"overseer/overseer/auth"
+	"overseer/overseer/config"
 
 	"google.golang.org/grpc/metadata"
 

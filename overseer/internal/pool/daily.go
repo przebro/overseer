@@ -2,9 +2,9 @@ package pool
 
 import (
 	"fmt"
-	"goscheduler/common/logger"
-	"goscheduler/overseer/internal/date"
-	"goscheduler/overseer/internal/events"
+	"overseer/common/logger"
+	"overseer/overseer/internal/date"
+	"overseer/overseer/internal/events"
 	"time"
 )
 

@@ -1,17 +1,17 @@
 package overseer
 
 import (
-	"goscheduler/common/logger"
-	"goscheduler/datastore"
-	"goscheduler/overseer/config"
-	"goscheduler/overseer/internal/events"
-	"goscheduler/overseer/internal/pool"
-	"goscheduler/overseer/internal/resources"
-	"goscheduler/overseer/internal/taskdef"
-	"goscheduler/overseer/internal/work"
-	"goscheduler/overseer/services"
-	"goscheduler/overseer/services/handlers"
-	"goscheduler/overseer/services/middleware"
+	"overseer/common/logger"
+	"overseer/datastore"
+	"overseer/overseer/config"
+	"overseer/overseer/internal/events"
+	"overseer/overseer/internal/pool"
+	"overseer/overseer/internal/resources"
+	"overseer/overseer/internal/taskdef"
+	"overseer/overseer/internal/work"
+	"overseer/overseer/services"
+	"overseer/overseer/services/handlers"
+	"overseer/overseer/services/middleware"
 	"path/filepath"
 )
 

@@ -1,7 +1,7 @@
 package launcher
 
 import (
-	"goscheduler/ovsworker/fragments"
+	"overseer/ovsworker/fragments"
 	"testing"
 )
 

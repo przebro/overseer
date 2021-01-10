@@ -1,7 +1,7 @@
 package types
 
 import (
-	"goscheduler/common/validator"
+	"overseer/common/validator"
 	"regexp"
 
 	vl "github.com/go-playground/validator/v10"

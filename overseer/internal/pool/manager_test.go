@@ -2,10 +2,10 @@ package pool
 
 import (
 	"fmt"
-	"goscheduler/overseer/internal/date"
-	"goscheduler/overseer/internal/events"
-	"goscheduler/overseer/internal/unique"
-	"goscheduler/overseer/taskdata"
+	"overseer/overseer/internal/date"
+	"overseer/overseer/internal/events"
+	"overseer/overseer/internal/unique"
+	"overseer/overseer/taskdata"
 	"testing"
 )
 

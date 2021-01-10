@@ -1,9 +1,9 @@
 package overseer
 
 import (
-	"goscheduler/common/logger"
-	"goscheduler/overseer/config"
-	"goscheduler/overseer/internal/events"
+	"overseer/common/logger"
+	"overseer/overseer/config"
+	"overseer/overseer/internal/events"
 	"time"
 )
 

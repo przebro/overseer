@@ -2,11 +2,11 @@ package ovsworker
 
 import (
 	"fmt"
-	"goscheduler/common/logger"
-	"goscheduler/ovsworker/config"
-	"goscheduler/ovsworker/launcher"
-	"goscheduler/ovsworker/services"
-	"goscheduler/proto/wservices"
+	"overseer/common/logger"
+	"overseer/ovsworker/config"
+	"overseer/ovsworker/launcher"
+	"overseer/ovsworker/services"
+	"overseer/proto/wservices"
 	"net"
 
 	"google.golang.org/grpc"

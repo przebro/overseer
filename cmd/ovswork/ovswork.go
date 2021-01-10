@@ -3,10 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
-	"goscheduler/common/helpers"
-	"goscheduler/common/logger"
-	"goscheduler/ovsworker"
-	"goscheduler/ovsworker/config"
+	"overseer/common/helpers"
+	"overseer/common/logger"
+	"overseer/ovsworker"
+	"overseer/ovsworker/config"
 	"os"
 	"path/filepath"
 )

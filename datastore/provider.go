@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"goscheduler/common/logger"
-	"goscheduler/overseer/config"
+	"overseer/common/logger"
+	"overseer/overseer/config"
 
 	"github.com/przebro/databazaar/store"
 	_ "github.com/przebro/localstore/store"

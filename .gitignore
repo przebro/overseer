@@ -3,7 +3,7 @@
 bin/*
 pkg/*
 coverage.out
-goscheduler.out
+overseer.out
 schedulerprofile.out
 schedulerprofile.prof
 workerprofile.prof

@@ -5,7 +5,7 @@ package helpers
 
 import (
 	"fmt"
-	"goscheduler/common/logger"
+	"overseer/common/logger"
 	"os"
 	"path/filepath"
 	"runtime/pprof"

@@ -2,12 +2,12 @@ package pool
 
 import (
 	"fmt"
-	"goscheduler/common/logger"
-	"goscheduler/common/types"
-	"goscheduler/overseer/internal/date"
-	"goscheduler/overseer/internal/taskdef"
+	"overseer/common/logger"
+	"overseer/common/types"
+	"overseer/overseer/internal/date"
+	"overseer/overseer/internal/taskdef"
 
-	"goscheduler/overseer/internal/unique"
+	"overseer/overseer/internal/unique"
 	"testing"
 	"time"
 )

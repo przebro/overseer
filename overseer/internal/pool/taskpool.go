@@ -3,11 +3,11 @@ package pool
 import (
 	"errors"
 	"fmt"
-	"goscheduler/common/logger"
-	"goscheduler/overseer/config"
-	"goscheduler/overseer/internal/date"
-	"goscheduler/overseer/internal/events"
-	"goscheduler/overseer/internal/unique"
+	"overseer/common/logger"
+	"overseer/overseer/config"
+	"overseer/overseer/internal/date"
+	"overseer/overseer/internal/events"
+	"overseer/overseer/internal/unique"
 	"sync"
 	"time"
 )

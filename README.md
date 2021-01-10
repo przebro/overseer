@@ -1,9 +1,9 @@
-# goscheduler
-[![Build Status](https://travis-ci.com/przebro/goscheduler.svg?token=BuDzHpxjhcjeKFWW17aH&branch=develop)](https://travis-ci.com/przebro/goscheduler)
+# overseer
+[![Build Status](https://travis-ci.com/przebro/overseer.svg?token=BuDzHpxjhcjeKFWW17aH&branch=develop)](https://travis-ci.com/przebro/overseer)
 ## About
-Goscheduler is a workflow manager and a task scheduler. Unlike cron-like schedulers,running tasks in goscheduler are controlled by resources: tickets and flags. this feature makes it easy to create robust and flexible workflows. Gosheduler is inspired by Control-M from BMC.
+Goscheduler is a workflow manager and a task scheduler. Unlike cron-like schedulers,running tasks in overseer are controlled by resources: tickets and flags. this feature makes it easy to create robust and flexible workflows. Gosheduler is inspired by Control-M from BMC.
 
-Note that currently, goscheduler is in a demo stage; therefore, some parts of a project will change.
+Note that currently, overseer is in a demo stage; therefore, some parts of a project will change.
 
 ### Features
 * Scheduling options: Manual, Daily, Day of a Week, Selected months, Specific Date
@@ -20,8 +20,8 @@ Note that currently, goscheduler is in a demo stage; therefore, some parts of a 
 * ...
 ### Installation
 ```
-  git clone https://github.com/przebro/goscheduler
-  cd goscheduler
+  git clone https://github.com/przebro/overseer
+  cd overseer
   git checkout develop
   make -f scripts/Makefile build
 ```

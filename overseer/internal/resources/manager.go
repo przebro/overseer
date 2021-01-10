@@ -2,12 +2,12 @@ package resources
 
 import (
 	"errors"
-	"goscheduler/common/logger"
-	"goscheduler/datastore"
-	"goscheduler/overseer/config"
-	"goscheduler/overseer/internal/date"
-	"goscheduler/overseer/internal/events"
-	"goscheduler/overseer/internal/taskdef"
+	"overseer/common/logger"
+	"overseer/datastore"
+	"overseer/overseer/config"
+	"overseer/overseer/internal/date"
+	"overseer/overseer/internal/events"
+	"overseer/overseer/internal/taskdef"
 	"strings"
 )
 

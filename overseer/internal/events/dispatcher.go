@@ -2,7 +2,7 @@ package events
 
 import (
 	"errors"
-	"goscheduler/common/logger"
+	"overseer/common/logger"
 	"sync"
 )
 

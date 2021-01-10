@@ -2,13 +2,22 @@ package datastore
 
 import (
 	"errors"
-	"goscheduler/common/logger"
-	"goscheduler/overseer/config"
+	"os"
+	"overseer/common/logger"
+	"overseer/overseer/config"
 
 	_ "github.com/przebro/couchstore/store"
 
 	"testing"
 )
+
+var resourceString = `{"flags":{"_id":"flags","_rev":"","flags":null},"tickets":{"_id":"tickets","_rev":"","tickets":[]}}`
+
+func init() {
+	f, _ := os.Create("../data/tests/resources.json")
+	f.Write([]byte(resourceString))
+	f.Close()
+}
 
 func TestProvider(t *testing.T) {
 

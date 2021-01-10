@@ -1,8 +1,8 @@
 package launcher
 
 import (
-	"goscheduler/common/types"
-	"goscheduler/ovsworker/msgheader"
+	"overseer/common/types"
+	"overseer/ovsworker/msgheader"
 	"testing"
 )
 

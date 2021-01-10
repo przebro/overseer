@@ -23,11 +23,11 @@ if ($targetname -eq "build"){
 	go build -o bin/chkprg chkprg/main.go
 }
 if ($targetname -eq "tests"){
-    go test ./... --coverpkg=./... --coverprofile='goscheduler.out'
+    go test ./... --coverpkg=./... --coverprofile='overseer.out'
 }
 
 if ($targetname -eq "cover"){
-    go tool cover  -html goscheduler.out  
+    go tool cover  -html overseer.out  
 }
 if ($targetname -eq "protoc"){
     protoc --proto_path=./proto/  --go_out=plugins=grpc:./ proto/wservices.proto 

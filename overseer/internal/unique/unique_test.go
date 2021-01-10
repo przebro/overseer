@@ -2,7 +2,7 @@ package unique
 
 import (
 	"encoding/hex"
-	"goscheduler/overseer/internal/date"
+	"overseer/overseer/internal/date"
 	"testing"
 )
 

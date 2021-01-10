@@ -1,4 +1,4 @@
-module goscheduler
+module overseer
 
 go 1.14
 

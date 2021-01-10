@@ -3,12 +3,12 @@ package services
 import (
 	"context"
 	"fmt"
-	"goscheduler/common/logger"
-	"goscheduler/common/validator"
-	"goscheduler/overseer/auth"
-	"goscheduler/overseer/internal/date"
-	"goscheduler/overseer/internal/resources"
-	"goscheduler/proto/services"
+	"overseer/common/logger"
+	"overseer/common/validator"
+	"overseer/overseer/auth"
+	"overseer/overseer/internal/date"
+	"overseer/overseer/internal/resources"
+	"overseer/proto/services"
 )
 
 type ovsResourceService struct {

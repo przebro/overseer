@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"goscheduler/common/logger"
-	"goscheduler/common/validator"
-	"goscheduler/overseer/auth"
-	"goscheduler/overseer/internal/taskdef"
-	"goscheduler/overseer/taskdata"
-	"goscheduler/proto/services"
+	"overseer/common/logger"
+	"overseer/common/validator"
+	"overseer/overseer/auth"
+	"overseer/overseer/internal/taskdef"
+	"overseer/overseer/taskdata"
+	"overseer/proto/services"
 )
 
 type ovsDefinitionService struct {

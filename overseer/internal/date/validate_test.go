@@ -1,7 +1,7 @@
 package date
 
 import (
-	"goscheduler/common/validator"
+	"overseer/common/validator"
 	"testing"
 )
 

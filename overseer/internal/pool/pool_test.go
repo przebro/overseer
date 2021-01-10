@@ -2,10 +2,10 @@ package pool
 
 import (
 	"errors"
-	"goscheduler/common/logger"
-	"goscheduler/overseer/config"
-	"goscheduler/overseer/internal/events"
-	"goscheduler/overseer/internal/taskdef"
+	"overseer/common/logger"
+	"overseer/overseer/config"
+	"overseer/overseer/internal/events"
+	"overseer/overseer/internal/taskdef"
 	"path/filepath"
 )
 
