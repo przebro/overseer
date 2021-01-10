@@ -2,6 +2,7 @@ package overseer
 
 import (
 	"goscheduler/common/logger"
+	"goscheduler/datastore"
 	"goscheduler/overseer/config"
 	"goscheduler/overseer/internal/events"
 	"goscheduler/overseer/internal/pool"
@@ -9,6 +10,8 @@ import (
 	"goscheduler/overseer/internal/taskdef"
 	"goscheduler/overseer/internal/work"
 	"goscheduler/overseer/services"
+	"goscheduler/overseer/services/handlers"
+	"goscheduler/overseer/services/middleware"
 	"path/filepath"
 )
 
@@ -31,7 +34,6 @@ type ServerAction interface {
 //Start - starts server
 func (s *Overseer) Start() error {
 
-	var resPath string
 	var defPath string
 	var err error
 
@@ -39,23 +41,21 @@ func (s *Overseer) Start() error {
 	evDispatcher := events.NewDispatcher()
 	s.logger.Info("Starting resources manager")
 
-	if !filepath.IsAbs(s.conf.ResourceFilePath) {
-
-		resPath = filepath.Join(s.conf.RootDirectory, s.conf.ResourceFilePath)
-	} else {
-		resPath = s.conf.ResourceFilePath
-	}
-
 	if filepath.IsAbs(defPath) {
 		defPath = filepath.Join(s.conf.RootDirectory, s.conf.DefinitionDirectory)
 	} else {
 		defPath = s.conf.DefinitionDirectory
 	}
 
-	s.logger.Info("resources:", resPath)
 	s.logger.Info("definitions:", defPath)
 
-	s.resources, err = resources.NewManager(evDispatcher, s.logger, resPath)
+	s.logger.Info("Start Datastore provider")
+	dataProvider, err := datastore.NewDataProvider(s.conf.GetStoreProviderConfiguration())
+	if err != nil {
+		return err
+	}
+
+	s.resources, err = resources.NewManager(evDispatcher, s.logger, s.conf.GetResourceConfiguration(), dataProvider)
 	if err != nil {
 		s.logger.Error(err)
 		return err
@@ -86,21 +86,38 @@ func (s *Overseer) Start() error {
 		daily.DailyProcedure()
 	}
 
-	s.registerValidators()
-
 	s.logger.Info("Start grpc")
+
+	tcv, err := services.NewTokenCreatorVerifier(s.conf.GetSecurityConfiguration())
+	if err != nil {
+		s.logger.Error(err)
+		return err
+	}
+
+	aservice, err := services.NewAuthenticateService(s.conf.GetSecurityConfiguration(), tcv, dataProvider)
+	if err != nil {
+		s.logger.Error(err)
+		return err
+	}
+
+	authhandler, err := handlers.NewServiceAuthorizeHandler(s.conf.GetSecurityConfiguration(), tcv, dataProvider)
+
+	if err != nil {
+		s.logger.Error(err)
+		return err
+	}
+
+	middleware.RegisterHandler(authhandler)
+
 	rservice := services.NewResourceService(s.resources)
 	dservice := services.NewDefinistionService(s.taskdef)
 	tservice := services.NewTaskService(taskManager, s.taskpool)
-	s.ovsGrpcSrv = services.NewOvsGrpcServer(evDispatcher, rservice, dservice, tservice)
+
+	s.ovsGrpcSrv = services.NewOvsGrpcServer(evDispatcher, rservice, dservice, tservice, aservice)
 
 	err = s.ovsGrpcSrv.Listen(s.conf.Host, s.conf.Port)
 
 	return err
-
-}
-
-func (s *Overseer) registerValidators() {
 
 }
 

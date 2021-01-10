@@ -2,10 +2,14 @@ package resources
 
 import (
 	"goscheduler/common/logger"
+	"goscheduler/datastore"
+	"goscheduler/overseer/config"
 	"goscheduler/overseer/internal/date"
 	"goscheduler/overseer/internal/events"
 	"goscheduler/overseer/internal/taskdef"
+	"os"
 	"testing"
+	"time"
 )
 
 var manager ResourceManager
@@ -25,14 +29,41 @@ func (m *mockDispacher) Unsubscribe(route events.RouteName, participant events.E
 
 var dispatcher mockDispacher = mockDispacher{}
 
-func TestMain(t *testing.T) {
+var resConfig config.ResourcesConfigurartion = config.ResourcesConfigurartion{
+	TicketSource: config.ResourceEntry{Sync: 1, Collection: "resources"},
+	FlagSource:   config.ResourceEntry{Sync: 1, Collection: "resources"},
+}
+var storeConfig config.StoreProviderConfiguration = config.StoreProviderConfiguration{
+	Store: []config.StoreConfiguration{
+		config.StoreConfiguration{ID: "teststore", ConnectionString: "local;/../../../data/tests?synctime=1"},
+	},
+	Collections: []config.CollectionConfiguration{
+		config.CollectionConfiguration{Name: "resources", StoreID: "teststore"},
+	},
+}
+
+var provider *datastore.Provider
+
+func TestMain(m *testing.M) {
+
+	f, _ := os.Create("../../../data/tests/resources.json")
+
+	f.Write([]byte(`{"flags":{},"tickets":{}}`))
+	f.Close()
 
 	var err error
 	tlog := logger.NewTestLogger()
-	manager, err = NewManager(&dispatcher, tlog, "../../../res")
+
+	provider, err = datastore.NewDataProvider(storeConfig)
+
 	if err != nil {
-		t.Error(err)
+		panic("fatal error, unable to load store")
 	}
+
+	manager, err = NewManager(&dispatcher, tlog, resConfig, provider)
+	m.Run()
+
+	time.Sleep(3 * time.Second)
 
 }
 
@@ -149,21 +180,30 @@ func TestListTickets(t *testing.T) {
 	manager.Delete("TESTL_01", "201009")
 	manager.Delete("TESTL_02", "201009")
 }
-func TestResourcesPool(t *testing.T) {
-	_, err := newResourcePool("notvalidpath")
-	if err == nil {
-		t.Error("Create resources pool error")
-	}
 
-}
 func TestFlags(t *testing.T) {
 
 	var e error
 	testman := &resourceManager{}
 	testman.dispatcher = &dispatcher
-	testman.path = "../../../res"
 	testman.log = logger.NewTestLogger()
-	testman.Resources, e = newResourcePool(testman.path)
+	trw, err := NewTicketReadWriter("resources", "conditions", provider)
+	if e != nil {
+		t.Fatal(e)
+	}
+	testman.tstore, e = newStore(trw, 0)
+
+	if e != nil {
+		t.Fatal(e)
+	}
+
+	frw, err := NewTicketReadWriter("resources", "flags", provider)
+	if e != nil {
+		t.Fatal(e)
+	}
+
+	testman.fstore, e = newStore(frw, 0)
+
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -229,7 +269,10 @@ func TestFlags(t *testing.T) {
 	}
 
 	list = testman.ListFlags("FLAG")
-	if len(list) != 1 && testman.Resources.Flags[0].Count != 2 {
+	lflag, _ := testman.fstore.Get("FLAG_02")
+	lresource := lflag.(FlagResource)
+
+	if len(list) != 1 && lresource.Count != 2 {
 		t.Error("List flag failed#3")
 	}
 
@@ -239,7 +282,11 @@ func TestFlags(t *testing.T) {
 	}
 
 	list = testman.ListFlags("FLAG")
-	if len(list) != 1 && testman.Resources.Flags[0].Count != 1 {
+
+	lflag, _ = testman.fstore.Get("FLAG_02")
+	lresource = lflag.(FlagResource)
+
+	if len(list) != 1 && lresource.Count != 1 {
 		t.Error("List flag failed#4")
 	}
 
@@ -251,18 +298,39 @@ func TestFlags(t *testing.T) {
 }
 func TestDispatch(t *testing.T) {
 
+	var e error
 	testman := &resourceManager{}
 	testman.dispatcher = &dispatcher
 
-	testman.path = "../../res"
-	testman.Resources, _ = newResourcePool(testman.path)
 	testman.log = logger.NewTestLogger()
+
+	trw, err := NewTicketReadWriter("resources", "tickets", provider)
+	if e != nil {
+		t.Fatal(e)
+	}
+
+	testman.tstore, e = newStore(trw, 0)
+
+	if e != nil {
+		t.Fatal(e)
+	}
+
+	frw, err := NewTicketReadWriter("resources", "fla", provider)
+	if e != nil {
+		t.Fatal(e)
+	}
+
+	testman.fstore, e = newStore(frw, 0)
+
+	if e != nil {
+		t.Fatal(e)
+	}
 
 	receiver := events.NewTicketCheckReceiver()
 
 	go testman.Process(receiver, "ROUTE_NOT_EXISTS", events.NewMsg(""))
 
-	_, err := receiver.WaitForResult()
+	_, err = receiver.WaitForResult()
 	if err == nil {
 		t.Error("Invalid route name")
 	}

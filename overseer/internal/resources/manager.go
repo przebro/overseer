@@ -1,24 +1,21 @@
 package resources
 
 import (
-	"encoding/json"
 	"errors"
 	"goscheduler/common/logger"
+	"goscheduler/datastore"
+	"goscheduler/overseer/config"
 	"goscheduler/overseer/internal/date"
 	"goscheduler/overseer/internal/events"
 	"goscheduler/overseer/internal/taskdef"
-	"io/ioutil"
 	"strings"
-	"sync"
 )
 
 type resourceManager struct {
-	path       string
 	dispatcher events.Dispatcher
 	log        logger.AppLogger
-	Resources  *resourcePool
-	tlock      sync.RWMutex
-	flock      sync.RWMutex
+	tstore     *resourceStore
+	fstore     *resourceStore
 }
 
 //TicketManager - base resources required by task to run
@@ -27,7 +24,6 @@ type TicketManager interface {
 	Delete(name string, odate date.Odate) (bool, error)
 	Check(name string, odate date.Odate) bool
 	ListTickets(name string, datestr string) []TicketResource
-	tsync()
 }
 
 //FlagManager - Resource that helps run tasks
@@ -35,7 +31,6 @@ type FlagManager interface {
 	Set(name string, policy FlagResourcePolicy) (bool, error)
 	Unset(name string) (bool, error)
 	ListFlags(name string) []FlagResource
-	fsync()
 }
 
 //ResourceManager - manages resources that are required by tasks
@@ -45,21 +40,33 @@ type ResourceManager interface {
 }
 
 //NewManager - crates new resources manager
-func NewManager(dispatcher events.Dispatcher, log logger.AppLogger, directory string) (ResourceManager, error) {
+func NewManager(dispatcher events.Dispatcher, log logger.AppLogger, rconfig config.ResourcesConfigurartion, provider *datastore.Provider) (ResourceManager, error) {
 
 	var err error
 	rm := new(resourceManager)
 	rm.log = log
 	rm.dispatcher = dispatcher
-	rm.path = directory
-	rm.tlock = sync.RWMutex{}
-	rm.flock = sync.RWMutex{}
 
-	rp, err := newResourcePool(directory)
+	trw, err := NewTicketReadWriter(rconfig.TicketSource.Collection, "tickets", provider)
 	if err != nil {
-		panic(err.Error())
+		return nil, err
 	}
-	rm.Resources = rp
+
+	rm.tstore, err = newStore(trw, rconfig.TicketSource.Sync)
+
+	if err != nil {
+		return nil, err
+	}
+
+	frw, err := NewFlagReadWriter(rconfig.TicketSource.Collection, "flags", provider)
+	if err != nil {
+		return nil, err
+	}
+
+	rm.fstore, err = newStore(frw, rconfig.FlagSource.Sync)
+	if err != nil {
+		return nil, err
+	}
 
 	//Subscribe for incoming messages about requests for tickets
 	rm.dispatcher.Subscribe(events.RouteTicketCheck, rm)
@@ -70,66 +77,41 @@ func NewManager(dispatcher events.Dispatcher, log logger.AppLogger, directory st
 
 func (rm *resourceManager) Add(name string, odate date.Odate) (bool, error) {
 
-	defer rm.tlock.Unlock()
-	rm.tlock.Lock()
-
-	for _, n := range rm.Resources.Tickets {
-		if n.Name == name && n.Odate == odate {
-			rm.log.Info("TICKET:", n.Name, n.Odate)
-			return false, errors.New("ticket with given name and odate already exists")
-		}
+	err := rm.tstore.Insert(name+string(odate), TicketResource{Name: name, Odate: odate})
+	if err != nil {
+		return false, errors.New("ticket with given name and odate already exists")
 	}
-
-	rm.Resources.Tickets = append(rm.Resources.Tickets, TicketResource{Name: name, Odate: odate})
-	rm.tsync()
+	rm.log.Info("TICKET:", name, odate)
 
 	return true, nil
 }
 func (rm *resourceManager) Delete(name string, odate date.Odate) (bool, error) {
 
-	defer rm.tlock.Unlock()
-	rm.tlock.Lock()
-
-	for i, n := range rm.Resources.Tickets {
-		if n.Name == name && n.Odate == odate {
-			rm.Resources.Tickets = append(rm.Resources.Tickets[:i], rm.Resources.Tickets[i+1:]...)
-			rm.tsync()
-			return true, nil
-		}
+	key := name + string(odate)
+	if _, ok := rm.tstore.Get(key); ok {
+		rm.tstore.Delete(key)
+		return true, nil
 	}
 	return false, errors.New("unable to find given condition")
 
 }
 func (rm *resourceManager) Check(name string, odate date.Odate) bool {
 
-	defer rm.tlock.RUnlock()
-	rm.tlock.RLock()
-
-	for _, n := range rm.Resources.Tickets {
-		if n.Name == name && n.Odate == odate {
-			return true
-		}
-	}
-	return false
-
+	key := name + string(odate)
+	_, ok := rm.tstore.Get(key)
+	return ok
 }
 
 //ListTickets - return a list of tickets restricted to given name and odate
 func (rm *resourceManager) ListTickets(name string, datestr string) []TicketResource {
 
-	defer rm.tlock.RUnlock()
-	rm.tlock.RLock()
+	tickets := rm.tstore.All()
 
 	result := make([]TicketResource, 0)
-	for _, n := range rm.Resources.Tickets {
+	for _, n := range tickets {
 
-		if n.Name == "" {
-			result = append(result, n)
-			continue
-		}
-
-		if strings.HasPrefix(n.Name, name) && strings.HasPrefix(string(n.Odate), datestr) {
-			result = append(result, n)
+		if strings.HasPrefix(n.(TicketResource).Name, name) && strings.HasPrefix(string(n.(TicketResource).Odate), datestr) {
+			result = append(result, n.(TicketResource))
 		}
 	}
 
@@ -139,26 +121,26 @@ func (rm *resourceManager) ListTickets(name string, datestr string) []TicketReso
 //Set - change a value of a flag
 func (rm *resourceManager) Set(name string, policy FlagResourcePolicy) (bool, error) {
 
-	defer rm.flock.Unlock()
-	rm.flock.Lock()
+	var v interface{}
+	var ok bool
 
-	for i, e := range rm.Resources.Flags {
-		if e.Name == name {
-			if e.Policy == FlagPolicyExclusive {
-				return false, errors.New("flag in use with exclusive policy")
-			}
-			if e.Policy == FlagPolicyShared && policy == FlagPolicyExclusive {
-				return false, errors.New("unable to set shared, flag in use with exclusive policy")
-			}
-			rm.Resources.Flags[i].Policy = policy
-			rm.Resources.Flags[i].Count++
-
-			rm.fsync()
-			return true, nil
-		}
+	if v, ok = rm.fstore.Get(name); !ok {
+		rm.fstore.Insert(name, FlagResource{Name: name, Policy: policy, Count: 1})
+		return true, nil
 	}
-	rm.Resources.Flags = append(rm.Resources.Flags, FlagResource{Name: name, Policy: policy, Count: 1})
-	rm.fsync()
+
+	flag := v.(FlagResource)
+	if flag.Policy == FlagPolicyExclusive {
+		return false, errors.New("flag in use with exclusive policy")
+	}
+
+	if flag.Policy == FlagPolicyShared && policy == FlagPolicyExclusive {
+		return false, errors.New("unable to set shared, flag in use with exclusive policy")
+	}
+
+	flag.Count++
+	flag.Policy = policy
+	rm.fstore.Update(flag.Name, flag)
 
 	return true, nil
 }
@@ -166,63 +148,35 @@ func (rm *resourceManager) Set(name string, policy FlagResourcePolicy) (bool, er
 //Unset - remove a flag
 func (rm *resourceManager) Unset(name string) (bool, error) {
 
-	defer rm.flock.Unlock()
-	rm.flock.Lock()
+	var v interface{}
+	var ok bool
 
-	for i, e := range rm.Resources.Flags {
-		if e.Name == name {
-			rm.Resources.Flags[i].Count = rm.Resources.Flags[i].Count - 1
-			if rm.Resources.Flags[i].Count == 0 {
-				rm.Resources.Flags = append(rm.Resources.Flags[:i], rm.Resources.Flags[i+1:]...)
-			}
-			rm.fsync()
-			return true, nil
-		}
+	if v, ok = rm.fstore.Get(name); !ok {
+		return false, errors.New("Flag with given name does not exists")
 	}
 
-	return false, errors.New("Flag with given name does not exists")
+	flag := v.(FlagResource)
+	flag.Count--
+	if flag.Count == 0 {
+		rm.fstore.Delete(name)
+	}
+	return true, nil
+
 }
 
 func (rm *resourceManager) ListFlags(name string) []FlagResource {
 
-	defer rm.flock.RUnlock()
-	rm.flock.RLock()
-
+	flags := rm.fstore.All()
 	result := make([]FlagResource, 0)
-	for _, e := range rm.Resources.Flags {
-		if strings.HasPrefix(e.Name, name) {
-			result = append(result, e)
+
+	for _, n := range flags {
+
+		if strings.HasPrefix(n.(FlagResource).Name, name) {
+			result = append(result, n.(FlagResource))
 		}
 	}
 
 	return result
-}
-
-func (rm *resourceManager) tsync() {
-
-	data, err := json.Marshal(&rm.Resources.Tickets)
-	if err != nil {
-		rm.log.Error("Unable to unmarshal resources", err)
-
-	}
-	err = ioutil.WriteFile(rm.Resources.tpath, data, 0644)
-	if err != nil {
-		rm.log.Error("Unable to sync tickets resources with file", err)
-	}
-
-}
-func (rm *resourceManager) fsync() {
-
-	data, err := json.Marshal(&rm.Resources.Flags)
-	if err != nil {
-		rm.log.Error("Unable to unmarshal resources", err)
-
-	}
-	err = ioutil.WriteFile(rm.Resources.fpath, data, 0644)
-	if err != nil {
-		rm.log.Error("Unable to sync flags resources with file", err)
-	}
-
 }
 
 func (rm *resourceManager) Process(receiver events.EventReceiver, route events.RouteName, msg events.DispatchedMessage) {

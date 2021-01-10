@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"goscheduler/common/types"
 	"io/ioutil"
 )
@@ -26,6 +27,15 @@ type ActivePoolConfiguration struct {
 	NewDayProc      types.HourMinTime `json:"newDayProc"`
 	ForceNewDayProc bool              `json:"forceNewDayProc"`
 }
+type ResourceEntry struct {
+	Collection string `json:"collectionName"`
+	Sync       int    `json:"sync"`
+}
+
+type ResourcesConfigurartion struct {
+	TicketSource ResourceEntry `json:"tickets"`
+	FlagSource   ResourceEntry `json:"flags"`
+}
 
 //IntervalValue - represents limited interval value
 type IntervalValue int
@@ -34,16 +44,43 @@ type IntervalValue int
 type OverseerConfiguration struct {
 	ProcessDirectory    string
 	RootDirectory       string
-	Host                string                  `json:"ovshost"`
-	Port                int                     `json:"ovsport"`
-	DefinitionDirectory string                  `json:"definitionDirectory"`
-	ResourceFilePath    string                  `json:"resourceDirectory"`
-	Log                 LogConfiguration        `json:"LogConfiguration"`
-	PoolConfiguration   ActivePoolConfiguration `json:"ActivePoolConfiguration"`
-	TimeInterval        IntervalValue           `json:"timeInterval" validate:"min=1,max=60"`
+	Host                string                     `json:"ovshost"`
+	Port                int                        `json:"ovsport"`
+	DefinitionDirectory string                     `json:"definitionDirectory"`
+	Resources           ResourcesConfigurartion    `json:"ResourceConfiguration"`
+	Log                 LogConfiguration           `json:"LogConfiguration"`
+	PoolConfiguration   ActivePoolConfiguration    `json:"ActivePoolConfiguration"`
+	TimeInterval        IntervalValue              `json:"timeInterval" validate:"min=1,max=60"`
+	StoreProvider       StoreProviderConfiguration `json:"StoreProvider"`
+	Security            SecurityConfiguration      `json:"security"`
 	WorkerTimeout       int
 	WorkerMaxAttemps    int
 	Workers             []WorkerConfiguration `json:"workers"`
+}
+
+type StoreProviderConfiguration struct {
+	Store       []StoreConfiguration      `json:"store"`
+	Collections []CollectionConfiguration `json:"collections"`
+}
+
+type StoreConfiguration struct {
+	ID               string `json:"id"`
+	ConnectionString string `json:"connectionString"`
+}
+
+type CollectionConfiguration struct {
+	StoreID string `json:"storeId"`
+	Name    string `json:"name"`
+}
+
+type SecurityConfiguration struct {
+	Ssl            bool          `json:"ssl"`
+	AllowAnonymous bool          `json:"allowAnonymous"`
+	Timeout        int           `json:"timeout"`
+	Issuer         string        `json:"issuer"`
+	Secret         string        `json:"secret"`
+	Collection     string        `json:"collectionName"`
+	Providers      []interface{} `json:"providers"`
 }
 
 //Load - Loads configuration from a file
@@ -58,7 +95,7 @@ func Load(path string) (*OverseerConfiguration, error) {
 	err = json.Unmarshal(data, &config)
 
 	if err != nil {
-		return nil, errors.New("unable to unmarshal confiuration file")
+		return nil, fmt.Errorf("unable to unmarshal confiuration file:%w", err)
 	}
 
 	return config, nil
@@ -72,4 +109,16 @@ func (cfg *OverseerConfiguration) GetLogConfiguration() LogConfiguration {
 //GetActivePoolConfiguration - Gets an Active Pool configuration section
 func (cfg *OverseerConfiguration) GetActivePoolConfiguration() ActivePoolConfiguration {
 	return cfg.PoolConfiguration
+}
+
+func (cfg *OverseerConfiguration) GetResourceConfiguration() ResourcesConfigurartion {
+	return cfg.Resources
+}
+
+func (cfg *OverseerConfiguration) GetStoreProviderConfiguration() StoreProviderConfiguration {
+	return cfg.StoreProvider
+}
+
+func (cfg *OverseerConfiguration) GetSecurityConfiguration() SecurityConfiguration {
+	return cfg.Security
 }

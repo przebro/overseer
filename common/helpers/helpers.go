@@ -1,3 +1,6 @@
+/*
+Package helpers - contains miscelanous helpers methods
+*/
 package helpers
 
 import (

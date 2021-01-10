@@ -2,18 +2,44 @@
     "ovshost" : "127.0.0.1",
     "ovsport" : 7053,
     "definitionDirectory" : "./def",
-    "resourceDirectory" :"./res",
     "LogConfiguration" :{
-    "logLevel" : 1,
-    "logDirectory" : "./logs"
+        "logLevel" : 1,
+        "logDirectory" : "./logs"
+    },
+    "ResourceConfiguration" : {
+        "tickets" :{ "collectionName" : "resources", "sync" : 2},
+        "flags" : { "collectionName" : "resources", "sync" : 2}
     },
     "ActivePoolConfiguration" :{
-    "forceNewDayProc" : true,
-    "newDayProc" : "22:00",
-    "maxOkReturnCode" : 4
+        "forceNewDayProc" : true,
+        "newDayProc" : "22:00",
+        "maxOkReturnCode" : 4
     },
     "timeInterval" : 2,
     "workers" : [
         {"name":"worker_01","workerHost" : "127.0.0.1","workerPort" : 7055}
-    ]
+    ],
+    "StoreProvider" : {
+        "store" : [
+            {"id" : "security", "connectionString":"local;/data/security?synctime=0"},
+            {"id" : "resources", "connectionString":"local;/data/resources?updatesync=true"}
+        ],
+        "collections" : [
+            {"storeId" : "resources", "name" : "resources"},
+            {"storeId" : "security", "name" : "auth"}
+        ]
+    },
+
+    "security" : {
+        "ssl" : false,
+        "allowAnonymous" : true,
+        "collectionName" : "auth",
+        "timeout" : 0,
+        "issuer" : "issuername",
+        "secret" :"WBdumgVKBK4iTB+CR2Z2meseDrlnrg54QDSAPcFswWU=",
+        "authenticationProviders" :[
+            
+        ]
+
+    }
 }

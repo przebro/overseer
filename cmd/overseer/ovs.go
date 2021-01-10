@@ -48,6 +48,11 @@ func main() {
 	}
 
 	config, err := getConfiguration(root, prog)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(16)
+	}
+
 	//Get log section from configuration
 	logcfg := config.GetLogConfiguration()
 	log := logger.NewLogger(logcfg.LogDirectory, logcfg.LogLevel)

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"goscheduler/common/logger"
 	"goscheduler/common/validator"
+	"goscheduler/overseer/auth"
 	"goscheduler/overseer/internal/date"
 	"goscheduler/overseer/internal/pool"
 	"goscheduler/overseer/internal/unique"
@@ -19,7 +20,7 @@ type ovsActiveTaskService struct {
 }
 
 //NewTaskService - New task service
-func NewTaskService(m *pool.ActiveTaskPoolManager, p pool.TaskViewer) services.TaskServiceServer {
+func NewTaskService(m *pool.ActiveTaskPoolManager, p pool.TaskViewer) *ovsActiveTaskService {
 
 	tservice := &ovsActiveTaskService{manager: m, poolView: p, log: logger.Get()}
 
@@ -241,4 +242,12 @@ func (srv *ovsActiveTaskService) TaskDetail(ctx context.Context, in *services.Ta
 	response.Success = true
 
 	return response, nil
+}
+
+//GetAllowedAction - returns allowed action for given method. Implementation of handlers.AccessRestricter
+func (srv *ovsActiveTaskService) GetAllowedAction(method string) auth.UserAction {
+
+	var action auth.UserAction
+
+	return action
 }

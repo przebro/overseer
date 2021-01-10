@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"goscheduler/common/logger"
 	"goscheduler/common/validator"
+	"goscheduler/overseer/auth"
 	"goscheduler/overseer/internal/taskdef"
 	"goscheduler/overseer/taskdata"
 	"goscheduler/proto/services"
@@ -17,7 +18,7 @@ type ovsDefinitionService struct {
 }
 
 //NewDefinistionService - Creates a new Definition service
-func NewDefinistionService(dm taskdef.TaskDefinitionManager) services.DefinitionServiceServer {
+func NewDefinistionService(dm taskdef.TaskDefinitionManager) *ovsDefinitionService {
 
 	dservice := &ovsDefinitionService{defManager: dm, log: logger.Get()}
 	return dservice
@@ -160,4 +161,12 @@ func (srv *ovsDefinitionService) ListDefinitionsFromGroup(msg *services.Definiti
 	}
 
 	return nil
+}
+
+//GetAllowedAction - returns allowed action for given method. Implementation of handlers.AccessRestricter
+func (srv *ovsDefinitionService) GetAllowedAction(method string) auth.UserAction {
+
+	var action auth.UserAction
+
+	return action
 }

@@ -2,8 +2,10 @@ syntax = "proto3";
 package proto;
 option go_package = "proto/services";
 
-service AuthorizeService{
-    rpc Authorize(AuthorizeActionMsg) returns (ActionResultMsg){}
+
+
+service AuthenticateService{
+    rpc Authenticate(AuthorizeActionMsg) returns (ActionResultMsg){}
 }
 
 service ResourceService{

@@ -1,12 +1,12 @@
 package services
 
 import (
-	"context"
 	"fmt"
 	"goscheduler/common/logger"
 	"goscheduler/overseer/internal/events"
 	"goscheduler/overseer/internal/resources"
 	"goscheduler/overseer/internal/taskdef"
+	"goscheduler/overseer/services/middleware"
 	"goscheduler/proto/services"
 	"net"
 
@@ -32,15 +32,19 @@ type OvsGrpcServer interface {
 func NewOvsGrpcServer(disp events.Dispatcher,
 	r services.ResourceServiceServer,
 	d services.DefinitionServiceServer,
-	t services.TaskServiceServer) OvsGrpcServer {
+	t services.TaskServiceServer,
+	a services.AuthenticateServiceServer) OvsGrpcServer {
+
+	unaryChain := buildUnaryChain()
+	streamChain := buildStreamChain()
 
 	srv := &ovsGrpcServer{}
-	srv.grpcServer = grpc.NewServer()
+	srv.grpcServer = grpc.NewServer(unaryChain, streamChain)
 	srv.rservice = ovsResourceService{}
 	services.RegisterResourceServiceServer(srv.grpcServer, r)
 	services.RegisterDefinitionServiceServer(srv.grpcServer, d)
 	services.RegisterTaskServiceServer(srv.grpcServer, t)
-	services.RegisterAuthorizeServiceServer(srv.grpcServer, srv)
+	services.RegisterAuthenticateServiceServer(srv.grpcServer, a)
 	srv.dispatcher = disp
 	srv.log = logger.Get()
 	return srv
@@ -64,10 +68,15 @@ func (srv *ovsGrpcServer) Listen(host string, port int) error {
 	}
 
 	return nil
-
 }
 
-func (srv *ovsGrpcServer) Authorize(ctx context.Context, msg *services.AuthorizeActionMsg) (*services.ActionResultMsg, error) {
+func buildUnaryChain() grpc.ServerOption {
 
-	return nil, nil
+	return grpc.ChainUnaryInterceptor(middleware.GetUnaryHandlers()...)
+}
+
+func buildStreamChain() grpc.ServerOption {
+
+	return grpc.ChainStreamInterceptor(middleware.GetStreamHandlers()...)
+
 }

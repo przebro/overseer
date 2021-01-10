@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"goscheduler/common/logger"
 	"goscheduler/common/validator"
+	"goscheduler/overseer/auth"
 	"goscheduler/overseer/internal/date"
 	"goscheduler/overseer/internal/resources"
 	"goscheduler/proto/services"
@@ -16,7 +17,7 @@ type ovsResourceService struct {
 }
 
 //NewResourceService - Creates new service for ResourceManager
-func NewResourceService(rm resources.ResourceManager) services.ResourceServiceServer {
+func NewResourceService(rm resources.ResourceManager) *ovsResourceService {
 
 	rservice := &ovsResourceService{resManager: rm, log: logger.Get()}
 	return rservice
@@ -198,4 +199,12 @@ func (srv *ovsResourceService) ListFlags(msg *services.FlagActionMsg, lflags ser
 	}
 
 	return nil
+}
+
+//GetAllowedAction - returns allowed action for given method. Implementation of handlers.AccessRestricter
+func (srv *ovsResourceService) GetAllowedAction(method string) auth.UserAction {
+
+	var action auth.UserAction
+
+	return action
 }
