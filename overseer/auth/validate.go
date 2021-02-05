@@ -11,7 +11,7 @@ func init() {
 	validator.Valid.RegisterValidatorRule("auth", NameAuthValidator)
 }
 
-//NameAuthValidator - validator function  for resource name like task, flag or ticket
+//NameAuthValidator - validator function  for  description
 func NameAuthValidator(fl vl.FieldLevel) bool {
 
 	if val, ok := fl.Field().Interface().(string); ok {
@@ -23,6 +23,6 @@ func NameAuthValidator(fl vl.FieldLevel) bool {
 }
 func validateValueAuth(resource string) (bool, error) {
 
-	return regexp.MatchString(`\w[\w" "()\.]+`, resource)
+	return regexp.MatchString(`^\w[\w" "()\.]+$`, resource)
 
 }

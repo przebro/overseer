@@ -248,6 +248,48 @@ func TestCreateUser(t *testing.T) {
 
 }
 
+func TestModifyUser(t *testing.T) {
+
+	client := createAdminCLient(t)
+
+	msg := &services.CreateUserMsg{
+		User: &services.UserAccount{Username: "testuser5"},
+	}
+
+	r, err := client.ModifyUser(context.Background(), msg)
+
+	if err != nil {
+		t.Error("unexpected result:", err)
+	}
+	if r.Success != false {
+		t.Error("unexpected result:", r.Success, "expected:", false)
+	}
+
+	msg.User.Username = "testuser1"
+	msg.User.Fullname = "testuser1 modified"
+	msg.User.Email = "testuser1overseer"
+	msg.User.Enabled = true
+	r, err = client.ModifyUser(context.Background(), msg)
+
+	if err != nil {
+		t.Error("unexpected result:", err)
+	}
+	if r.Success != false {
+		t.Error("unexpected result:", r.Success, "expected:", false)
+	}
+
+	msg.User.Email = "testuser1@overseer.com"
+	r, err = client.ModifyUser(context.Background(), msg)
+
+	if err != nil {
+		t.Error("unexpected result:", err)
+	}
+	if r.Success != true {
+		t.Error("unexpected result:", r.Success, "expected:", true)
+	}
+
+}
+
 func TestDeleteUser(t *testing.T) {
 
 	client := createAdminCLient(t)
@@ -367,6 +409,37 @@ func TestCreateRole(t *testing.T) {
 		t.Error("unexpected result:", r.Success, "expected:", false)
 	}
 
+}
+
+func TestModifyRole(t *testing.T) {
+
+	client := createAdminCLient(t)
+
+	msg := &services.RoleDefinitionMsg{
+		Role: &services.RoleMsg{},
+	}
+	r, err := client.ModifyRole(context.Background(), msg)
+
+	if err != nil {
+		t.Error("unexpected result:", err)
+	}
+
+	if r.Success != false {
+		t.Error("unexpected result:", r.Success, "expected:", false)
+	}
+
+	msg.Role.Rolename = "testrole1"
+	msg.Description = "role description"
+	msg.Bypass = true
+	r, err = client.ModifyRole(context.Background(), msg)
+
+	if err != nil {
+		t.Error("unexpected result:", err)
+	}
+
+	if r.Success != true {
+		t.Error("unexpected result:", r.Success, "expected:", true)
+	}
 }
 
 func TestDeleteRole(t *testing.T) {

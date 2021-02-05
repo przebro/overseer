@@ -31,7 +31,7 @@ func FragmentFactory(launcher *FragmentLauncher) *FragmentCreator {
 //CreateFragment - Creates a new fragment thaht will be executed.
 func (creator *FragmentCreator) CreateFragment(header msgheader.TaskHeader, data []byte) error {
 
-	var w fragments.WorkFragment = nil
+	var w fragments.WorkFragment
 	var err error
 
 	f, exists := factories[header.Type]

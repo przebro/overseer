@@ -49,7 +49,7 @@ func NewManager(dispatcher events.Dispatcher, log logger.AppLogger, rconfig conf
 	rm.log = log
 	rm.dispatcher = dispatcher
 
-	trw, err := NewTicketReadWriter(rconfig.TicketSource.Collection, "tickets", provider)
+	trw, err := newTicketReadWriter(rconfig.TicketSource.Collection, "tickets", provider)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +60,7 @@ func NewManager(dispatcher events.Dispatcher, log logger.AppLogger, rconfig conf
 		return nil, err
 	}
 
-	frw, err := NewFlagReadWriter(rconfig.TicketSource.Collection, "flags", provider)
+	frw, err := newFlagReadWriter(rconfig.TicketSource.Collection, "flags", provider)
 	if err != nil {
 		return nil, err
 	}
@@ -113,16 +113,16 @@ func (rm *resourceManager) ListTickets(name string, datestr string) []TicketReso
 	var err error
 
 	result := make([]TicketResource, 0)
-	for _, n := range tickets {
+	nexpr := buildExpr(name)
+	dexpr := buildDateExpr(datestr)
 
-		nexpr := buildExpr(name)
-		dexpr := buildDateExpr(datestr)
+	for _, n := range tickets {
 
 		if matchName, err = regexp.Match(nexpr, []byte(n.(TicketResource).Name)); err != nil {
 			return []TicketResource{}
 		}
 
-		if matchDate, err = regexp.Match(dexpr, []byte(n.(TicketResource).Name)); err != nil {
+		if matchDate, err = regexp.Match(dexpr, []byte(n.(TicketResource).Odate)); err != nil {
 			return []TicketResource{}
 		}
 
@@ -205,9 +205,9 @@ func (rm *resourceManager) ListFlags(name string) []FlagResource {
 	flags := rm.fstore.All()
 	result := make([]FlagResource, 0)
 
-	for _, n := range flags {
+	nexpr := buildExpr(name)
 
-		nexpr := buildExpr(name)
+	for _, n := range flags {
 
 		if matchName, err = regexp.Match(nexpr, []byte(n.(FlagResource).Name)); err != nil {
 			return []FlagResource{}
@@ -290,16 +290,16 @@ func buildExpr(value string) string {
 	expr := ""
 
 	if value == "" {
-		return `[\w\-]*`
+		return `[\w\-]*|^$`
 	}
 	for _, c := range value {
 
 		if c == '*' {
-			expr += `[\w\-]+`
+			expr += `[\w\-]*`
 			continue
 		}
 		if c == '?' {
-			expr += `[\w\-]`
+			expr += `[\w\-]{1}`
 			continue
 		}
 
@@ -314,17 +314,17 @@ func buildDateExpr(value string) string {
 	expr := ""
 
 	if value == "" {
-		return `[\d]*`
+		return `[\d]*|^$`
 	}
 
 	for _, c := range value {
 
 		if c == '*' {
-			expr += `[\d]+`
+			expr += `[\d]*`
 			continue
 		}
 		if c == '?' {
-			expr += `[\d]`
+			expr += `[\d]{1}`
 			continue
 		}
 

@@ -1,6 +1,7 @@
 package resources
 
 import (
+	"encoding/json"
 	"os"
 	"overseer/common/logger"
 	"overseer/datastore"
@@ -44,14 +45,30 @@ var storeConfig config.StoreProviderConfiguration = config.StoreProviderConfigur
 
 var provider *datastore.Provider
 
-func TestMain(m *testing.M) {
+var resources = map[string]interface{}{
+	"tickets": TicketsResourceModel{
+		ID: "tickets",
+		Tickets: []TicketResource{
+			{Name: "TEST_TICKET", Odate: ""},
+		},
+	},
+	"flags": FlagsResourceModel{
+		ID: "flags",
+		Flags: []FlagResource{
+			{Name: "TEST_FLAG", Count: 1, Policy: FlagPolicyShared},
+		},
+	},
+}
 
-	f, _ := os.Create("../../../data/tests/resources.json")
-	f.Write([]byte(`{"flags":{"_id":"flags","_rev":"","flags":[]},"tickets":{"_id":"tickets","_rev":"","tickets":[]}}`))
-	f.Close()
+func init() {
 
 	var err error
-	tlog := logger.NewTestLogger()
+	logger.NewTestLogger()
+	f, _ := os.Create("../../../data/tests/resources.json")
+	data, _ := json.Marshal(resources)
+
+	f.Write(data)
+	f.Close()
 
 	provider, err = datastore.NewDataProvider(storeConfig)
 
@@ -59,10 +76,17 @@ func TestMain(m *testing.M) {
 		panic("fatal error, unable to load store")
 	}
 
-	manager, err = NewManager(&dispatcher, tlog, resConfig, provider)
-	m.Run()
+}
 
-	time.Sleep(3 * time.Second)
+func TestNewManager(t *testing.T) {
+
+	var err error
+	tlog := logger.NewTestLogger()
+	manager, err = NewManager(&dispatcher, tlog, resConfig, provider)
+	if err != nil {
+		t.Error("unexpected error:", err)
+	}
+	time.Sleep(2 * time.Second)
 
 }
 
@@ -149,62 +173,61 @@ func TestCheckCondition(t *testing.T) {
 }
 func TestListTickets(t *testing.T) {
 
-	manager.Add("TESTL_01", "200909")
+	manager.Add("TESTL_01", "20201013")
 	manager.Add("TESTL_01", "")
-	manager.Add("TESTL_01", "201009")
-	manager.Add("TESTL_02", "201009")
+	manager.Add("TESTL_01", "20201009")
+	manager.Add("TESTL_02", "20201009")
 
-	res := manager.ListTickets("TESTL", "")
+	res := manager.ListTickets("TESTL_*", "")
 	if len(res) != 4 {
-		t.Error("invalid number of conditions")
+		t.Error("invalid number of conditions", len(res))
 	}
 
 	res = manager.ListTickets("TESTL_01", "")
 	if len(res) != 3 {
-		t.Error("invalid number of conditions")
+		t.Error("invalid number of conditions", len(res))
 	}
 
-	res = manager.ListTickets("TESTL_01", "20")
+	res = manager.ListTickets("TESTL_01", "20*")
 	if len(res) != 2 {
-		t.Error("invalid number of conditions")
+		t.Error("invalid number of conditions:", len(res))
 	}
 
-	res = manager.ListTickets("TESTL_01", "2009")
-	if len(res) != 1 {
-		t.Error("invalid number of conditions")
+	res = manager.ListTickets("TESTL_01", "202010*")
+	if len(res) != 2 {
+		t.Error("invalid number of conditions", len(res))
 	}
 
-	manager.Delete("TESTL_01", "200909")
+	manager.Delete("TESTL_01", "20200909")
 	manager.Delete("TESTL_01", "")
-	manager.Delete("TESTL_01", "201009")
-	manager.Delete("TESTL_02", "201009")
+	manager.Delete("TESTL_01", "20201009")
+	manager.Delete("TESTL_02", "20201009")
 }
 
 func TestFlags(t *testing.T) {
 
-	var e error
 	testman := &resourceManager{}
 	testman.dispatcher = &dispatcher
 	testman.log = logger.NewTestLogger()
-	trw, err := NewTicketReadWriter("resources", "conditions", provider)
-	if e != nil {
-		t.Fatal(e)
+	trw, err := newTicketReadWriter("resources", "tickets", provider)
+	if err != nil {
+		t.Fatal(err)
 	}
-	testman.tstore, e = newStore(trw, 0)
+	testman.tstore, err = newStore(trw, 0)
 
-	if e != nil {
-		t.Fatal(e)
-	}
-
-	frw, err := NewTicketReadWriter("resources", "flags", provider)
-	if e != nil {
-		t.Fatal(e)
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	testman.fstore, e = newStore(frw, 0)
+	frw, err := newFlagReadWriter("resources", "flags", provider)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	if e != nil {
-		t.Fatal(e)
+	testman.fstore, err = newStore(frw, 0)
+
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	//Sets a flag to exclusive
@@ -235,6 +258,11 @@ func TestFlags(t *testing.T) {
 	}
 
 	result, err = testman.Unset("FLAG_01")
+
+	if err != nil {
+		t.Error(err)
+	}
+
 	if result != true {
 		t.Error("Unset flag failed#1")
 	}
@@ -251,18 +279,33 @@ func TestFlags(t *testing.T) {
 
 	//Sets flag to shared
 	result, err = testman.Set("FLAG_02", FlagPolicyShared)
+
+	if err != nil {
+		t.Error(err)
+	}
+
 	if result != true {
 		t.Error("Set flag failed#6")
 	}
 
 	//It is possible to set a flag to shared if exists already
 	result, err = testman.Set("FLAG_02", FlagPolicyShared)
+
+	if err != nil {
+		t.Error(err)
+	}
+
 	if result != true {
 		t.Error("Set flag failed#7")
 	}
 
 	//If there is a shared flag, exclusive is not possible
 	result, err = testman.Set("FLAG_02", FlagPolicyExclusive)
+
+	if err == nil {
+		t.Error("unexpected result")
+	}
+
 	if result == true {
 		t.Error("Set flag failed#8")
 	}
@@ -294,6 +337,36 @@ func TestFlags(t *testing.T) {
 		t.Error("Unset flag failed#4", err)
 	}
 
+	result, err = testman.Set("FLAG_03", FlagPolicyShared)
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	if result != true {
+		t.Error("Set flag failed#8")
+	}
+
+	result, err = testman.DestroyFlag("FLAG_03")
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	if result != true {
+		t.Error("destroy flag failed#1")
+	}
+
+	result, err = testman.DestroyFlag("FLAG_03")
+
+	if err == nil {
+		t.Error("unexpected result")
+	}
+
+	if result != false {
+		t.Error("Set flag failed#2")
+	}
+
 }
 func TestDispatch(t *testing.T) {
 
@@ -303,8 +376,8 @@ func TestDispatch(t *testing.T) {
 
 	testman.log = logger.NewTestLogger()
 
-	trw, err := NewTicketReadWriter("resources", "tickets", provider)
-	if e != nil {
+	trw, err := newTicketReadWriter("resources", "tickets", provider)
+	if err != nil {
 		t.Fatal(e)
 	}
 
@@ -314,8 +387,8 @@ func TestDispatch(t *testing.T) {
 		t.Fatal(e)
 	}
 
-	frw, err := NewTicketReadWriter("resources", "flags", provider)
-	if e != nil {
+	frw, err := newFlagReadWriter("resources", "flags", provider)
+	if err != nil {
 		t.Fatal(e)
 	}
 
@@ -384,4 +457,29 @@ func TestDispatch(t *testing.T) {
 		t.Error("unexpected data expected error actual nil")
 	}
 
+}
+
+func TestCreateReadWriter(t *testing.T) {
+
+	_, err := newTicketReadWriter("invalid", "tickets", provider)
+	if err == nil {
+		t.Error("unexpected result")
+	}
+
+	_, err = newTicketReadWriter("resources", "tickets", provider)
+
+	if err != nil {
+		t.Error("unexpected result:", err)
+	}
+
+	_, err = newFlagReadWriter("invalid", "tickets", provider)
+	if err == nil {
+		t.Error("unexpected result")
+	}
+
+	_, err = newFlagReadWriter("resources", "flags", provider)
+
+	if err != nil {
+		t.Error("unexpected result:", err)
+	}
 }

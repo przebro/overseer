@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"overseer/common/types"
 	"io/ioutil"
+	"overseer/common/types"
 )
 
 //WorkerConfiguration - configuration

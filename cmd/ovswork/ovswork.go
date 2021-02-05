@@ -3,11 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
 	"overseer/common/helpers"
 	"overseer/common/logger"
 	"overseer/ovsworker"
 	"overseer/ovsworker/config"
-	"os"
 	"path/filepath"
 )
 

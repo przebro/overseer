@@ -12,10 +12,13 @@ type ovsStatusService struct {
 	log logger.AppLogger
 }
 
+//NewStatusService - Creates a new status service
 func NewStatusService() *ovsStatusService {
 	return &ovsStatusService{log: logger.Get()}
 
 }
+
+//OverseerStatus - tests connection
 func (srv *ovsStatusService) OverseerStatus(ctx context.Context, msg *empty.Empty) (*services.ActionResultMsg, error) {
 
 	result := &services.ActionResultMsg{

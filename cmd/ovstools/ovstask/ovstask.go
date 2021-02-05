@@ -4,8 +4,8 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"overseer/ovscli"
 	"os"
+	"overseer/ovscli"
 )
 
 var orderCmdSet *flag.FlagSet

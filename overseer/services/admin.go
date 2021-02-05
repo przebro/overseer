@@ -16,11 +16,13 @@ type ovsAdministrationService struct {
 	amanager *auth.RoleAssociationManager
 }
 
+//NewAdministrationService - returns a new instance of ovsAdministrationService
 func NewAdministrationService(u *auth.UserManager, r *auth.RoleManager, a *auth.RoleAssociationManager) *ovsAdministrationService {
 
 	return &ovsAdministrationService{umanager: u, rmanager: r, amanager: a, log: logger.Get()}
 }
 
+//CreateUser - Creates a new user
 func (srv *ovsAdministrationService) CreateUser(ctx context.Context, msg *services.CreateUserMsg) (*services.ActionResultMsg, error) {
 
 	response := &services.ActionResultMsg{}
@@ -114,7 +116,6 @@ func (srv *ovsAdministrationService) ModifyUser(ctx context.Context, msg *servic
 
 	} else {
 		if pass, err = auth.HashPassword([]byte(msg.Password)); err != nil {
-
 			response.Success = false
 			response.Message = err.Error()
 			return response, nil
@@ -129,9 +130,17 @@ func (srv *ovsAdministrationService) ModifyUser(ctx context.Context, msg *servic
 		Password: pass,
 	}
 
+	if err := validator.Valid.Validate(model); err != nil {
+
+		response.Message = err.Error()
+		response.Success = false
+		return response, nil
+	}
+
 	if err = srv.umanager.Modify(model); err != nil {
 		response.Success = false
 		response.Message = err.Error()
+		return response, nil
 	}
 
 	amodel := auth.RoleAssociationModel{
@@ -142,6 +151,7 @@ func (srv *ovsAdministrationService) ModifyUser(ctx context.Context, msg *servic
 	if err = srv.amanager.Modify(amodel); err != nil {
 		response.Success = false
 		response.Message = err.Error()
+		return response, nil
 	}
 
 	response.Success = true
@@ -175,6 +185,8 @@ func (srv *ovsAdministrationService) DeleteUser(ctx context.Context, msg *servic
 
 	return response, nil
 }
+
+//ListUsers - returns a List of users
 func (srv *ovsAdministrationService) ListUsers(ctx context.Context, msg *services.FilterMsg) (*services.ListEntityResultMsg, error) {
 
 	var umodel []auth.UserModel
@@ -219,6 +231,8 @@ func (srv *ovsAdministrationService) GetUser(ctx context.Context, msg *services.
 
 	return result, nil
 }
+
+//CreateRole - creates a new roles
 func (srv *ovsAdministrationService) CreateRole(ctx context.Context, msg *services.RoleDefinitionMsg) (*services.ActionResultMsg, error) {
 
 	response := &services.ActionResultMsg{}
@@ -266,6 +280,8 @@ func (srv *ovsAdministrationService) CreateRole(ctx context.Context, msg *servic
 	response.Message = fmt.Sprintf("role %s created", msg.Role.Rolename)
 	return response, nil
 }
+
+//ModifyRole -  an existing role
 func (srv *ovsAdministrationService) ModifyRole(ctx context.Context, msg *services.RoleDefinitionMsg) (*services.ActionResultMsg, error) {
 
 	response := &services.ActionResultMsg{}
@@ -306,6 +322,8 @@ func (srv *ovsAdministrationService) ModifyRole(ctx context.Context, msg *servic
 	return response, nil
 
 }
+
+//DeleteRole - Removes a role
 func (srv *ovsAdministrationService) DeleteRole(ctx context.Context, msg *services.RoleMsg) (*services.ActionResultMsg, error) {
 
 	response := &services.ActionResultMsg{}
@@ -326,6 +344,8 @@ func (srv *ovsAdministrationService) DeleteRole(ctx context.Context, msg *servic
 
 	return response, nil
 }
+
+//ListRoles - returns a list of roles
 func (srv *ovsAdministrationService) ListRoles(ctx context.Context, msg *services.FilterMsg) (*services.ListEntityResultMsg, error) {
 
 	var rmodel []auth.RoleModel
@@ -342,6 +362,8 @@ func (srv *ovsAdministrationService) ListRoles(ctx context.Context, msg *service
 
 	return result, nil
 }
+
+//GetRole - returns a role
 func (srv *ovsAdministrationService) GetRole(ctx context.Context, msg *services.RoleMsg) (*services.RoleResultMsg, error) {
 
 	var model auth.RoleModel

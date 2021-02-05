@@ -54,6 +54,10 @@ func TestStateCheckTime(t *testing.T) {
 	definition, err = builder.FromTemplate(definition).WithSchedule(
 		taskdef.SchedulingData{FromTime: strnp10, ToTime: ""}).Build()
 
+	if err != nil {
+		t.Error(err)
+	}
+
 	ctx.task = newActiveTask(unique.NewOrderID(), date.CurrentOdate(), definition)
 
 	result = state.processState(&ctx)
@@ -65,6 +69,10 @@ func TestStateCheckTime(t *testing.T) {
 	// now -> from "-" -> to "-"
 	definition, err = builder.FromTemplate(definition).WithSchedule(
 		taskdef.SchedulingData{FromTime: "", ToTime: strnp20}).Build()
+
+	if err != nil {
+		t.Error(err)
+	}
 
 	ctx.task = newActiveTask(unique.NewOrderID(), date.CurrentOdate(), definition)
 
@@ -78,6 +86,10 @@ func TestStateCheckTime(t *testing.T) {
 	definition, err = builder.FromTemplate(definition).WithSchedule(
 		taskdef.SchedulingData{FromTime: strnm10, ToTime: strnp10}).Build()
 
+	if err != nil {
+		t.Error(err)
+	}
+
 	ctx.task = newActiveTask(unique.NewOrderID(), date.CurrentOdate(), definition)
 
 	result = state.processState(&ctx)
@@ -89,6 +101,10 @@ func TestStateCheckTime(t *testing.T) {
 	//from "-" -> to "-" -> now
 	definition, err = builder.FromTemplate(definition).WithSchedule(
 		taskdef.SchedulingData{FromTime: strnm20, ToTime: strnm10}).Build()
+
+	if err != nil {
+		t.Error(err)
+	}
 
 	ctx.task = newActiveTask(unique.NewOrderID(), date.CurrentOdate(), definition)
 
@@ -102,6 +118,10 @@ func TestStateCheckTime(t *testing.T) {
 	definition, err = builder.FromTemplate(definition).WithSchedule(
 		taskdef.SchedulingData{FromTime: "", ToTime: strnm10}).Build()
 
+	if err != nil {
+		t.Error(err)
+	}
+
 	ctx.task = newActiveTask(unique.NewOrderID(), date.CurrentOdate(), definition)
 
 	result = state.processState(&ctx)
@@ -113,6 +133,10 @@ func TestStateCheckTime(t *testing.T) {
 	//from "-" -> to "-" -> now
 	definition, err = builder.FromTemplate(definition).WithSchedule(
 		taskdef.SchedulingData{FromTime: strn, ToTime: ""}).Build()
+
+	if err != nil {
+		t.Error(err)
+	}
 
 	ctx.task = newActiveTask(unique.NewOrderID(), date.CurrentOdate(), definition)
 
@@ -126,6 +150,10 @@ func TestStateCheckTime(t *testing.T) {
 	//from "-" -> to "-" -> now
 	definition, err = builder.FromTemplate(definition).WithSchedule(
 		taskdef.SchedulingData{FromTime: "", ToTime: strn}).Build()
+
+	if err != nil {
+		t.Error(err)
+	}
 
 	ctx.task = newActiveTask(unique.NewOrderID(), date.CurrentOdate(), definition)
 
@@ -144,10 +172,10 @@ func TestStateCheckCond(t *testing.T) {
 	builder := taskdef.DummyTaskBuilder{}
 	definition, err := builder.WithBase("test", "dummy_04", "test task").
 		WithInTicekts([]taskdef.InTicketData{
-			taskdef.InTicketData{
+			{
 				Name: "TESTABC01", Odate: date.OdateValueDate,
 			},
-			taskdef.InTicketData{
+			{
 				Name: "TESTABC02", Odate: date.OdateValueDate,
 			},
 		}, "AND").
@@ -194,13 +222,17 @@ func TestStateCheckCond(t *testing.T) {
 
 	definition, err = builder.FromTemplate(definition).
 		WithInTicekts([]taskdef.InTicketData{
-			taskdef.InTicketData{
+			{
 				Name: "TESTABC01", Odate: date.OdateValueDate,
 			},
-			taskdef.InTicketData{
+			{
 				Name: "TESTABC02", Odate: date.OdateValueDate,
 			},
 		}, "OR").Build()
+
+	if err != nil {
+		t.Error(err)
+	}
 
 	ctx.task = newActiveTask(unique.NewOrderID(), date.CurrentOdate(), definition)
 
@@ -224,18 +256,20 @@ func TestStateCheckCond(t *testing.T) {
 
 	definition, err = builder.FromTemplate(definition).
 		WithInTicekts([]taskdef.InTicketData{
-			taskdef.InTicketData{
+			{
 				Name: "TESTABC01", Odate: date.OdateValueDate,
 			},
-			taskdef.InTicketData{
+			{
 				Name: "TESTABC02", Odate: date.OdateValueDate,
 			},
 		}, "AND").Build()
 
+	if err != nil {
+		t.Error(err)
+	}
+
 	ctx.task = newActiveTask(unique.NewOrderID(), date.CurrentOdate(), definition)
 	result = state.processState(&ctx)
-
-	fmt.Println(ctx.task.TicketsIn())
 
 	if result != true {
 		t.Error("expected result: ", true, " actual:", result, " ")
@@ -245,13 +279,17 @@ func TestStateCheckCond(t *testing.T) {
 
 	definition, err = builder.FromTemplate(definition).
 		WithInTicekts([]taskdef.InTicketData{
-			taskdef.InTicketData{
+			{
 				Name: "TESTABC01", Odate: date.OdateValueDate,
 			},
-			taskdef.InTicketData{
+			{
 				Name: "TESTABC02", Odate: date.OdateValueDate,
 			},
 		}, "OR").Build()
+
+	if err != nil {
+		t.Error(err)
+	}
 
 	ctx.task = newActiveTask(unique.NewOrderID(), date.CurrentOdate(), definition)
 	mDispatcher.Tickets = make(map[string]string, 0)
@@ -270,9 +308,11 @@ func TestStateCheckCond(t *testing.T) {
 func TestStateOrderState(t *testing.T) {
 
 	var result bool
+	var definition taskdef.TaskDefinition
+	var err error
 
 	builder := taskdef.DummyTaskBuilder{}
-	definition, err := builder.WithBase("test", "dummy_04", "test task").
+	definition, err = builder.WithBase("test", "dummy_04", "test task").
 		WithSchedule(taskdef.SchedulingData{OrderType: taskdef.OrderingManual}).Build()
 
 	if err != nil {
@@ -290,16 +330,20 @@ func TestStateOrderState(t *testing.T) {
 
 	state := ostateCheckOtype{}
 	stchkcal := &ostateCheckCalendar{}
-	result = state.processState(&ctx)
 
+	state.processState(&ctx)
 	result = state.processState(&ctx)
 
 	if result != true && ctx.state != stchkcal {
 		t.Error("expected result: ", true, " actual:", result, " ", stchkcal)
 	}
 
-	definition, err = builder.FromTemplate(definition).
+	_, err = builder.FromTemplate(definition).
 		WithSchedule(taskdef.SchedulingData{OrderType: taskdef.OrderingDaily}).Build()
+
+	if err != nil {
+		t.Error(err)
+	}
 
 	result = state.processState(&ctx)
 
@@ -336,6 +380,10 @@ func TestStateConfirm(t *testing.T) {
 
 	definition, err = builder.WithBase("test", "dummy_04", "test task").
 		WithSchedule(taskdef.SchedulingData{OrderType: taskdef.OrderingDaily}).Build()
+
+	if err != nil {
+		t.Error(err)
+	}
 
 	ctx.task = newActiveTask(unique.NewOrderID(), date.CurrentOdate(), definition)
 
@@ -383,6 +431,10 @@ func TestStateCheckCalendar(t *testing.T) {
 			Months:    []time.Month{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
 		}).Build()
 
+	if err != nil {
+		t.Error(err)
+	}
+
 	ctx.def = definition
 	result = state.processState(&ctx)
 
@@ -400,6 +452,10 @@ func TestStateCheckCalendar(t *testing.T) {
 			Values:    []string{fmt.Sprintf("%d", wday)},
 		}).Build()
 
+	if err != nil {
+		t.Error(err)
+	}
+
 	ctx.def = definition
 	result = state.processState(&ctx)
 
@@ -413,6 +469,10 @@ func TestStateCheckCalendar(t *testing.T) {
 			Months:    []time.Month{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
 			Values:    []string{fmt.Sprintf("%d", nday)},
 		}).Build()
+
+	if err != nil {
+		t.Error(err)
+	}
 
 	ctx.def = definition
 	result = state.processState(&ctx)
@@ -431,6 +491,10 @@ func TestStateCheckCalendar(t *testing.T) {
 			Values:    []string{fmt.Sprintf("%02d", dofmonth)},
 		}).Build()
 
+	if err != nil {
+		t.Error(err)
+	}
+
 	ctx.def = definition
 	result = state.processState(&ctx)
 
@@ -444,6 +508,10 @@ func TestStateCheckCalendar(t *testing.T) {
 			Months:    []time.Month{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
 			Values:    []string{fmt.Sprintf("%02d", ndofmonth)},
 		}).Build()
+
+	if err != nil {
+		t.Error(err)
+	}
 
 	ctx.def = definition
 	result = state.processState(&ctx)
@@ -464,6 +532,10 @@ func TestStateCheckCalendar(t *testing.T) {
 			Values:    []string{edate},
 		}).Build()
 
+	if err != nil {
+		t.Error(err)
+	}
+
 	ctx.def = definition
 	result = state.processState(&ctx)
 
@@ -478,6 +550,10 @@ func TestStateCheckCalendar(t *testing.T) {
 			Values:    []string{nedate},
 		}).Build()
 
+	if err != nil {
+		t.Error(err)
+	}
+
 	ctx.def = definition
 	result = state.processState(&ctx)
 
@@ -491,6 +567,10 @@ func TestStateCheckCalendar(t *testing.T) {
 			Months:    []time.Month{},
 			Values:    []string{nedate},
 		}).Build()
+
+	if err != nil {
+		t.Error(err)
+	}
 
 	ctx.def = definition
 	result = state.processState(&ctx)
@@ -520,6 +600,11 @@ func TestStateCheckSubmmision(t *testing.T) {
 	}
 
 	subodat, err := date.AddDays(date.CurrentOdate(), -1)
+
+	if err != nil {
+		t.Error(err)
+	}
+
 	ctx := TaskOrderContext{
 		log:              log,
 		odate:            subodat,
@@ -551,6 +636,10 @@ func TestStateCheckSubmmision(t *testing.T) {
 	definition, err = builder.FromTemplate(definition).
 		WithSchedule(taskdef.SchedulingData{OrderType: taskdef.OrderingDaily, AllowPastSub: true}).Build()
 
+	if err != nil {
+		t.Error(err)
+	}
+
 	ctx.def = definition
 	result = state.processState(&ctx)
 
@@ -576,7 +665,7 @@ func TestStatesExecEndHold(t *testing.T) {
 	builder := taskdef.DummyTaskBuilder{}
 	definition, err := builder.WithBase("test", "dummy_04", "test task").
 		WithSchedule(taskdef.SchedulingData{OrderType: taskdef.OrderingDaily, AllowPastSub: false}).
-		WithOutTickets([]taskdef.OutTicketData{taskdef.OutTicketData{Action: "REM", Name: "TEST", Odate: "ODATE"}}).
+		WithOutTickets([]taskdef.OutTicketData{{Action: "REM", Name: "TEST", Odate: "ODATE"}}).
 		Build()
 
 	if err != nil {

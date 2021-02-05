@@ -1,7 +1,6 @@
 package pool
 
 import (
-	"fmt"
 	"overseer/overseer/internal/date"
 	"overseer/overseer/internal/events"
 	"overseer/overseer/internal/unique"
@@ -93,7 +92,6 @@ func TestChangeState(t *testing.T) {
 	msg = events.NewMsg("")
 
 	go func(m events.DispatchedMessage) {
-		fmt.Println(m)
 		activeTaskManagerT.Process(receiver, events.RouteChangeTaskState, m)
 	}(msg)
 

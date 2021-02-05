@@ -13,6 +13,7 @@ type RoleAssociationManager struct {
 	col collection.DataCollection
 }
 
+//NewRoleAssociationManager - creates a new RoleAssociationManager
 func NewRoleAssociationManager(conf config.SecurityConfiguration, provider *datastore.Provider) (*RoleAssociationManager, error) {
 
 	var col collection.DataCollection
@@ -26,6 +27,7 @@ func NewRoleAssociationManager(conf config.SecurityConfiguration, provider *data
 
 }
 
+//Get - gets a role association with given user
 func (m *RoleAssociationManager) Get(username string) (RoleAssociationModel, bool) {
 
 	dsassoc := dsRoleAssociationModel{}
@@ -37,6 +39,8 @@ func (m *RoleAssociationManager) Get(username string) (RoleAssociationModel, boo
 	return dsassoc.RoleAssociationModel, true
 
 }
+
+//Create - creates a new role association
 func (m *RoleAssociationManager) Create(model RoleAssociationModel) error {
 
 	dsassoc := dsRoleAssociationModel{RoleAssociationModel: model, ID: idFormatter(assocNamespace, model.UserID)}
@@ -45,6 +49,8 @@ func (m *RoleAssociationManager) Create(model RoleAssociationModel) error {
 	return err
 
 }
+
+//Modify - modifies a role association
 func (m *RoleAssociationManager) Modify(model RoleAssociationModel) error {
 
 	dsassoc := dsRoleAssociationModel{}
@@ -58,6 +64,8 @@ func (m *RoleAssociationManager) Modify(model RoleAssociationModel) error {
 	return m.col.Update(context.Background(), &dsassoc)
 
 }
+
+//Delete - deletes a role association
 func (m *RoleAssociationManager) Delete(username string) error {
 
 	return m.col.Delete(context.Background(), idFormatter(assocNamespace, username))

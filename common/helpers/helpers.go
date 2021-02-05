@@ -5,8 +5,8 @@ package helpers
 
 import (
 	"fmt"
-	"overseer/common/logger"
 	"os"
+	"overseer/common/logger"
 	"path/filepath"
 	"runtime/pprof"
 	"time"

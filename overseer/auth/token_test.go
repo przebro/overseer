@@ -53,12 +53,12 @@ func TestCreatorCreate(t *testing.T) {
 		t.Error("unexpected result:", err, "expected:", nil)
 	}
 
-	token, err := tcv.Create("", map[string]interface{}{"testkey": "testvalue"})
+	_, err = tcv.Create("", map[string]interface{}{"testkey": "testvalue"})
 	if err == nil {
 		t.Error("unexpected result, invalid username")
 	}
 
-	token, err = tcv.Create(sub, map[string]interface{}{"testkey": "testvalue"})
+	token, err := tcv.Create(sub, map[string]interface{}{"testkey": "testvalue"})
 	if err != nil {
 		t.Error("unexpected result:", err)
 	}
@@ -102,6 +102,10 @@ func TestVerifyToken(t *testing.T) {
 	}
 
 	token, err := tcv.Create(sub, map[string]interface{}{"testkey": "testvalue"})
+
+	if err != nil {
+		t.Error(err)
+	}
 
 	result, err := tcv.Verify(token)
 	if err != nil {

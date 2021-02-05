@@ -3,11 +3,11 @@ package fragments
 import (
 	"errors"
 	"fmt"
-	"overseer/ovsworker/msgheader"
-	"overseer/proto/actions"
 	"io"
 	"os"
 	"os/exec"
+	"overseer/ovsworker/msgheader"
+	"overseer/proto/actions"
 	"strings"
 	"sync"
 

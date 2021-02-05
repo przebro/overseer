@@ -2,12 +2,12 @@ package ovsworker
 
 import (
 	"fmt"
+	"net"
 	"overseer/common/logger"
 	"overseer/ovsworker/config"
 	"overseer/ovsworker/launcher"
 	"overseer/ovsworker/services"
 	"overseer/proto/wservices"
-	"net"
 
 	"google.golang.org/grpc"
 )

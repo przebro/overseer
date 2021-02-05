@@ -1,7 +1,6 @@
 package taskdef
 
 import (
-	"fmt"
 	"overseer/common/logger"
 	"overseer/common/types"
 	"overseer/overseer/internal/date"
@@ -16,10 +15,10 @@ var log logger.AppLogger = logger.NewTestLogger()
 
 var expect TaskDefinition = &baseTaskDefinition{
 	Name: "dummy_01", Group: "", Description: "sample dummy task definition", ConfirmFlag: false, TaskType: "dummy",
-	InTickets:  []InTicketData{InTicketData{Name: "OK-COND-01", Odate: date.OdateValueDate}},
+	InTickets:  []InTicketData{{Name: "OK-COND-01", Odate: date.OdateValueDate}},
 	InRelation: InTicketAND,
-	OutTickets: []OutTicketData{OutTicketData{Name: "OK-COND-02", Action: OutActionAdd, Odate: date.OdateValueDate}},
-	FlagsTab:   []FlagData{FlagData{Name: "flag01", Type: FlagShared}},
+	OutTickets: []OutTicketData{{Name: "OK-COND-02", Action: OutActionAdd, Odate: date.OdateValueDate}},
+	FlagsTab:   []FlagData{{Name: "flag01", Type: FlagShared}},
 	Schedule: SchedulingData{
 		OrderType: "weekday",
 		FromTime:  "11:30",
@@ -30,10 +29,10 @@ var expect TaskDefinition = &baseTaskDefinition{
 }
 var expect2 TaskDefinition = &baseTaskDefinition{
 	Name: "dummy_02", Group: "", Description: "sample modified dummy task definition", ConfirmFlag: false, TaskType: "dummy",
-	InTickets:  []InTicketData{InTicketData{Name: "OK-COND-01", Odate: date.OdateValueDate}},
+	InTickets:  []InTicketData{{Name: "OK-COND-01", Odate: date.OdateValueDate}},
 	InRelation: InTicketAND,
-	OutTickets: []OutTicketData{OutTicketData{Name: "OK-COND-02", Action: OutActionAdd, Odate: date.OdateValueDate}},
-	FlagsTab:   []FlagData{FlagData{Name: "flag01", Type: FlagShared}},
+	OutTickets: []OutTicketData{{Name: "OK-COND-02", Action: OutActionAdd, Odate: date.OdateValueDate}},
+	FlagsTab:   []FlagData{{Name: "flag01", Type: FlagShared}},
 	Schedule: SchedulingData{
 		OrderType: "weekday",
 		FromTime:  "15:30",
@@ -46,10 +45,10 @@ var expect2 TaskDefinition = &baseTaskDefinition{
 var expect3 TaskDefinition = &baseTaskDefinition{
 	Name: "dummy_04", Group: "test", Description: "sample modified dummy task definition", ConfirmFlag: false, TaskType: types.TypeOs,
 	DataRetention: 1,
-	InTickets:     []InTicketData{InTicketData{Name: "OK-COND-01", Odate: date.OdateValueDate}},
+	InTickets:     []InTicketData{{Name: "OK-COND-01", Odate: date.OdateValueDate}},
 	InRelation:    InTicketAND,
-	OutTickets:    []OutTicketData{OutTicketData{Name: "OK-COND-02", Action: OutActionAdd, Odate: date.OdateValueDate}},
-	FlagsTab:      []FlagData{FlagData{Name: "flag01", Type: FlagExclusive}},
+	OutTickets:    []OutTicketData{{Name: "OK-COND-02", Action: OutActionAdd, Odate: date.OdateValueDate}},
+	FlagsTab:      []FlagData{{Name: "flag01", Type: FlagExclusive}},
 	Schedule: SchedulingData{
 		OrderType:    OrderingDayOfMonth,
 		FromTime:     "15:30",
@@ -246,7 +245,6 @@ func TestManagerUpdate(t *testing.T) {
 		t.Fatal("def expected not empty")
 	}
 
-	fmt.Println(def[0].Definition.GetInfo())
 	if err != nil {
 		t.Fatal("Unable to acquire lock")
 	}
@@ -340,7 +338,7 @@ func TestGetTask(t *testing.T) {
 		t.Fatal("unable to intialize manager")
 	}
 
-	tlist := []taskdata.GroupNameData{taskdata.GroupNameData{Name: "dummy_01", Group: "test"}, taskdata.GroupNameData{Name: "task_that_does_not_exists", Group: "test"}}
+	tlist := []taskdata.GroupNameData{{Name: "dummy_01", Group: "test"}, {Name: "task_that_does_not_exists", Group: "test"}}
 
 	result := manager.GetTasks(tlist...)
 	if len(result) != len(tlist) {
@@ -390,8 +388,8 @@ func TestGetTimeSpan(t *testing.T) {
 	builder := DummyTaskBuilder{}
 	def, err := builder.WithBase("test", "dummy_time_span", "description").
 		WithSchedule(schdata).
-		WithFlags([]FlagData{FlagData{Name: "FLAG01", Type: FlagShared}}).
-		WithConfirm().WithRetention(1).WithVariables([]VariableData{VariableData{Name: "%%var", Value: "xx"}}).Build()
+		WithFlags([]FlagData{{Name: "FLAG01", Type: FlagShared}}).
+		WithConfirm().WithRetention(1).WithVariables([]VariableData{{Name: "%%var", Value: "xx"}}).Build()
 
 	if err != nil {
 		t.Error("task builder error")
@@ -410,8 +408,8 @@ func TestGetAction(t *testing.T) {
 	builder := DummyTaskBuilder{}
 	def, err := builder.WithBase("test", "dummy_time_span", "description").
 		WithSchedule(schdata).
-		WithFlags([]FlagData{FlagData{Name: "FLAG01", Type: FlagShared}}).
-		WithConfirm().WithRetention(1).WithVariables([]VariableData{VariableData{Name: "%%var", Value: "xx"}}).Build()
+		WithFlags([]FlagData{{Name: "FLAG01", Type: FlagShared}}).
+		WithConfirm().WithRetention(1).WithVariables([]VariableData{{Name: "%%var", Value: "xx"}}).Build()
 
 	if err != nil {
 		t.Error("task builder error")
@@ -436,8 +434,8 @@ func TestBuilder(t *testing.T) {
 
 	builder := DummyTaskBuilder{}
 	def, err := builder.WithBase("test", "dummy_04", "description").
-		WithFlags([]FlagData{FlagData{Name: "FLAG01", Type: FlagShared}}).
-		WithConfirm().WithRetention(1).WithVariables([]VariableData{VariableData{Name: "%%var", Value: "xx"}}).Build()
+		WithFlags([]FlagData{{Name: "FLAG01", Type: FlagShared}}).
+		WithConfirm().WithRetention(1).WithVariables([]VariableData{{Name: "%%var", Value: "xx"}}).Build()
 
 	if err != nil {
 		t.Error("task builder error")
@@ -462,10 +460,10 @@ func helperCreateTasks() (t1, t2, t3, t4 TaskDefinition) {
 	t1 = &baseTaskDefinition{
 		TaskType: "dummy",
 		Name:     "dummy_02", Group: "test", Description: "sample modified dummy task definition", ConfirmFlag: false,
-		InTickets:  []InTicketData{InTicketData{Name: "OK-COND-01", Odate: date.OdateValueDate}},
+		InTickets:  []InTicketData{{Name: "OK-COND-01", Odate: date.OdateValueDate}},
 		InRelation: InTicketAND,
-		OutTickets: []OutTicketData{OutTicketData{Name: "OK-COND-02", Action: OutActionAdd, Odate: date.OdateValueDate}},
-		FlagsTab:   []FlagData{FlagData{Name: "flag01", Type: FlagShared}},
+		OutTickets: []OutTicketData{{Name: "OK-COND-02", Action: OutActionAdd, Odate: date.OdateValueDate}},
+		FlagsTab:   []FlagData{{Name: "flag01", Type: FlagShared}},
 		Schedule: SchedulingData{
 			OrderType: "weekday",
 			FromTime:  "15:30",
@@ -478,10 +476,10 @@ func helperCreateTasks() (t1, t2, t3, t4 TaskDefinition) {
 	t2 = &baseTaskDefinition{
 		TaskType: "dummy",
 		Name:     "dummy_AA", Group: "test", Description: "sample modified dummy task definition", ConfirmFlag: false,
-		InTickets:  []InTicketData{InTicketData{Name: "OK-COND-01", Odate: date.OdateValueDate}},
+		InTickets:  []InTicketData{{Name: "OK-COND-01", Odate: date.OdateValueDate}},
 		InRelation: InTicketAND,
-		OutTickets: []OutTicketData{OutTicketData{Name: "OK-COND-02", Action: OutActionAdd, Odate: date.OdateValueDate}},
-		FlagsTab:   []FlagData{FlagData{Name: "flag01", Type: FlagShared}},
+		OutTickets: []OutTicketData{{Name: "OK-COND-02", Action: OutActionAdd, Odate: date.OdateValueDate}},
+		FlagsTab:   []FlagData{{Name: "flag01", Type: FlagShared}},
 		Schedule: SchedulingData{
 			OrderType: "weekday",
 			FromTime:  "11:30",
@@ -494,10 +492,10 @@ func helperCreateTasks() (t1, t2, t3, t4 TaskDefinition) {
 	t3 = &baseTaskDefinition{
 		TaskType: "dummy",
 		Name:     "", Group: "test", Description: "sample modified dummy task definition", ConfirmFlag: false,
-		InTickets:  []InTicketData{InTicketData{Name: "OK-COND-01", Odate: date.OdateValueDate}},
+		InTickets:  []InTicketData{{Name: "OK-COND-01", Odate: date.OdateValueDate}},
 		InRelation: InTicketAND,
-		OutTickets: []OutTicketData{OutTicketData{Name: "OK-COND-02", Action: OutActionAdd, Odate: date.OdateValueDate}},
-		FlagsTab:   []FlagData{FlagData{Name: "flag01", Type: FlagShared}},
+		OutTickets: []OutTicketData{{Name: "OK-COND-02", Action: OutActionAdd, Odate: date.OdateValueDate}},
+		FlagsTab:   []FlagData{{Name: "flag01", Type: FlagShared}},
 		Schedule: SchedulingData{
 			OrderType: "weekday",
 			FromTime:  "11:30",
@@ -509,10 +507,10 @@ func helperCreateTasks() (t1, t2, t3, t4 TaskDefinition) {
 	t4 = &baseTaskDefinition{
 		TaskType: "dummy",
 		Name:     "dummy_01", Group: "test", Description: "sample modified dummy task definition", ConfirmFlag: false,
-		InTickets:  []InTicketData{InTicketData{Name: "OK-COND-01", Odate: date.OdateValueDate}},
+		InTickets:  []InTicketData{{Name: "OK-COND-01", Odate: date.OdateValueDate}},
 		InRelation: InTicketAND,
-		OutTickets: []OutTicketData{OutTicketData{Name: "OK-COND-02", Action: OutActionAdd, Odate: date.OdateValueDate}},
-		FlagsTab:   []FlagData{FlagData{Name: "flag01", Type: FlagShared}},
+		OutTickets: []OutTicketData{{Name: "OK-COND-02", Action: OutActionAdd, Odate: date.OdateValueDate}},
+		FlagsTab:   []FlagData{{Name: "flag01", Type: FlagShared}},
 		Schedule: SchedulingData{
 			OrderType: "weekday",
 			FromTime:  "11:30",

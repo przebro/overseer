@@ -1,7 +1,6 @@
 package pool
 
 import (
-	"fmt"
 	"overseer/overseer/internal/unique"
 	"sync"
 	"testing"
@@ -101,7 +100,6 @@ func TestStoreOver(t *testing.T) {
 	}
 
 	for x, a := range actual {
-		fmt.Println(a)
 		if expected[x] != a {
 			t.Error("Unexpected order, epxected", expected, "actual", actual)
 		}
@@ -160,7 +158,6 @@ func TestStoreForEach(t *testing.T) {
 	}
 
 	for x, a := range actual {
-		fmt.Println(a)
 		if expected[x] != a {
 			t.Error("Unexpected order, epxected", expected, "actual", actual)
 		}

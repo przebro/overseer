@@ -19,7 +19,8 @@ type flagReadWriter struct {
 	col      collection.DataCollection
 }
 
-func NewFlagReadWriter(colname, objectID string, provider *datastore.Provider) (readWriter, error) {
+//newFlagReadWriter - creates a new readWriter
+func newFlagReadWriter(colname, objectID string, provider *datastore.Provider) (readWriter, error) {
 
 	col, err := provider.GetCollection(colname)
 
@@ -28,12 +29,11 @@ func NewFlagReadWriter(colname, objectID string, provider *datastore.Provider) (
 	}
 
 	return &flagReadWriter{colname: colname, col: col, objectID: objectID}, nil
-
 }
 
 func (cl *flagReadWriter) Load() (map[string]interface{}, error) {
 
-	model := TicketsResourceModel{Tickets: []TicketResource{}}
+	model := FlagsResourceModel{Flags: []FlagResource{}}
 
 	err := cl.col.Get(context.Background(), cl.objectID, &model)
 	if err != nil {
@@ -43,10 +43,10 @@ func (cl *flagReadWriter) Load() (map[string]interface{}, error) {
 
 	data := map[string]interface{}{}
 
-	for _, t := range model.Tickets {
+	for _, t := range model.Flags {
 
-		key := t.Name + string(t.Odate)
-		data[key] = TicketResource{Name: t.Name, Odate: t.Odate}
+		key := t.Name
+		data[key] = FlagResource{Name: t.Name, Count: t.Count, Policy: t.Policy}
 	}
 
 	return data, nil

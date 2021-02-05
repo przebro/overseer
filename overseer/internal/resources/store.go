@@ -99,7 +99,6 @@ func (s *resourceStore) All() []interface{} {
 	}
 
 	return col
-
 }
 
 func (s *resourceStore) Sync() {

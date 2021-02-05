@@ -28,8 +28,8 @@ func NewDefinistionService(dm taskdef.TaskDefinitionManager) *ovsDefinitionServi
 //GetDefinition - Gets definition
 func (srv *ovsDefinitionService) GetDefinition(ctx context.Context, msg *services.DefinitionActionMsg) (*services.DefinitionResultMsg, error) {
 
-	var success bool = false
-	var resultMsg string = ""
+	var success bool
+	var resultMsg string
 	tdata := make([]taskdata.GroupNameData, 0)
 	result := &services.DefinitionResultMsg{}
 
@@ -107,8 +107,8 @@ func (srv *ovsDefinitionService) LockDefinition(ctx context.Context, msg *servic
 //UnlockDefinition - unlocks definition
 func (srv *ovsDefinitionService) UnlockDefinition(ctx context.Context, msg *services.DefinitionActionMsg) (*services.LockResultMsg, error) {
 
-	var success bool = false
-	var rmsg string = ""
+	var success bool
+	var rmsg string
 	result := &services.LockResultMsg{}
 	for _, e := range msg.DefinitionMsg {
 

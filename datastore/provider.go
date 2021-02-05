@@ -8,6 +8,7 @@ import (
 	"overseer/overseer/config"
 
 	"github.com/przebro/databazaar/store"
+	//required driver
 	_ "github.com/przebro/localstore/store"
 
 	"github.com/przebro/databazaar/collection"
@@ -20,6 +21,7 @@ type Provider struct {
 }
 
 var (
+	//ErrStoreConfiguration - returned when configuration is invalid
 	ErrStoreConfiguration = errors.New("Store configuration error")
 )
 

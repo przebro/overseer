@@ -1,7 +1,6 @@
 package pool
 
 import (
-	"fmt"
 	"overseer/common/logger"
 	"overseer/overseer/internal/date"
 	"overseer/overseer/internal/events"
@@ -34,9 +33,7 @@ func (exec *DailyExecutor) CheckDailyProcedure(tm time.Time) bool {
 
 	odt1 := time.Date(y, time.Month(mth), d, h, m, 0, 0, time.Local)
 
-	fmt.Println(odt1, tm, exec.pool.currentOdate, date.CurrentOdate())
 	return odt1.Before(tm) && date.IsBeforeCurrent(exec.pool.currentOdate, date.CurrentOdate())
-
 }
 
 //DailyProcedure - Cleanups and place new tasks in the Active Pool

@@ -3,7 +3,6 @@ package auth
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"os"
 	"overseer/common/logger"
 	"overseer/datastore"
@@ -13,12 +12,12 @@ import (
 
 var prvstorecfg = config.StoreProviderConfiguration{
 	Store: []config.StoreConfiguration{
-		config.StoreConfiguration{ID: "security",
+		{ID: "security",
 			ConnectionString: "local;/../../data/tests?synctime=0",
 		},
 	},
 	Collections: []config.CollectionConfiguration{
-		config.CollectionConfiguration{
+		{
 			Name:    "securitytest",
 			StoreID: "security",
 		},
@@ -81,6 +80,7 @@ var testSecurity = map[string]interface{}{
 			FullName: "Test User 1",
 			Mail:     "testuser1@test.com",
 			Username: "testuser1",
+			Password: "$2a$04$2ia6jc5Ob49dwj85tNfNSeUrk6aC3AWenBaR4BZtJrX21Fn5Hp.Ui", //bcrypted: notsecure
 		},
 	},
 	"user@testuser2": dsUserModel{
@@ -90,6 +90,17 @@ var testSecurity = map[string]interface{}{
 			FullName: "Test User 2",
 			Mail:     "testuser2@test.com",
 			Username: "testuser2",
+			Password: "$2a$04$2ia6jc5Ob49dwj85tNfNSeUrk6aC3AWenBaR4BZtJrX21Fn5Hp.Ui", //bcrypted: notsecure
+		},
+	},
+	"user@testuser3": dsUserModel{
+		ID: "user@testuser3",
+		UserModel: UserModel{
+			Enabled:  false,
+			FullName: "Test User 2",
+			Mail:     "testuser3@test.com",
+			Username: "testuser3",
+			Password: "$2a$04$2ia6jc5Ob49dwj85tNfNSeUrk6aC3AWenBaR4BZtJrX21Fn5Hp.Ui", //bcrypted: notsecure
 		},
 	},
 }
@@ -112,7 +123,6 @@ func prvprepare(t *testing.T) {
 	f.Close()
 
 	prvprovider, err = datastore.NewDataProvider(prvstorecfg)
-	fmt.Println("intiialize:", prvprovider)
 	if err != nil {
 		t.Fatal("unable to init store")
 	}
@@ -122,9 +132,17 @@ func prvprepare(t *testing.T) {
 func TestCreateNewAuthorizationProvider(t *testing.T) {
 	prvprepare(t)
 
+	prvconf.Collection = ""
 	_, err := NewAuthorizationManager(prvconf, prvprovider)
+	if err == nil {
+		t.Error("unexpected result")
+	}
+
+	prvconf.Collection = "securitytest"
+
+	_, err = NewAuthorizationManager(prvconf, prvprovider)
 	if err != nil {
-		t.Error("unexpected result:", err)
+		t.Error("unexpected result")
 	}
 }
 
@@ -138,13 +156,13 @@ func TestVerifyAction(t *testing.T) {
 		t.Error("unexpected result:", err)
 	}
 
-	ok, err = m.VerifyAction(context.Background(), ActionDefinition, "testuser3")
+	_, err = m.VerifyAction(context.Background(), ActionDefinition, "testuser3")
 
 	if err == nil {
 		t.Error("unexpected result:", err)
 	}
 
-	ok, err = m.VerifyAction(context.Background(), UserAction(99), "testuser1")
+	_, err = m.VerifyAction(context.Background(), UserAction(99), "testuser1")
 
 	if err != ErrUnableFindAction {
 		t.Error("unexpected result:", err, "expected:", ErrUnableFindAction)
@@ -162,11 +180,19 @@ func TestVerifyAction(t *testing.T) {
 
 	ok, err = m.VerifyAction(context.Background(), ActionAdministration, "testuser2")
 
+	if err != nil {
+		t.Error(err)
+	}
+
 	if ok != true {
 		t.Error("unexpected result:", ok, "expected:", true)
 	}
 
 	ok, err = m.VerifyAction(context.Background(), ActionBrowse, "testuser1")
+
+	if err != nil {
+		t.Error(err)
+	}
 
 	if ok != true {
 		t.Error("unexpected result:", ok, "expected:", true)
@@ -174,11 +200,19 @@ func TestVerifyAction(t *testing.T) {
 
 	ok, err = m.VerifyAction(context.Background(), ActionSetFlag, "testuser1")
 
+	if err != nil {
+		t.Error(err)
+	}
+
 	if ok != false {
 		t.Error("unexpected result:", ok, "expected:", false)
 	}
 
 	ok, err = m.VerifyAction(context.Background(), ActionSetFlag, "testuser2")
+
+	if err != nil {
+		t.Error(err)
+	}
 
 	if ok != false {
 		t.Error("unexpected result:", ok, "expected:", false)
@@ -186,11 +220,19 @@ func TestVerifyAction(t *testing.T) {
 
 	ok, err = m.VerifyAction(context.Background(), ActionAddTicket, "testuser2")
 
+	if err != nil {
+		t.Error(err)
+	}
+
 	if ok != true {
 		t.Error("unexpected result:", ok, "expected:", true)
 	}
 
 	ok, err = m.VerifyAction(context.Background(), ActionRemoveTicket, "testuser2")
+
+	if err != nil {
+		t.Error(err)
+	}
 
 	if ok != true {
 		t.Error("unexpected result:", ok, "expected:", true)
@@ -198,14 +240,60 @@ func TestVerifyAction(t *testing.T) {
 
 	ok, err = m.VerifyAction(context.Background(), ActionRestart, "testuser2")
 
+	if err != nil {
+		t.Error(err)
+	}
+
 	if ok != false {
 		t.Error("unexpected result:", ok, "expected:", false)
 	}
 
 	ok, err = m.VerifyAction(context.Background(), ActionSetToOK, "testuser2")
 
+	if err != nil {
+		t.Error(err)
+	}
+
 	if ok != false {
 		t.Error("unexpected result:", ok, "expected:", false)
+	}
+
+}
+
+func TestAuthenticationManager(t *testing.T) {
+
+	amanager, err := NewAuthenticationManager("", prvprovider)
+	if err == nil {
+		t.Error("unexpected result")
+	}
+
+	amanager, err = NewAuthenticationManager(prvconf.Collection, prvprovider)
+	if err != nil {
+		t.Error("unexpected result")
+	}
+
+	ok, err := amanager.Authenticate(context.Background(), "testuser1", "notsecure")
+
+	if err != nil && ok != true {
+		t.Error("unexpected result:", err, ok)
+	}
+
+	ok, err = amanager.Authenticate(context.Background(), "testuser5", "notsecure")
+
+	if err == nil && ok != false {
+		t.Error("unexpected result:", err, ok)
+	}
+
+	ok, err = amanager.Authenticate(context.Background(), "testuser3", "notsecure")
+
+	if err == nil && ok != false {
+		t.Error("unexpected result:", err, ok)
+	}
+
+	ok, err = amanager.Authenticate(context.Background(), "testuser1", "invalid_passsword")
+
+	if err == nil && ok != false {
+		t.Error("unexpected result:", err, ok)
 	}
 
 }

@@ -25,13 +25,13 @@ func TestProvider(t *testing.T) {
 
 	conf := config.StoreProviderConfiguration{
 		Store: []config.StoreConfiguration{
-			config.StoreConfiguration{ID: "", ConnectionString: ""},
+			{ID: "", ConnectionString: ""},
 		},
 		Collections: []config.CollectionConfiguration{
-			config.CollectionConfiguration{Name: "", StoreID: ""},
+			{Name: "", StoreID: ""},
 		},
 	}
-	provider, err := NewDataProvider(conf)
+	_, err := NewDataProvider(conf)
 
 	if err == nil || !errors.Is(err, ErrStoreConfiguration) {
 		t.Errorf("unexpected result")
@@ -40,7 +40,7 @@ func TestProvider(t *testing.T) {
 	conf.Store[0] = config.StoreConfiguration{ID: "test1", ConnectionString: "local;/../data/tests?synctime=1"}
 	conf.Store = append(conf.Store, config.StoreConfiguration{ID: "test1", ConnectionString: "local;/../data/tests?synctime=1"})
 
-	provider, err = NewDataProvider(conf)
+	provider, err := NewDataProvider(conf)
 
 	if err == nil || !errors.Is(err, ErrStoreConfiguration) {
 		t.Error("unexpected result:", err)
@@ -48,13 +48,13 @@ func TestProvider(t *testing.T) {
 
 	conf.Store[1] = config.StoreConfiguration{ID: "test2", ConnectionString: "local;/data/tests?synctime=1"}
 
-	provider, err = NewDataProvider(conf)
+	_, err = NewDataProvider(conf)
 
 	if err == nil {
 		t.Error("unexpected result", err)
 	}
 
-	conf.Store = []config.StoreConfiguration{config.StoreConfiguration{ID: "test1", ConnectionString: "local;/../data/tests?synctime=1"}}
+	conf.Store = []config.StoreConfiguration{{ID: "test1", ConnectionString: "local;/../data/tests?synctime=1"}}
 
 	provider, err = NewDataProvider(conf)
 
@@ -72,10 +72,10 @@ func TestProviderCollections(t *testing.T) {
 
 	conf := config.StoreProviderConfiguration{
 		Store: []config.StoreConfiguration{
-			config.StoreConfiguration{ID: "test1", ConnectionString: "local;/../data/tests?synctime=1"},
+			{ID: "test1", ConnectionString: "local;/../data/tests?synctime=1"},
 		},
 		Collections: []config.CollectionConfiguration{
-			config.CollectionConfiguration{Name: "", StoreID: ""},
+			{Name: "", StoreID: ""},
 		},
 	}
 	_, err := NewDataProvider(conf)
@@ -107,10 +107,10 @@ func TestGetCollection(t *testing.T) {
 
 	conf := config.StoreProviderConfiguration{
 		Store: []config.StoreConfiguration{
-			config.StoreConfiguration{ID: "test1", ConnectionString: "local;/../data/tests?synctime=1"},
+			{ID: "test1", ConnectionString: "local;/../data/tests?synctime=1"},
 		},
 		Collections: []config.CollectionConfiguration{
-			config.CollectionConfiguration{Name: "resources", StoreID: "test1"},
+			{Name: "resources", StoreID: "test1"},
 		},
 	}
 	p, err := NewDataProvider(conf)

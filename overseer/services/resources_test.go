@@ -135,10 +135,16 @@ func TestDeleteTicket(t *testing.T) {
 	msg := &services.TicketActionMsg{Name: "service_test_2", Odate: ""}
 
 	r, err := client.AddTicket(context.Background(), msg)
+	if err != nil {
+		t.Error(err)
+	}
 
 	msg = &services.TicketActionMsg{Name: "service_test_3", Odate: "20201120"}
 
 	r, err = client.AddTicket(context.Background(), msg)
+	if err != nil {
+		t.Error(err)
+	}
 
 	msg.Name = "very_long_name_that_exceeds_32_characters"
 	msg.Odate = ""
@@ -212,8 +218,16 @@ func TestCheckTicket(t *testing.T) {
 	client := createResourceClient(t)
 	msg := &services.TicketActionMsg{Name: "service_test_4", Odate: ""}
 	r, err := client.AddTicket(context.Background(), msg)
+
+	if err != nil {
+		t.Error(err)
+	}
+
 	msg = &services.TicketActionMsg{Name: "service_test_4", Odate: "20201124"}
 	r, err = client.AddTicket(context.Background(), msg)
+	if err != nil {
+		t.Error(err)
+	}
 
 	msg.Name = "very_long_name_that_exceeds_32_characters"
 	msg.Odate = ""

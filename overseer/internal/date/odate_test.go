@@ -68,7 +68,7 @@ func TestOdate(t *testing.T) {
 func TestDateRange(t *testing.T) {
 
 	odate := Odate("20200905")
-	var res bool = false
+	var res bool
 	res = IsInDayOfMonth(odate, []string{"05"})
 	if res == false {
 		t.Error("odate not in day of month")

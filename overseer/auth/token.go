@@ -7,20 +7,27 @@ import (
 	"github.com/dgrijalva/jwt-go"
 )
 
+//TokenSigningMethod - avaliable token signing method
 type TokenSigningMethod string
 
 const (
+	//MethodHS256 - default method
 	MethodHS256 TokenSigningMethod = "hs256"
 )
 
 var (
-	methods              = map[TokenSigningMethod]jwt.SigningMethod{MethodHS256: jwt.SigningMethodHS256}
+	methods = map[TokenSigningMethod]jwt.SigningMethod{MethodHS256: jwt.SigningMethodHS256}
+	//ErrInvalidSignMethod - returned when an invalid method is given
 	ErrInvalidSignMethod = errors.New("invalid signing method")
-	ErrInvalidIssuer     = errors.New("invalid issuer len!=0 and len <= 32")
-	ErrSecretTooShort    = errors.New("secret too short")
-	ErrInvalidTimeout    = errors.New("invalid timeout value")
+	//ErrInvalidIssuer - returned when the issuer is invalid
+	ErrInvalidIssuer = errors.New("invalid issuer len!=0 and len <= 32")
+	//ErrSecretTooShort - returned when the secret is too short
+	ErrSecretTooShort = errors.New("secret too short,required len >= 16")
+	//ErrInvalidTimeout - returned when the timeout value is invalid
+	ErrInvalidTimeout = errors.New("invalid timeout value")
 )
 
+//TokenCreatorVerifier - provides creation and verification method for jwt token
 type TokenCreatorVerifier struct {
 	method  jwt.SigningMethod
 	timeout int
@@ -28,6 +35,7 @@ type TokenCreatorVerifier struct {
 	secret  []byte
 }
 
+//NewTokenCreatorVerifier - creates a new TokenCreatorVerifier
 func NewTokenCreatorVerifier(method TokenSigningMethod, issuer string, timeout int, secret []byte) (*TokenCreatorVerifier, error) {
 
 	var exists bool
@@ -52,6 +60,7 @@ func NewTokenCreatorVerifier(method TokenSigningMethod, issuer string, timeout i
 	return &TokenCreatorVerifier{method: m, timeout: timeout, secret: secret, issuer: issuer}, nil
 }
 
+//Create - creates a new token
 func (tcv *TokenCreatorVerifier) Create(username string, userdata map[string]interface{}) (string, error) {
 
 	now := time.Now()
@@ -76,7 +85,6 @@ func (tcv *TokenCreatorVerifier) Create(username string, userdata map[string]int
 	}
 
 	for k, v := range userdata {
-
 		claims[k] = v
 	}
 
@@ -85,6 +93,8 @@ func (tcv *TokenCreatorVerifier) Create(username string, userdata map[string]int
 	return tk.SignedString(tcv.secret)
 
 }
+
+//Verify - checks if given token is valid
 func (tcv *TokenCreatorVerifier) Verify(token string) (string, error) {
 
 	var tk *jwt.Token = nil

@@ -16,7 +16,7 @@ func NewStore() *Store {
 	return &Store{store: make(map[unique.TaskOrderID]*activeTask), lock: sync.RWMutex{}}
 }
 
-//Get - Gets an active task from a store
+//Get - gets an active task from a store
 func (s *Store) Get(taskID unique.TaskOrderID) (*activeTask, bool) {
 
 	defer s.lock.RUnlock()

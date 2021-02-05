@@ -16,6 +16,7 @@ type UserManager struct {
 	col collection.DataCollection
 }
 
+//NewUserManager - Creates an new instance of UserManager
 func NewUserManager(conf config.SecurityConfiguration, provider *datastore.Provider) (*UserManager, error) {
 
 	var col collection.DataCollection
@@ -28,6 +29,7 @@ func NewUserManager(conf config.SecurityConfiguration, provider *datastore.Provi
 	return &UserManager{col: col}, nil
 }
 
+//Get - gets a user, returns empty model and false if user not found
 func (m *UserManager) Get(username string) (UserModel, bool) {
 
 	model := dsUserModel{}
@@ -39,6 +41,8 @@ func (m *UserManager) Get(username string) (UserModel, bool) {
 
 	return model.UserModel, true
 }
+
+//Create - creates a new user
 func (m *UserManager) Create(model UserModel) error {
 
 	dsmodel := dsUserModel{UserModel: model, ID: idFormatter(userNamespace, model.Username)}
@@ -46,6 +50,8 @@ func (m *UserManager) Create(model UserModel) error {
 	_, err := m.col.Create(context.Background(), &dsmodel)
 	return err
 }
+
+//Modify - modifies a user
 func (m *UserManager) Modify(model UserModel) error {
 
 	dsmodel := dsUserModel{}
@@ -58,11 +64,14 @@ func (m *UserManager) Modify(model UserModel) error {
 
 	return m.col.Update(context.Background(), &dsmodel)
 }
+
+//Delete - deletes a user
 func (m *UserManager) Delete(username string) error {
 
 	return m.col.Delete(context.Background(), idFormatter(userNamespace, username))
 }
 
+//All - returns a list of users
 func (m *UserManager) All(filter string) ([]UserModel, error) {
 
 	crsr, err := m.col.All(context.Background())
@@ -86,6 +95,7 @@ func (m *UserManager) All(filter string) ([]UserModel, error) {
 	return result, nil
 }
 
+//CheckChangePassword - checks if an old password match and if succeed, create and returns a new one
 func (m *UserManager) CheckChangePassword(crypt, old, new []byte) (string, error) {
 
 	var err error

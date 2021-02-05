@@ -93,8 +93,6 @@ func (manager *ActiveTaskPoolManager) Rerun(id unique.TaskOrderID) (string, erro
 	defer manager.lock.RUnlock()
 	manager.lock.RLock()
 
-	fmt.Println("TASK ID :", id)
-
 	task, err := manager.pool.task(id)
 	if err != nil {
 		return fmt.Sprintf("task with id:%s does not exists", id), err
@@ -354,9 +352,7 @@ func (manager *ActiveTaskPoolManager) changeTaskState(msg events.RouteChangeStat
 	test = test << tab[msg.Free] << tab[msg.Hold] << tab[msg.Rerun] << tab[msg.SetOK]
 
 	if test != 2 {
-
 		err = errors.New("invalid flag combination")
-		fmt.Println(test, msg)
 		return events.RouteChangeStateResponseMsg{Message: result, OrderID: msg.OrderID}, err
 	}
 

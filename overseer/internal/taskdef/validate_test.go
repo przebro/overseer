@@ -208,7 +208,7 @@ func TestTaskDefinition(t *testing.T) {
 		Name:      "AAA",
 		Group:     "ABC",
 		Schedule:  sd,
-		InTickets: []InTicketData{InTicketData{Name: "_____"}},
+		InTickets: []InTicketData{{Name: "_____"}},
 	}
 	err := validator.Valid.Validate(tdf)
 

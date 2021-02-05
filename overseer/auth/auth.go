@@ -40,6 +40,7 @@ const (
 )
 
 var (
+	//ErrUnableFindAction - returned when an action is not found
 	ErrUnableFindAction = errors.New("unable to find action")
 )
 
@@ -57,6 +58,7 @@ type AuthorizationManager struct {
 	col collection.DataCollection
 }
 
+//NewAuthorizationManager - creates a new instance of AuthorizationManager
 func NewAuthorizationManager(conf config.SecurityConfiguration, provider *datastore.Provider) (*AuthorizationManager, error) {
 
 	var col collection.DataCollection
@@ -69,6 +71,7 @@ func NewAuthorizationManager(conf config.SecurityConfiguration, provider *datast
 	return &AuthorizationManager{col: col}, nil
 }
 
+//VerifyAction - verifies if a given user is eligible to perform a specified action
 func (m *AuthorizationManager) VerifyAction(ctx context.Context, action UserAction, username string) (bool, error) {
 
 	if ctx == nil {
@@ -76,8 +79,6 @@ func (m *AuthorizationManager) VerifyAction(ctx context.Context, action UserActi
 	}
 	model := dsRoleAssociationModel{}
 	if err := m.col.Get(ctx, idFormatter(assocNamespace, username), &model); err != nil {
-		fmt.Println(err, "::", idFormatter(assocNamespace, username))
-
 		return false, errors.New("unable to get role association for given user")
 	}
 
@@ -128,6 +129,8 @@ func (m *AuthorizationManager) VerifyAction(ctx context.Context, action UserActi
 	}
 	return false, ErrUnableFindAction
 }
+
+//getEffectiveRights - returns a sum of rights from all roles
 func (m *AuthorizationManager) getEffectiveRights(roles []RoleModel) RoleModel {
 
 	finalModel := RoleModel{}
@@ -157,6 +160,7 @@ type userAuthenticationManager struct {
 	col collection.DataCollection
 }
 
+//NewAuthenticationManager - creates a new instance of AuthenticationManager
 func NewAuthenticationManager(collectionName string, provider *datastore.Provider) (AuthenticationManager, error) {
 
 	var col collection.DataCollection
@@ -169,6 +173,8 @@ func NewAuthenticationManager(collectionName string, provider *datastore.Provide
 	return &userAuthenticationManager{col: col}, nil
 
 }
+
+//Authenticate - authenticates the user
 func (m *userAuthenticationManager) Authenticate(ctx context.Context, username string, password string) (bool, error) {
 
 	if ctx == nil {
@@ -191,6 +197,7 @@ func (m *userAuthenticationManager) Authenticate(ctx context.Context, username s
 	return true, nil
 }
 
+//HashPassword - creates a new hash from given password
 func HashPassword(password []byte) (string, error) {
 
 	pass, err := bcrypt.GenerateFromPassword(password, bcrypt.MinCost)

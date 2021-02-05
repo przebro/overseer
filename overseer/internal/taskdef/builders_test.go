@@ -7,8 +7,8 @@ func TestBuilderFromTemplate(t *testing.T) {
 	builder, builder2 := &DummyTaskBuilder{}, &DummyTaskBuilder{}
 
 	sd := SchedulingData{FromTime: "10:30", AllowPastSub: true}
-	intd := []InTicketData{InTicketData{Name: "TICKET01", Odate: "ODATE"}}
-	outtd := []OutTicketData{OutTicketData{Action: "ADD", Name: "TICKET01", Odate: "ODATE"}}
+	intd := []InTicketData{{Name: "TICKET01", Odate: "ODATE"}}
+	outtd := []OutTicketData{{Action: "ADD", Name: "TICKET01", Odate: "ODATE"}}
 
 	task, _ := builder.WithBase("testgroup", "testname", "testdescription").WithRetention(5).WithConfirm().Build()
 

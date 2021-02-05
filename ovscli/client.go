@@ -3,8 +3,8 @@ package ovscli
 import (
 	"context"
 	"fmt"
-	"overseer/proto/services"
 	"io"
+	"overseer/proto/services"
 	"strings"
 
 	"google.golang.org/grpc"

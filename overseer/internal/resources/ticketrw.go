@@ -2,7 +2,6 @@ package resources
 
 import (
 	"context"
-	"fmt"
 	"overseer/datastore"
 
 	"github.com/przebro/databazaar/collection"
@@ -15,18 +14,18 @@ type ticketReadWriter struct {
 	col      collection.DataCollection
 }
 
-func NewTicketReadWriter(colname, objectID string, provider *datastore.Provider) (readWriter, error) {
+//newTicketReadWriter - Creates a new readWriter
+func newTicketReadWriter(colname, objectID string, provider *datastore.Provider) (readWriter, error) {
 
 	col, err := provider.GetCollection(colname)
 	if err != nil {
-		fmt.Println(err)
 		return nil, err
 	}
 
 	return &ticketReadWriter{colname: colname, col: col, objectID: objectID}, nil
-
 }
 
+//Load - load items from a persistent store
 func (cl *ticketReadWriter) Load() (map[string]interface{}, error) {
 
 	model := TicketsResourceModel{Tickets: []TicketResource{}}
@@ -46,6 +45,8 @@ func (cl *ticketReadWriter) Load() (map[string]interface{}, error) {
 
 	return data, nil
 }
+
+//Write - writes items to a persistent store
 func (cl *ticketReadWriter) Write(items map[string]interface{}) error {
 
 	model := []TicketResource{}

@@ -33,6 +33,10 @@ func createAuthClient(t *testing.T) services.AuthenticateServiceClient {
 	}
 
 	authservice, err := NewAuthenticateService(authcfg, tcv, provider)
+
+	if err != nil {
+		t.Error(err)
+	}
 	asrvc = authservice
 
 	services.RegisterAuthenticateServiceServer(mocksrv.grpcServer, authservice)

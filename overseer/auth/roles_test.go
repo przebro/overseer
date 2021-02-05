@@ -10,12 +10,13 @@ import (
 
 var rstorecfg = config.StoreProviderConfiguration{
 	Store: []config.StoreConfiguration{
-		config.StoreConfiguration{ID: "userstore",
+		{
+			ID:               "userstore",
 			ConnectionString: "local;/../../data/tests?synctime=0",
 		},
 	},
 	Collections: []config.CollectionConfiguration{
-		config.CollectionConfiguration{
+		{
 			Name:    "authtest",
 			StoreID: "userstore",
 		},
