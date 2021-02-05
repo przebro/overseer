@@ -47,7 +47,6 @@ var provider *datastore.Provider
 func TestMain(m *testing.M) {
 
 	f, _ := os.Create("../../../data/tests/resources.json")
-
 	f.Write([]byte(`{"flags":{"_id":"flags","_rev":"","flags":[]},"tickets":{"_id":"tickets","_rev":"","tickets":[]}}`))
 	f.Close()
 

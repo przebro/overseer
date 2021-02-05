@@ -1,6 +1,7 @@
 #Makefile
 OUTDIR=bin
 TOOLDIR=bin/tools
+TESTDIR=data/tests
 build:
 	[ -d $(OUTDIR) ] || mkdir -p $(OUTDIR)
 	[ -d $(TOOLDIR) ] || mkdir -p $(TOOLDIR)
@@ -10,6 +11,7 @@ build:
 	go build -o bin/tools/ cmd/ovstools/ovstask/ovstask.go
 	go build -o bin/chkprg chkprg/main.go
 tests:
+	[ -d $(TESTDIR) ] || mkdir -p $(TESTDIR)
 	go test `go list ./... | grep -v ./proto` -covermode=count --coverprofile='coverage.out'
 sprof:
 	go tool pprof -http localhost:9090 schedulerprofile.prof

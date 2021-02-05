@@ -2,6 +2,7 @@
 .VS*
 bin/*
 pkg/*
+data/tests/*
 coverage.out
 overseer.out
 schedulerprofile.out
