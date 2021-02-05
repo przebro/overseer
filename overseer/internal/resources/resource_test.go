@@ -35,10 +35,10 @@ var resConfig config.ResourcesConfigurartion = config.ResourcesConfigurartion{
 }
 var storeConfig config.StoreProviderConfiguration = config.StoreProviderConfiguration{
 	Store: []config.StoreConfiguration{
-		config.StoreConfiguration{ID: "teststore", ConnectionString: "local;/../../../data/tests?synctime=1"},
+		{ID: "teststore", ConnectionString: "local;/../../../data/tests?synctime=1"},
 	},
 	Collections: []config.CollectionConfiguration{
-		config.CollectionConfiguration{Name: "resources", StoreID: "teststore"},
+		{Name: "resources", StoreID: "teststore"},
 	},
 }
 
@@ -48,7 +48,7 @@ func TestMain(m *testing.M) {
 
 	f, _ := os.Create("../../../data/tests/resources.json")
 
-	f.Write([]byte(`{"flags":{},"tickets":{}}`))
+	f.Write([]byte(`{"flags":{"_id":"flags","_rev":"","flags":[]},"tickets":{"_id":"tickets","_rev":"","tickets":[]}}`))
 	f.Close()
 
 	var err error

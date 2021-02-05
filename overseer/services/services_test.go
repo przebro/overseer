@@ -153,6 +153,10 @@ func init() {
 	f.Write(data)
 	f.Close()
 
+	f1, _ := os.Create("../../../data/tests/resources.json")
+	f1.Write([]byte(`{"flags":{"_id":"flags","_rev":"","flags":[]},"tickets":{"_id":"tickets","_rev":"","tickets":[]}}`))
+	f1.Close()
+
 	log := logger.NewTestLogger()
 
 	if provider, err = datastore.NewDataProvider(provcfg); err != nil {
