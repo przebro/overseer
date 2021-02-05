@@ -2,13 +2,13 @@ package services
 
 import (
 	"fmt"
+	"net"
 	"overseer/common/logger"
 	"overseer/overseer/internal/events"
 	"overseer/overseer/internal/resources"
 	"overseer/overseer/internal/taskdef"
 	"overseer/overseer/services/middleware"
 	"overseer/proto/services"
-	"net"
 
 	"google.golang.org/grpc"
 )
@@ -33,7 +33,10 @@ func NewOvsGrpcServer(disp events.Dispatcher,
 	r services.ResourceServiceServer,
 	d services.DefinitionServiceServer,
 	t services.TaskServiceServer,
-	a services.AuthenticateServiceServer) OvsGrpcServer {
+	a services.AuthenticateServiceServer,
+	adm services.AdministrationServiceServer,
+	stat services.StatusServiceServer,
+) OvsGrpcServer {
 
 	unaryChain := buildUnaryChain()
 	streamChain := buildStreamChain()
@@ -45,8 +48,11 @@ func NewOvsGrpcServer(disp events.Dispatcher,
 	services.RegisterDefinitionServiceServer(srv.grpcServer, d)
 	services.RegisterTaskServiceServer(srv.grpcServer, t)
 	services.RegisterAuthenticateServiceServer(srv.grpcServer, a)
+	services.RegisterAdministrationServiceServer(srv.grpcServer, adm)
+	services.RegisterStatusServiceServer(srv.grpcServer, stat)
 	srv.dispatcher = disp
 	srv.log = logger.Get()
+
 	return srv
 
 }

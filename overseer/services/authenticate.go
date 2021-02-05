@@ -24,7 +24,7 @@ func NewAuthenticateService(security config.SecurityConfiguration, tm *auth.Toke
 		return nil, err
 	}
 
-	dservice := &ovsAuthenticateService{log: logger.Get(), authmanager: authman, tokenManager: tm}
+	dservice := &ovsAuthenticateService{log: logger.Get(), authmanager: authman, tokenManager: tm, allowAnonymous: security.AllowAnonymous}
 	return dservice, nil
 }
 
@@ -32,9 +32,16 @@ func (srv *ovsAuthenticateService) Authenticate(ctx context.Context, msg *servic
 
 	res := &services.ActionResultMsg{}
 
+	if msg.Username == "" && msg.Password == "" && srv.allowAnonymous {
+		res.Success = true
+		res.Message = "anonymous access"
+		return res, nil
+	}
+
 	if msg.Username == "" || msg.Password == "" {
 		res.Success = false
 		res.Message = "username or password cannot be empty"
+		return res, nil
 	}
 
 	if ok, err := srv.authmanager.Authenticate(ctx, msg.Username, msg.Password); ok != true || err != nil {
@@ -48,6 +55,7 @@ func (srv *ovsAuthenticateService) Authenticate(ctx context.Context, msg *servic
 	if err != nil {
 		res.Success = false
 		res.Message = err.Error()
+		return res, nil
 	}
 
 	res.Success = true

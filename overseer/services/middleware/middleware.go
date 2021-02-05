@@ -1,8 +1,6 @@
 package middleware
 
 import (
-	"fmt"
-
 	"google.golang.org/grpc"
 )
 
@@ -27,9 +25,16 @@ func RegisterHandler(h UnaryHandler) {
 	}
 }
 
+//RegisterStreamHandler - registers a new MiddlewareUnaryHandler
+func RegisterStreamHandler(h StreamHandler) {
+
+	if h != nil {
+		mwStreamHandlers = append(mwStreamHandlers, h)
+	}
+}
+
 func GetUnaryHandlers() []grpc.UnaryServerInterceptor {
 
-	fmt.Println("getting handlers")
 	handlers := []grpc.UnaryServerInterceptor{}
 
 	for x := range mwUnaryHandlers {
@@ -42,6 +47,10 @@ func GetUnaryHandlers() []grpc.UnaryServerInterceptor {
 func GetStreamHandlers() []grpc.StreamServerInterceptor {
 
 	handlers := []grpc.StreamServerInterceptor{}
+
+	for x := range mwStreamHandlers {
+		handlers = append(handlers, mwStreamHandlers[x].GetStreamHandler())
+	}
 
 	return handlers
 }

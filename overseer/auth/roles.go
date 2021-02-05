@@ -3,6 +3,8 @@ package auth
 import (
 	"context"
 	"overseer/datastore"
+	"overseer/overseer/config"
+	"strings"
 
 	"github.com/przebro/databazaar/collection"
 )
@@ -12,12 +14,12 @@ type RoleManager struct {
 	col collection.DataCollection
 }
 
-func NewRoleManager(collectionName string, provider *datastore.Provider) (*RoleManager, error) {
+func NewRoleManager(conf config.SecurityConfiguration, provider *datastore.Provider) (*RoleManager, error) {
 
 	var col collection.DataCollection
 	var err error
 
-	if col, err = provider.GetCollection(collectionName); err != nil {
+	if col, err = provider.GetCollection(conf.Collection); err != nil {
 		return nil, err
 	}
 
@@ -32,7 +34,7 @@ func (m *RoleManager) Get(name string) (RoleModel, bool) {
 		return RoleModel{}, false
 	}
 
-	return dsrole.RoleModel, false
+	return dsrole.RoleModel, true
 }
 func (m *RoleManager) Create(model RoleModel) error {
 
@@ -60,4 +62,27 @@ func (m *RoleManager) Modify(model RoleModel) error {
 func (m *RoleManager) Delete(name string) error {
 
 	return m.col.Delete(context.Background(), idFormatter(rolesNamespace, name))
+}
+
+func (m *RoleManager) All(filter string) ([]RoleModel, error) {
+
+	crsr, err := m.col.All(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	rmodel := dsRoleModel{}
+	result := []RoleModel{}
+
+	for crsr.Next(context.Background()) {
+		if err := crsr.Decode(&rmodel); err != nil {
+			return nil, err
+		}
+
+		if strings.HasPrefix(rmodel.ID, rolesNamespace) {
+			result = append(result, rmodel.RoleModel)
+		}
+	}
+
+	return result, nil
 }

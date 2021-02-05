@@ -4,10 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"overseer/common/logger"
+	"overseer/common/types"
 	"overseer/overseer/config"
 	"overseer/overseer/internal/date"
 	"overseer/overseer/internal/events"
 	"overseer/overseer/internal/unique"
+	"sort"
 	"sync"
 	"time"
 )
@@ -157,17 +159,18 @@ func (pool *ActiveTaskPool) Detail(orderID unique.TaskOrderID) (events.TaskDetai
 		return result, errors.New("unable  to find task with give ID")
 	}
 
-	result.Name, result.Group, _ = t.GetInfo()
+	result.Name, result.Group, result.Description = t.GetInfo()
 	result.Odate = t.OrderDate()
 	result.TaskID = t.OrderID()
 	result.State = int32(t.State())
-	result.Confirm = t.Confirm()
+	result.Confirmed = t.Confirmed()
 	result.EndTime = t.EndTime().Format("2006-01-02 15:04:05")
 	result.StartTime = t.StartTime().Format("2006-01-02 15:04:05")
-	result.Hold = t.State() == TaskStateHold
+	result.Held = t.IsHeld()
 	result.RunNumber = int32(t.RunNumber())
 	result.WaitingInfo = t.WaitingInfo()
 	result.Worker = t.WorkerName()
+	result.From, result.To = func(f, t types.HourMinTime) (string, string) { return string(f), string(t) }(t.TimeSpan())
 	result.Output = t.Output()
 
 	return result, nil
@@ -187,9 +190,14 @@ func (pool *ActiveTaskPool) List(filter string) []events.TaskInfoResultMsg {
 			TaskID:      v.OrderID(),
 			State:       int32(v.State()),
 			WaitingInfo: v.WaitingInfo(),
+			RunNumber:   v.RunNumber(),
+			Held:        v.IsHeld(),
+			Confirmed:   v.Confirmed(),
 		}
 		result = append(result, data)
 	})
+
+	sort.Sort(taskInfoSorter{result})
 
 	return result
 }

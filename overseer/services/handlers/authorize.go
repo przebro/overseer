@@ -7,23 +7,25 @@ import (
 	"overseer/datastore"
 	"overseer/overseer/auth"
 	"overseer/overseer/config"
+	"strings"
 
 	"google.golang.org/grpc/metadata"
 
 	"google.golang.org/grpc"
 )
 
+const bearer = "Bearer "
+const authorization = "Authorization"
+
 var (
 	ErrUnauthorizedAccess = errors.New("unauthorized access")
+	ErrInvalidToken       = errors.New("invalid token")
+	ErrUserNotAuthorized  = errors.New("user not authorized to perform this action")
 )
 
 type AccessRestricter interface {
 	GetAllowedAction(method string) auth.UserAction
 }
-
-// type AuthorizationHandler interface {
-// 	Authorize(ctx context.Context, service string) (context.Context, error)
-// }
 
 type ServiceAuthorizeHandler struct {
 	authman        *auth.AuthorizationManager
@@ -38,7 +40,7 @@ func NewServiceAuthorizeHandler(security config.SecurityConfiguration, tm *auth.
 	var anonymous = security.AllowAnonymous
 	var err error
 
-	if authman, err = auth.NewAuthorizationManager(security.Collection, provider); err != nil {
+	if authman, err = auth.NewAuthorizationManager(security, provider); err != nil {
 		return nil, err
 	}
 
@@ -59,12 +61,12 @@ func (ap *ServiceAuthorizeHandler) Authorize(ctx context.Context, req interface{
 		return handler(ctx, req)
 	}
 
-	if ap.allowAnonymous == true {
-		return handler(ctx, req)
+	if token = ap.getTokenFromContext(ctx); token == "" && ap.allowAnonymous == false {
+		return nil, ErrUnauthorizedAccess
 	}
 
-	if token = ap.getTokenFromContext(ctx); token == "" {
-		return nil, ErrUnauthorizedAccess
+	if token == "" && ap.allowAnonymous == true {
+		return handler(ctx, req)
 	}
 
 	if err := ap.verifyAccess(ctx, restrictedService, token, info.FullMethod); err != nil {
@@ -84,12 +86,12 @@ func (ap *ServiceAuthorizeHandler) StreamAuthorize(srv interface{}, ss grpc.Serv
 		return handler(srv, ss)
 	}
 
-	if ap.allowAnonymous == true {
-		return handler(srv, ss)
+	if token = ap.getTokenFromContext(ss.Context()); token == "" && ap.allowAnonymous == false {
+		return ErrUnauthorizedAccess
 	}
 
-	if token = ap.getTokenFromContext(ss.Context()); token == "" {
-		return ErrUnauthorizedAccess
+	if token == "" && ap.allowAnonymous == true {
+		return handler(srv, ss)
 	}
 
 	if err := ap.verifyAccess(ss.Context(), restrictedService, "", info.FullMethod); err != nil {
@@ -109,12 +111,17 @@ func (ap *ServiceAuthorizeHandler) GetStreamHandler() grpc.StreamServerIntercept
 
 func (ap *ServiceAuthorizeHandler) verifyAccess(ctx context.Context, rservice AccessRestricter, token string, method string) error {
 
+	var result bool
+	var err error
+
 	username, err := ap.verifier.Verify(token)
 	if err != nil {
-		return nil
+		return ErrInvalidToken
 	}
 
-	ap.authman.VerifyAction(ctx, rservice.GetAllowedAction(method), username)
+	if result, err = ap.authman.VerifyAction(ctx, rservice.GetAllowedAction(method), username); err != nil || result == false {
+		return ErrUserNotAuthorized
+	}
 
 	return nil
 }
@@ -124,18 +131,16 @@ func (ap *ServiceAuthorizeHandler) getTokenFromContext(ctx context.Context) stri
 	var meta metadata.MD
 	var ok bool
 
-	ap.log.Info("authorization")
 	if meta, ok = metadata.FromIncomingContext(ctx); !ok {
 		return ""
 	}
 
-	ap.log.Info("found metadata")
-	authData := meta.Get("authorization")
+	authData := meta.Get(authorization)
 
 	if len(authData) == 0 {
 		ap.log.Info("authorization header not found metadata")
 		return ""
 	}
 
-	return authData[0]
+	return strings.TrimPrefix(authData[0], bearer)
 }

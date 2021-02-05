@@ -1,0 +1,25 @@
+{
+    "type" : "dummy",
+    "name" :"sample_05",
+    "group" : "samples",
+    "confirm" : true,
+    "description" :"sample dummy task definition with confirm",
+    "inticket" : [
+        {"name" : "IN-SAMPLE05A","odate" : "ODATE" }
+    ],
+    "relation" :"AND",
+    "flags" : [],
+    "outticket" :[
+        {"name" : "IN-SAMPLE05A","odate" : "ODATE" ,"action":"REM"}
+        
+    ],
+    "schedule" :{
+        "type" : "daily",
+        "from" : "08:00",
+        "to" : "23:00",
+        "months" :[1,2,3,4,5,6,7,8,9,10,11,12],
+        "values" :[]
+
+    }
+
+}

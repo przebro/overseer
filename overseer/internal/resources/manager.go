@@ -8,7 +8,8 @@ import (
 	"overseer/overseer/internal/date"
 	"overseer/overseer/internal/events"
 	"overseer/overseer/internal/taskdef"
-	"strings"
+	"regexp"
+	"sort"
 )
 
 type resourceManager struct {
@@ -30,6 +31,7 @@ type TicketManager interface {
 type FlagManager interface {
 	Set(name string, policy FlagResourcePolicy) (bool, error)
 	Unset(name string) (bool, error)
+	DestroyFlag(name string) (bool, error)
 	ListFlags(name string) []FlagResource
 }
 
@@ -106,14 +108,31 @@ func (rm *resourceManager) Check(name string, odate date.Odate) bool {
 func (rm *resourceManager) ListTickets(name string, datestr string) []TicketResource {
 
 	tickets := rm.tstore.All()
+	var matchName bool
+	var matchDate bool
+	var err error
 
 	result := make([]TicketResource, 0)
 	for _, n := range tickets {
 
-		if strings.HasPrefix(n.(TicketResource).Name, name) && strings.HasPrefix(string(n.(TicketResource).Odate), datestr) {
+		nexpr := buildExpr(name)
+		dexpr := buildDateExpr(datestr)
+
+		if matchName, err = regexp.Match(nexpr, []byte(n.(TicketResource).Name)); err != nil {
+			return []TicketResource{}
+		}
+
+		if matchDate, err = regexp.Match(dexpr, []byte(n.(TicketResource).Name)); err != nil {
+			return []TicketResource{}
+		}
+
+		if matchName && matchDate {
 			result = append(result, n.(TicketResource))
 		}
+
 	}
+
+	sort.Sort(ticketSorter{result})
 
 	return result
 }
@@ -164,14 +183,37 @@ func (rm *resourceManager) Unset(name string) (bool, error) {
 
 }
 
+//DestroyFlag - forcefully removes a flag
+func (rm *resourceManager) DestroyFlag(name string) (bool, error) {
+
+	var ok bool
+
+	if _, ok = rm.fstore.Get(name); !ok {
+		return false, errors.New("Flag with given name does not exists")
+	}
+
+	rm.fstore.Delete(name)
+
+	return true, nil
+
+}
+
 func (rm *resourceManager) ListFlags(name string) []FlagResource {
 
+	var matchName bool
+	var err error
 	flags := rm.fstore.All()
 	result := make([]FlagResource, 0)
 
 	for _, n := range flags {
 
-		if strings.HasPrefix(n.(FlagResource).Name, name) {
+		nexpr := buildExpr(name)
+
+		if matchName, err = regexp.Match(nexpr, []byte(n.(FlagResource).Name)); err != nil {
+			return []FlagResource{}
+		}
+
+		if matchName {
 			result = append(result, n.(FlagResource))
 		}
 	}
@@ -241,4 +283,53 @@ func (rm *resourceManager) processInTicketEvent(data events.RouteTicketInMsgForm
 			}
 		}
 	}
+}
+
+func buildExpr(value string) string {
+
+	expr := ""
+
+	if value == "" {
+		return `[\w\-]*`
+	}
+	for _, c := range value {
+
+		if c == '*' {
+			expr += `[\w\-]+`
+			continue
+		}
+		if c == '?' {
+			expr += `[\w\-]`
+			continue
+		}
+
+		expr += string(c)
+	}
+
+	return expr
+}
+
+func buildDateExpr(value string) string {
+
+	expr := ""
+
+	if value == "" {
+		return `[\d]*`
+	}
+
+	for _, c := range value {
+
+		if c == '*' {
+			expr += `[\d]+`
+			continue
+		}
+		if c == '?' {
+			expr += `[\d]`
+			continue
+		}
+
+		expr += string(c)
+	}
+
+	return expr
 }

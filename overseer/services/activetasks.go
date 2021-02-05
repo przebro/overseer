@@ -11,6 +11,7 @@ import (
 	"overseer/overseer/internal/unique"
 	"overseer/overseer/taskdata"
 	"overseer/proto/services"
+	"strings"
 )
 
 type ovsActiveTaskService struct {
@@ -109,10 +110,15 @@ func (srv *ovsActiveTaskService) RerunTask(ctx context.Context, in *services.Tas
 
 	result, err := srv.manager.Rerun(orderID)
 	if err != nil {
-		response.Success = false
-		response.Message = err.Error()
-		return response, nil
 
+		response.Success = false
+
+		if err == pool.ErrInvalidStatus {
+			response.Message = result
+		} else {
+			response.Message = err.Error()
+		}
+		return response, nil
 	}
 
 	response.Message = result
@@ -131,16 +137,24 @@ func (srv *ovsActiveTaskService) HoldTask(ctx context.Context, in *services.Task
 
 		response.Success = false
 		response.Message = err.Error()
+		return response, nil
 	}
 
 	result, err := srv.manager.Hold(orderID)
-	response.Message = result
-
 	if err != nil {
+
 		response.Success = false
-	} else {
-		response.Success = true
+
+		if err == pool.ErrInvalidStatus {
+			response.Message = result
+		} else {
+			response.Message = err.Error()
+		}
+		return response, nil
 	}
+
+	response.Success = true
+	response.Message = result
 
 	return response, nil
 }
@@ -154,16 +168,25 @@ func (srv *ovsActiveTaskService) FreeTask(ctx context.Context, in *services.Task
 
 		response.Success = false
 		response.Message = err.Error()
+		return response, nil
 	}
 
 	result, err := srv.manager.Free(orderID)
-	response.Message = result
 
 	if err != nil {
+
 		response.Success = false
-	} else {
-		response.Success = true
+
+		if err == pool.ErrInvalidStatus {
+			response.Message = result
+		} else {
+			response.Message = err.Error()
+		}
+		return response, nil
 	}
+
+	response.Success = true
+	response.Message = result
 
 	return response, nil
 }
@@ -177,17 +200,61 @@ func (srv *ovsActiveTaskService) SetToOk(ctx context.Context, in *services.TaskA
 
 		response.Success = false
 		response.Message = err.Error()
+		return response, nil
 	}
 
 	result, err := srv.manager.SetOk(orderID)
 	if err != nil {
 
+		response.Success = false
+
+		if err == pool.ErrInvalidStatus {
+			response.Message = result
+		} else {
+			response.Message = err.Error()
+		}
+
+		return response, nil
 	}
+
 	response.Message = result
 	response.Success = true
 
 	return response, nil
 }
+
+func (srv *ovsActiveTaskService) ConfirmTask(ctx context.Context, in *services.TaskActionMsg) (*services.ActionResultMsg, error) {
+
+	response := &services.ActionResultMsg{}
+
+	orderID := unique.TaskOrderID(in.TaskID)
+
+	if err := validator.Valid.Validate(orderID); err != nil {
+
+		response.Success = false
+		response.Message = err.Error()
+		return response, nil
+	}
+
+	result, err := srv.manager.Confirm(orderID)
+	if err != nil {
+
+		response.Success = false
+
+		if err == pool.ErrInvalidStatus {
+			response.Message = result
+		} else {
+			response.Message = err.Error()
+		}
+		return response, nil
+	}
+
+	response.Message = result
+	response.Success = true
+
+	return response, nil
+}
+
 func (srv *ovsActiveTaskService) ListTasks(in *services.TaskFilterMsg, ltask services.TaskService_ListTasksServer) error {
 
 	result := srv.poolView.List("")
@@ -198,7 +265,11 @@ func (srv *ovsActiveTaskService) ListTasks(in *services.TaskFilterMsg, ltask ser
 			GroupName:  r.Group,
 			TaskId:     string(r.TaskID),
 			TaskStatus: r.State,
+			OrderDate:  string(r.Odate),
 			Waiting:    r.WaitingInfo,
+			RunNumber:  r.RunNumber,
+			Confirmed:  r.Confirmed,
+			Held:       r.Held,
 		}
 		ltask.Send(resp)
 	}
@@ -212,15 +283,14 @@ func (srv *ovsActiveTaskService) TaskDetail(ctx context.Context, in *services.Ta
 
 	if err := validator.Valid.Validate(orderID); err != nil {
 
-		response.Success = false
-		response.Message = err.Error()
+		response.Result = &services.ActionResultMsg{Success: false, Message: err.Error()}
+		return response, nil
 	}
 
 	result, err := srv.poolView.Detail(orderID)
 	if err != nil {
-		response.Success = false
-		response.Message = err.Error()
-		return response, err
+		response.Result = &services.ActionResultMsg{Success: false, Message: err.Error()}
+		return response, nil
 	}
 
 	response.BaseData = &services.TaskListResultMsg{
@@ -230,16 +300,23 @@ func (srv *ovsActiveTaskService) TaskDetail(ctx context.Context, in *services.Ta
 		TaskName:   result.Name,
 		TaskStatus: result.State,
 		Waiting:    result.WaitingInfo,
+		Confirmed:  result.Confirmed,
+		Held:       result.Held,
+		RunNumber:  result.RunNumber,
 	}
-	response.Confirm = result.Confirm
+
+	response.Description = result.Description
 	response.EndTime = result.EndTime
 	response.StartTime = result.StartTime
-	response.Hold = result.Hold
 	response.Output = result.Output
-	response.RunNumber = result.RunNumber
 	response.Worker = result.Worker
 	response.Output = result.Output
-	response.Success = true
+	response.From = result.From
+	response.To = result.To
+
+	//response.Resources = []*services.TaskResourcesMsg{}
+
+	response.Result = &services.ActionResultMsg{Success: true, Message: ""}
 
 	return response, nil
 }
@@ -248,6 +325,38 @@ func (srv *ovsActiveTaskService) TaskDetail(ctx context.Context, in *services.Ta
 func (srv *ovsActiveTaskService) GetAllowedAction(method string) auth.UserAction {
 
 	var action auth.UserAction
+
+	if strings.HasSuffix(method, "ListTasks") || strings.HasSuffix(method, "TaskDetail") {
+		action = auth.ActionBrowse
+	}
+
+	if strings.HasSuffix(method, "OrderTask") {
+		action = auth.ActionOrder
+	}
+
+	if strings.HasSuffix(method, "ForceTask") {
+		action = auth.ActionForce
+	}
+
+	if strings.HasSuffix(method, "RerunTask") {
+		action = auth.ActionRestart
+	}
+
+	if strings.HasSuffix(method, "HoldTask") {
+		action = auth.ActionHold
+	}
+
+	if strings.HasSuffix(method, "FreeTask") {
+		action = auth.ActionFree
+	}
+
+	if strings.HasSuffix(method, "SetToOk") {
+		action = auth.ActionSetToOK
+	}
+
+	if strings.HasSuffix(method, "ConfirmTask") {
+		action = auth.ActionConfirm
+	}
 
 	return action
 }

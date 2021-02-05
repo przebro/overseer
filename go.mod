@@ -7,9 +7,9 @@ require (
 	github.com/go-playground/validator/v10 v10.4.1
 	github.com/golang/protobuf v1.4.3
 	github.com/leodido/go-urn v1.2.1 // indirect
-	github.com/przebro/couchstore v0.0.0-20210102021219-24d18b8c67ee
-	github.com/przebro/databazaar v0.0.0-20210107000945-c2812a415bed
-	github.com/przebro/localstore v0.0.0-20210108134328-c3c1cbe0aff2
+	github.com/przebro/couchstore v0.0.0-20210112103442-966ded2fd91d
+	github.com/przebro/databazaar v0.0.0-20210112011856-4648c2d52594
+	github.com/przebro/localstore v0.0.0-20210112211035-66fe37d2c764
 	github.com/przebro/mongostore v0.0.0-20210102023255-df0ca18624a3 // indirect
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	golang.org/x/net v0.0.0-20201224014010-6772e930b67b

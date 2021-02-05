@@ -15,6 +15,7 @@ import (
 
 var (
 	ErrUnableFindDef = errors.New("unable to find definition")
+	ErrInvalidStatus = errors.New("Invalid status")
 )
 
 //ActiveTaskPoolManager - Manages tasks in Active task pool
@@ -103,7 +104,7 @@ func (manager *ActiveTaskPoolManager) Rerun(id unique.TaskOrderID) (string, erro
 	if state == TaskStateEndedNotOk || state == TaskStateEndedOk {
 		task.SetState(TaskStateWaiting)
 	} else {
-		return fmt.Sprintf("rerun task:%s failed, invalid status", id), nil
+		return fmt.Sprintf("rerun task:%s failed, invalid status", id), ErrInvalidStatus
 	}
 
 	return fmt.Sprintf("rerun task:%s ok", id), nil
@@ -124,7 +125,7 @@ func (manager *ActiveTaskPoolManager) SetOk(id unique.TaskOrderID) (string, erro
 	if state == TaskStateEndedNotOk {
 		task.SetState(TaskStateEndedOk)
 	} else {
-		return fmt.Sprintf("rerun task:%s failed, invalid status", id), nil
+		return fmt.Sprintf("set to OK task:%s failed, invalid status", id), ErrInvalidStatus
 	}
 
 	return fmt.Sprintf("set to ok task:%s ok", id), nil
@@ -140,6 +141,11 @@ func (manager *ActiveTaskPoolManager) Hold(id unique.TaskOrderID) (string, error
 	if err != nil {
 		return fmt.Sprintf("task with id:%s does not exists", id), err
 	}
+
+	if task.IsHeld() {
+		return fmt.Sprintf("hold task:%s failed, invalid status", id), ErrInvalidStatus
+	}
+
 	task.Hold()
 
 	return fmt.Sprintf("hold task:%s ok", id), nil
@@ -155,9 +161,33 @@ func (manager *ActiveTaskPoolManager) Free(id unique.TaskOrderID) (string, error
 	if err != nil {
 		return fmt.Sprintf("task with id:%s does not exists", id), err
 	}
+
+	if !task.IsHeld() {
+		return fmt.Sprintf("free task:%s failed, task is not held", id), ErrInvalidStatus
+	}
+
 	task.Free()
 
 	return fmt.Sprintf("free task:%s ok", id), nil
+}
+
+//Confirm - Manually Confirms a task
+func (manager *ActiveTaskPoolManager) Confirm(id unique.TaskOrderID) (string, error) {
+
+	defer manager.lock.RUnlock()
+	manager.lock.RLock()
+
+	task, err := manager.pool.task(id)
+	if err != nil {
+		return fmt.Sprintf("task with id:%s does not exists", id), err
+	}
+
+	result := task.SetConfirm()
+	if result == false {
+		return fmt.Sprintf("task with id:%s already confirmed", id), err
+	}
+
+	return fmt.Sprintf("confirm task:%s ok", id), nil
 }
 
 func (manager *ActiveTaskPoolManager) orderNewTasks() int {

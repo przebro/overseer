@@ -21,7 +21,7 @@
     ],
     "StoreProvider" : {
         "store" : [
-            {"id" : "security", "connectionString":"local;/data/security?synctime=0"},
+            {"id" : "security", "connectionString":"local;/data/security?updatesync=true"},
             {"id" : "resources", "connectionString":"local;/data/resources?updatesync=true"}
         ],
         "collections" : [
@@ -32,7 +32,7 @@
 
     "security" : {
         "ssl" : false,
-        "allowAnonymous" : true,
+        "allowAnonymous" : false,
         "collectionName" : "auth",
         "timeout" : 0,
         "issuer" : "issuername",

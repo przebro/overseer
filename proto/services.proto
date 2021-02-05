@@ -1,7 +1,8 @@
 syntax = "proto3";
+import "google/protobuf/empty.proto";
+
 package proto;
 option go_package = "proto/services";
-
 
 
 service AuthenticateService{
@@ -14,6 +15,7 @@ service ResourceService{
     rpc CheckTicket(TicketActionMsg) returns (ActionResultMsg){}
     rpc ListTickets(TicketActionMsg) returns (stream TicketListResultMsg){}
     rpc SetFlag(FlagActionMsg) returns (ActionResultMsg){}
+    rpc DestroyFlag(FlagActionMsg) returns (ActionResultMsg){}
     rpc ListFlags(FlagActionMsg) returns (stream FlagListResultMsg){}
 }
 service TaskService{
@@ -23,6 +25,7 @@ service TaskService{
     rpc HoldTask(TaskActionMsg) returns (ActionResultMsg){}
     rpc FreeTask(TaskActionMsg) returns (ActionResultMsg){}
     rpc SetToOk(TaskActionMsg) returns (ActionResultMsg){}
+    rpc ConfirmTask(TaskActionMsg) returns (ActionResultMsg){}
     rpc ListTasks(TaskFilterMsg) returns (stream TaskListResultMsg){}
     rpc TaskDetail(TaskActionMsg) returns (TaskDetailResultMsg){}
 }
@@ -31,8 +34,30 @@ service DefinitionService{
     rpc GetDefinition(DefinitionActionMsg) returns (DefinitionResultMsg){}
     rpc LockDefinition(DefinitionActionMsg) returns (LockResultMsg){}
     rpc UnlockDefinition(DefinitionActionMsg) returns (LockResultMsg){}
-    rpc ListGroups(GroupActionMsg) returns (stream DefinitionListGroupResultMsg){}
+    rpc ListGroups(FilterMsg) returns (stream DefinitionListGroupResultMsg){}
     rpc ListDefinitionsFromGroup(DefinitionActionMsg) returns (stream DefinitionListResultMsg){}
+}
+
+service AdministrationService{
+    rpc CreateUser(CreateUserMsg) returns (ActionResultMsg){}
+    rpc ModifyUser(CreateUserMsg) returns (ActionResultMsg){}
+    rpc DeleteUser(UserMsg) returns (ActionResultMsg){}
+    rpc ListUsers(FilterMsg)  returns (ListEntityResultMsg){}
+    rpc GetUser(UserMsg) returns (UserResultMsg){}
+
+    rpc CreateRole(RoleDefinitionMsg) returns (ActionResultMsg){}
+    rpc ModifyRole(RoleDefinitionMsg) returns (ActionResultMsg){}
+    rpc DeleteRole(RoleMsg) returns (ActionResultMsg){}
+    rpc ListRoles(FilterMsg)  returns (ListEntityResultMsg){}
+    rpc GetRole(RoleMsg) returns (RoleResultMsg){}
+}
+
+service StatusService {
+    rpc OverseerStatus(google.protobuf.Empty) returns (ActionResultMsg){}
+}
+
+message FilterMsg{
+    string filter = 1;
 }
 
 message AuthorizeActionMsg{
@@ -41,37 +66,32 @@ message AuthorizeActionMsg{
 }
 
 message TicketActionMsg {
-    string token = 1;
-    string name = 2;
-    string odate = 3;
+    string name = 1;
+    string odate = 2;
 }
 message FlagActionMsg {
-    string token = 1;
-    string name = 2;
-    int32 state = 3;
+    string name = 1;
+    int32 state = 2;
 }
 
 message TaskActionMsg{
-    string token = 1;
-    string taskID = 2; 
+    string taskID = 1; 
 }
 
 message TaskFilterMsg{
-    string token = 1;
-    string group = 2;
-    string name = 3;
-    string taskID = 4;
-    string odateFrom = 5;
-    string odateTo = 6;
-    string status = 7;
+    string group = 1;
+    string name = 2;
+    string taskID = 3;
+    string odateFrom = 4;
+    string odateTo = 5;
+    uint32 status = 6;
 
 }
 
 message TaskOrderMsg{
-    string token = 1;
-    string taskGroup = 2;
-    string taskName = 3;
-    string odate = 4;   
+    string taskGroup = 1;
+    string taskName = 2;
+    string odate = 3;   
 }
 
 message DefinitionMsg{
@@ -101,10 +121,6 @@ message DefinitionResultMsg{
     repeated DefinitionResult definitionMsg = 1;
 }
 
-message  GroupActionMsg{
-    string token = 1;
-}
-
 message ActionResultMsg{
     bool success = 1;
     string message = 2; 
@@ -123,21 +139,30 @@ message TaskListResultMsg{
     string taskId = 3;
     string orderDate = 4;
     int32 taskStatus = 5;
-    string waiting = 6;
+    int32 runNumber = 6;
+    string waiting = 7;
+    bool   held = 8;
+    bool   confirmed = 9;
+}
+message TaskResourcesMsg {
+    string type =  1;
+    string name  = 2;
+    string odate = 3;
+    bool satisfied = 5;
+
 }
 
 message TaskDetailResultMsg{
-    TaskListResultMsg  baseData = 1;
-    bool hold = 2;
-    bool confirm = 3;
-    int32 runNumber = 4;
-    string startTime  = 5;
-    string endTime = 6;
-    string worker = 7;
-    repeated string output = 8;
-    bool success = 9;
-    string message = 10;
-
+    ActionResultMsg    result = 1;
+    TaskListResultMsg  baseData = 2;
+    string description = 3;
+    string from = 4;
+    string to = 5;
+    string startTime  = 6;
+    string endTime = 7;
+    string worker = 8;
+    repeated TaskResourcesMsg resources = 9;
+    repeated string output = 10;
 }
 
 message DefinitionListGroupResultMsg{
@@ -146,4 +171,74 @@ message DefinitionListGroupResultMsg{
 message DefinitionListResultMsg{
     string groupName = 1;
     string taskName = 2;
+}
+
+message UserAccount{
+    string username = 1;
+    string fullname = 2;
+    string email    = 4;
+    bool   enabled  = 5;
+    repeated string roles = 7;
+}
+
+message ChangePassword{
+    string oldPassword = 1;
+    string newPassword = 2;
+}
+
+message CreateUserMsg {
+    UserAccount user = 1;
+    string password = 2;
+}
+
+message ModifyUserMsg{
+    UserAccount    user = 1;
+    ChangePassword password = 2;
+}
+
+message UserResultMsg{
+    UserAccount user = 1;
+}
+
+message UserMsg{
+    string username = 1;
+}
+
+message UserAccountMsg{
+    UserAccount    user = 1;
+} 
+
+message EntityMsg {
+    string name  = 1;
+    string description = 2;
+}
+
+message ListEntityResultMsg{
+    repeated EntityMsg entity = 1;
+}
+
+message RoleMsg{
+    string rolename = 1;
+}
+
+message RoleDefinitionMsg{
+    RoleMsg role = 1;
+    string description = 2;
+    bool administration = 3;
+    bool restart = 4;
+    bool setToOk = 5;
+    bool addTicket = 6;
+    bool removeTicket = 7;
+    bool setFlag = 8;
+    bool confirm = 9;
+    bool order = 10;
+    bool force = 11;
+    bool definition = 12;
+    bool hold = 13;
+    bool free = 14;
+    bool bypass = 15;
+}
+
+message RoleResultMsg{
+    RoleDefinitionMsg role  = 1;
 }

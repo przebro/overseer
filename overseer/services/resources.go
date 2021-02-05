@@ -9,6 +9,7 @@ import (
 	"overseer/overseer/internal/date"
 	"overseer/overseer/internal/resources"
 	"overseer/proto/services"
+	"strings"
 )
 
 type ovsResourceService struct {
@@ -30,16 +31,9 @@ func (srv *ovsResourceService) AddTicket(ctx context.Context, msg *services.Tick
 	var success bool
 
 	odate := date.Odate(msg.Odate)
-
-	if err := validator.Valid.Validate(odate); err != nil {
-		response.Success = false
-		response.Message = err.Error()
-		return response, nil
-	}
-
 	name := msg.GetName()
 
-	if err := validator.Valid.ValidateTag(name, "required,max=32"); err != nil {
+	if err := validateTicketFields(name, odate); err != nil {
 		response.Success = false
 		response.Message = err.Error()
 		return response, nil
@@ -66,16 +60,9 @@ func (srv *ovsResourceService) DeleteTicket(ctx context.Context, msg *services.T
 	response := &services.ActionResultMsg{}
 
 	odate := date.Odate(msg.Odate)
-
-	if err := validator.Valid.Validate(odate); err != nil {
-		response.Success = false
-		response.Message = err.Error()
-		return response, nil
-	}
-
 	name := msg.GetName()
 
-	if err := validator.Valid.ValidateTag(name, "required,max=32"); err != nil {
+	if err := validateTicketFields(name, odate); err != nil {
 		response.Success = false
 		response.Message = err.Error()
 		return response, nil
@@ -100,16 +87,9 @@ func (srv *ovsResourceService) CheckTicket(ctx context.Context, msg *services.Ti
 	response := &services.ActionResultMsg{}
 
 	odate := date.Odate(msg.Odate)
-
-	if err := validator.Valid.Validate(odate); err != nil {
-		response.Success = false
-		response.Message = err.Error()
-		return response, nil
-	}
-
 	name := msg.GetName()
 
-	if err := validator.Valid.ValidateTag(name, "required,max=32"); err != nil {
+	if err := validateTicketFields(name, odate); err != nil {
 		response.Success = false
 		response.Message = err.Error()
 		return response, nil
@@ -140,7 +120,7 @@ func (srv *ovsResourceService) ListTickets(msg *services.TicketActionMsg, lflags
 
 	odateStr := msg.GetOdate()
 
-	if err := validator.Valid.ValidateTag(name, "max=8"); err != nil {
+	if err := validator.Valid.ValidateTag(odateStr, "max=8"); err != nil {
 		return err
 	}
 
@@ -159,9 +139,15 @@ func (srv *ovsResourceService) SetFlag(ctx context.Context, msg *services.FlagAc
 
 	name := msg.GetName()
 
-	if err := validator.Valid.ValidateTag(name, "required,max=32"); err != nil {
+	if err := validateResourceName(name); err != nil {
 		response.Success = false
 		response.Message = err.Error()
+		return response, nil
+
+	}
+	if msg.State < 0 || msg.State > 1 {
+		response.Success = false
+		response.Message = "invalid flag state"
 		return response, nil
 
 	}
@@ -175,7 +161,9 @@ func (srv *ovsResourceService) SetFlag(ctx context.Context, msg *services.FlagAc
 
 	ok, err := srv.resManager.Set(msg.Name, resources.FlagResourcePolicy(msg.State))
 	if err != nil {
-		return nil, err
+		response.Success = false
+		response.Message = err.Error()
+		return response, nil
 	}
 
 	response.Success = ok
@@ -183,14 +171,42 @@ func (srv *ovsResourceService) SetFlag(ctx context.Context, msg *services.FlagAc
 
 	return response, nil
 }
+func (srv *ovsResourceService) DestroyFlag(ctx context.Context, msg *services.FlagActionMsg) (*services.ActionResultMsg, error) {
+
+	response := &services.ActionResultMsg{}
+
+	name := msg.GetName()
+
+	if err := validateResourceName(name); err != nil {
+		response.Success = false
+		response.Message = err.Error()
+		return response, nil
+
+	}
+
+	ok, err := srv.resManager.DestroyFlag(msg.Name)
+	if err != nil {
+		response.Success = false
+		response.Message = err.Error()
+		return response, nil
+	}
+
+	response.Success = ok
+	response.Message = fmt.Sprintf("%s has been removed", msg.Name)
+
+	return response, nil
+}
+
 func (srv *ovsResourceService) ListFlags(msg *services.FlagActionMsg, lflags services.ResourceService_ListFlagsServer) error {
 
-	err := validator.Valid.ValidateTag(msg.GetName(), "required,max=32")
+	name := msg.GetName()
+
+	err := validateResourceName(name)
 	if err != nil {
 		return nil
 	}
 
-	data := srv.resManager.ListFlags(msg.Name)
+	data := srv.resManager.ListFlags(name)
 
 	for _, d := range data {
 		msg := services.FlagListResultMsg{FlagName: d.Name, State: int32(d.Policy)}
@@ -201,10 +217,53 @@ func (srv *ovsResourceService) ListFlags(msg *services.FlagActionMsg, lflags ser
 	return nil
 }
 
+func validateTicketFields(name string, odate date.Odate) error {
+
+	if err := validator.Valid.Validate(odate); err != nil {
+		return err
+	}
+
+	if err := validateResourceName(name); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func validateResourceName(name string) error {
+
+	return validator.Valid.ValidateTag(name, "resname,required,max=32")
+
+}
+
 //GetAllowedAction - returns allowed action for given method. Implementation of handlers.AccessRestricter
 func (srv *ovsResourceService) GetAllowedAction(method string) auth.UserAction {
 
 	var action auth.UserAction
+
+	if strings.HasSuffix(method, "AddTicket") {
+		action = auth.ActionAddTicket
+	}
+
+	if strings.HasSuffix(method, "DeleteTicket") {
+		action = auth.ActionRemoveTicket
+	}
+
+	if strings.HasSuffix(method, "CheckTicket") || strings.HasSuffix(method, "ListTickets") {
+		action = auth.ActionBrowse
+	}
+
+	if strings.HasSuffix(method, "SetFlag") {
+		action = auth.ActionSetFlag
+	}
+
+	if strings.HasSuffix(method, "DestroyFlag") {
+		action = auth.ActionSetFlag
+	}
+
+	if strings.HasSuffix(method, "ListFlags") {
+		action = auth.ActionBrowse
+	}
 
 	return action
 }

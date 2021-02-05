@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"overseer/datastore"
+	"overseer/overseer/config"
 
 	"golang.org/x/crypto/bcrypt"
 
@@ -22,17 +23,24 @@ type UserAction int
 
 //Defines possible user actions
 const (
-	ActionUserManagment UserAction = iota
-	ActionRoleManagment
-	ActionRestartAction
+	ActionBrowse UserAction = iota
+	ActionAdministration
+	ActionRestart
 	ActionSetToOK
 	ActionAddTicket
 	ActionRemoveTicket
 	ActionSetFlag
 	ActionConfirm
+	ActionBypass
+	ActionHold
+	ActionFree
 	ActionOrder
 	ActionForce
 	ActionDefinition
+)
+
+var (
+	ErrUnableFindAction = errors.New("unable to find action")
 )
 
 func idFormatter(prefix, id string) string {
@@ -49,12 +57,12 @@ type AuthorizationManager struct {
 	col collection.DataCollection
 }
 
-func NewAuthorizationManager(collectionName string, provider *datastore.Provider) (*AuthorizationManager, error) {
+func NewAuthorizationManager(conf config.SecurityConfiguration, provider *datastore.Provider) (*AuthorizationManager, error) {
 
 	var col collection.DataCollection
 	var err error
 
-	if col, err = provider.GetCollection(collectionName); err != nil {
+	if col, err = provider.GetCollection(conf.Collection); err != nil {
 		return nil, err
 	}
 
@@ -68,7 +76,9 @@ func (m *AuthorizationManager) VerifyAction(ctx context.Context, action UserActi
 	}
 	model := dsRoleAssociationModel{}
 	if err := m.col.Get(ctx, idFormatter(assocNamespace, username), &model); err != nil {
-		return false, errors.New("unable to get role association for give nuser")
+		fmt.Println(err, "::", idFormatter(assocNamespace, username))
+
+		return false, errors.New("unable to get role association for given user")
 	}
 
 	roles := []RoleModel{}
@@ -81,17 +91,14 @@ func (m *AuthorizationManager) VerifyAction(ctx context.Context, action UserActi
 		}
 
 		roles = append(roles, rmodel)
-
 	}
 
 	finalRole := m.getEffectiveRights(roles)
 
 	switch action {
-	case ActionUserManagment:
-		return finalRole.UserManagment, nil
-	case ActionRoleManagment:
-		return finalRole.RoleManagment, nil
-	case ActionRestartAction:
+	case ActionAdministration:
+		return finalRole.Administration, nil
+	case ActionRestart:
 		return finalRole.Restart, nil
 	case ActionSetToOK:
 		return finalRole.SetToOK, nil
@@ -109,8 +116,17 @@ func (m *AuthorizationManager) VerifyAction(ctx context.Context, action UserActi
 		return finalRole.Force, nil
 	case ActionDefinition:
 		return finalRole.Definition, nil
+	case ActionBypass:
+		return finalRole.Bypass, nil
+	case ActionHold:
+		return finalRole.Hold, nil
+	case ActionFree:
+		return finalRole.Free, nil
+		//a virtual action for every user that has enabled account
+	case ActionBrowse:
+		return true, nil
 	}
-	return false, errors.New("unable to find action")
+	return false, ErrUnableFindAction
 }
 func (m *AuthorizationManager) getEffectiveRights(roles []RoleModel) RoleModel {
 
@@ -118,8 +134,7 @@ func (m *AuthorizationManager) getEffectiveRights(roles []RoleModel) RoleModel {
 
 	for x := range roles {
 
-		finalModel.UserManagment = roles[x].UserManagment || finalModel.UserManagment
-		finalModel.RoleManagment = roles[x].RoleManagment || finalModel.RoleManagment
+		finalModel.Administration = roles[x].Administration || finalModel.Administration
 		finalModel.Restart = roles[x].Restart || finalModel.Restart
 		finalModel.SetToOK = roles[x].SetToOK || finalModel.SetToOK
 		finalModel.AddTicket = roles[x].AddTicket || finalModel.AddTicket
@@ -129,6 +144,10 @@ func (m *AuthorizationManager) getEffectiveRights(roles []RoleModel) RoleModel {
 		finalModel.Order = roles[x].Order || finalModel.Order
 		finalModel.Force = roles[x].Force || finalModel.Force
 		finalModel.Definition = roles[x].Definition || finalModel.Definition
+		finalModel.Bypass = roles[x].Bypass || finalModel.Bypass
+		finalModel.Hold = roles[x].Hold || finalModel.Hold
+		finalModel.Free = roles[x].Free || finalModel.Free
+
 	}
 
 	return finalModel
@@ -170,4 +189,15 @@ func (m *userAuthenticationManager) Authenticate(ctx context.Context, username s
 	}
 
 	return true, nil
+}
+
+func HashPassword(password []byte) (string, error) {
+
+	pass, err := bcrypt.GenerateFromPassword(password, bcrypt.MinCost)
+
+	if err != nil {
+		return "", err
+	}
+
+	return string(pass), nil
 }

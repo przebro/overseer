@@ -638,6 +638,8 @@ func TestStatesExecEndHold(t *testing.T) {
 		t.Error("expected result: ", 1, " actual:", ctx.task.RunNumber())
 	}
 
+	ctx.task.holded = true
+
 	result = holdState.processState(&ctx)
 
 	if result != false {
@@ -645,13 +647,13 @@ func TestStatesExecEndHold(t *testing.T) {
 	}
 
 	ctx.task.Hold()
-	if ctx.task.State() != TaskStateHold {
-		t.Error("expected result: ", TaskStateHold, " actual:", ctx.task.State())
+	if ctx.task.IsHeld() != true {
+		t.Error("expected result: ", true, " actual:", ctx.task.IsHeld())
 	}
 
 	ctx.task.Free()
-	if ctx.task.State() != TaskStateWaiting {
-		t.Error("expected result: ", TaskStateWaiting, " actual:", ctx.task.State())
+	if ctx.task.IsHeld() != false {
+		t.Error("expected result: ", false, " actual:", ctx.task.IsHeld())
 	}
 
 }
@@ -660,7 +662,6 @@ func TestGetProcState(t *testing.T) {
 
 	stateWaiting := &ostateConfirm{}
 	stateExecute := &ostateExecuting{}
-	stateHold := &ostateHold{}
 
 	res := getProcessState(TaskStateWaiting)
 	if res == nil && res != stateWaiting {
@@ -670,11 +671,6 @@ func TestGetProcState(t *testing.T) {
 	res = getProcessState(TaskStateExecuting)
 	if res == nil && res != stateExecute {
 		t.Error("expected result: ", stateExecute, " actual:", res)
-	}
-
-	res = getProcessState(TaskStateHold)
-	if res == nil && res != stateHold {
-		t.Error("expected result: ", stateHold, " actual:", res)
 	}
 
 	res = getProcessState(TaskStateStarting)

@@ -168,12 +168,15 @@ func (state ostateNotSubmitted) processState(ctx *TaskOrderContext) bool {
 }
 func (state ostateConfirm) processState(ctx *TaskExecutionContext) bool {
 
-	if ctx.task.Confirmed() {
-		ctx.state = &ostateCheckTime{}
-		return true
+	if !ctx.task.Confirmed() {
+
+		ctx.task.SetWaitingInfo("task waiting for confirmation")
+		return false
 	}
 
-	return false
+	ctx.state = &ostateCheckTime{}
+
+	return true
 }
 func (state ostateCheckTime) processState(ctx *TaskExecutionContext) bool {
 
@@ -266,15 +269,22 @@ func (state ostateCheckConditions) processState(ctx *TaskExecutionContext) bool 
 			}
 		}
 	}
-
-	ctx.state = &ostateStarting{}
+	if fulfilled {
+		ctx.state = &ostateHold{}
+	}
 
 	return fulfilled
 }
 
 func (state ostateHold) processState(ctx *TaskExecutionContext) bool {
 
-	return false
+	if ctx.task.IsHeld() {
+		ctx.task.SetWaitingInfo("task is held")
+		return false
+	}
+
+	ctx.state = &ostateStarting{}
+	return true
 }
 func (state ostateStarting) processState(ctx *TaskExecutionContext) bool {
 
@@ -408,9 +418,6 @@ func getProcessState(state TaskState) taskExecutionState {
 	}
 	if state == TaskStateExecuting {
 		return &ostateExecuting{}
-	}
-	if state == TaskStateHold {
-		return &ostateHold{}
 	}
 	//Any other case means that task should not be processed.
 	return nil

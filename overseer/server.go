@@ -3,6 +3,7 @@ package overseer
 import (
 	"overseer/common/logger"
 	"overseer/datastore"
+	"overseer/overseer/auth"
 	"overseer/overseer/config"
 	"overseer/overseer/internal/events"
 	"overseer/overseer/internal/pool"
@@ -109,11 +110,31 @@ func (s *Overseer) Start() error {
 
 	middleware.RegisterHandler(authhandler)
 
+	um, err := auth.NewUserManager(s.conf.GetSecurityConfiguration(), dataProvider)
+	if err != nil {
+		s.logger.Error(err)
+		return err
+	}
+
+	rm, err := auth.NewRoleManager(s.conf.GetSecurityConfiguration(), dataProvider)
+	if err != nil {
+		s.logger.Error(err)
+		return err
+	}
+
+	am, err := auth.NewRoleAssociationManager(s.conf.GetSecurityConfiguration(), dataProvider)
+	if err != nil {
+		s.logger.Error(err)
+		return err
+	}
+
 	rservice := services.NewResourceService(s.resources)
 	dservice := services.NewDefinistionService(s.taskdef)
 	tservice := services.NewTaskService(taskManager, s.taskpool)
+	admservice := services.NewAdministrationService(um, rm, am)
+	statservice := services.NewStatusService()
 
-	s.ovsGrpcSrv = services.NewOvsGrpcServer(evDispatcher, rservice, dservice, tservice, aservice)
+	s.ovsGrpcSrv = services.NewOvsGrpcServer(evDispatcher, rservice, dservice, tservice, aservice, admservice, statservice)
 
 	err = s.ovsGrpcSrv.Listen(s.conf.Host, s.conf.Port)
 

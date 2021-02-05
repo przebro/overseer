@@ -41,19 +41,22 @@ type TaskInfoResultMsg struct {
 	Group       string
 	Name        string
 	State       int32
+	RunNumber   int32
+	Held        bool
+	Confirmed   bool
 	WaitingInfo string
 }
 
 //TaskDetailResultMsg - Result for a request for detailed information
 type TaskDetailResultMsg struct {
 	TaskInfoResultMsg
-	Hold      bool
-	Confirm   bool
-	RunNumber int32
-	StartTime string
-	EndTime   string
-	Worker    string
-	Output    []string
+	From        string
+	To          string
+	StartTime   string
+	EndTime     string
+	Worker      string
+	Output      []string
+	Description string
 }
 
 //RouteTaskActionMsgFormat - Request for a task order

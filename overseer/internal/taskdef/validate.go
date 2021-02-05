@@ -38,7 +38,7 @@ func VariableNameValidator(fl vl.FieldLevel) bool {
 
 func validateValueResource(resource string) (bool, error) {
 
-	return regexp.MatchString(`^[A-Za-z][\d\w\-\_\.]*$`, resource)
+	return regexp.MatchString(`^[A-Za-z][\w\-\.]*$`, resource)
 
 }
 

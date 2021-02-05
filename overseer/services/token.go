@@ -15,5 +15,4 @@ func NewTokenCreatorVerifier(sec config.SecurityConfiguration) (*auth.TokenCreat
 	}
 
 	return auth.NewTokenCreatorVerifier(auth.MethodHS256, sec.Issuer, sec.Timeout, b)
-
 }

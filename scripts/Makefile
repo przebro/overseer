@@ -20,4 +20,4 @@ cover:
 protoc:
 	 protoc --proto_path=./proto/  --go_out=plugins=grpc:./ proto/wservices.proto 
 	 protoc --proto_path=./proto/  --go_out=plugins=grpc:./ proto/actions.proto 
-	 protoc  --go_out=plugins=grpc:./ proto/services.proto
+	 protoc --proto_path=./proto/  --go_out=plugins=grpc:./ proto/services.proto

@@ -13,7 +13,13 @@ const (
 	MethodHS256 TokenSigningMethod = "hs256"
 )
 
-var methods = map[TokenSigningMethod]jwt.SigningMethod{MethodHS256: jwt.SigningMethodES256}
+var (
+	methods              = map[TokenSigningMethod]jwt.SigningMethod{MethodHS256: jwt.SigningMethodHS256}
+	ErrInvalidSignMethod = errors.New("invalid signing method")
+	ErrInvalidIssuer     = errors.New("invalid issuer len!=0 and len <= 32")
+	ErrSecretTooShort    = errors.New("secret too short")
+	ErrInvalidTimeout    = errors.New("invalid timeout value")
+)
 
 type TokenCreatorVerifier struct {
 	method  jwt.SigningMethod
@@ -28,18 +34,19 @@ func NewTokenCreatorVerifier(method TokenSigningMethod, issuer string, timeout i
 	var m jwt.SigningMethod
 
 	if m, exists = methods[method]; !exists {
-		return nil, errors.New("invalid signing method")
+		return nil, ErrInvalidSignMethod
 	}
 
-	if len(issuer) > 32 {
-		return nil, errors.New("issuer too long")
+	if len(issuer) > 32 || len(issuer) == 0 {
+		return nil, ErrInvalidIssuer
+	}
+
+	if timeout < 0 {
+		return nil, ErrInvalidTimeout
 	}
 
 	if len(secret) < 16 {
-		return nil, errors.New("secret too short")
-	}
-	if timeout < 0 {
-		return nil, errors.New("invalid timeout value")
+		return nil, ErrSecretTooShort
 	}
 
 	return &TokenCreatorVerifier{method: m, timeout: timeout, secret: secret, issuer: issuer}, nil
@@ -74,6 +81,7 @@ func (tcv *TokenCreatorVerifier) Create(username string, userdata map[string]int
 	}
 
 	tk := jwt.NewWithClaims(tcv.method, claims)
+
 	return tk.SignedString(tcv.secret)
 
 }
@@ -88,7 +96,7 @@ func (tcv *TokenCreatorVerifier) Verify(token string) (string, error) {
 		if t.Method != tcv.method {
 			return nil, errors.New("")
 		}
-		return tcv.method, nil
+		return tcv.secret, nil
 	}
 
 	if tk, err = jwt.Parse(token, method); err != nil {

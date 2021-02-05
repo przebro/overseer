@@ -10,6 +10,7 @@ import (
 	"overseer/overseer/internal/taskdef"
 	"overseer/overseer/taskdata"
 	"overseer/proto/services"
+	"strings"
 )
 
 type ovsDefinitionService struct {
@@ -127,7 +128,7 @@ func (srv *ovsDefinitionService) UnlockDefinition(ctx context.Context, msg *serv
 }
 
 //ListGroups - List definition groups
-func (srv *ovsDefinitionService) ListGroups(msg *services.GroupActionMsg, ldef services.DefinitionService_ListGroupsServer) error {
+func (srv *ovsDefinitionService) ListGroups(filter *services.FilterMsg, ldef services.DefinitionService_ListGroupsServer) error {
 
 	srv.log.Info("Request for group")
 	result := srv.defManager.GetGroups()
@@ -167,6 +168,18 @@ func (srv *ovsDefinitionService) ListDefinitionsFromGroup(msg *services.Definiti
 func (srv *ovsDefinitionService) GetAllowedAction(method string) auth.UserAction {
 
 	var action auth.UserAction
+
+	if strings.HasSuffix(method, "ListDefinitionsFromGroup") ||
+		strings.HasSuffix(method, "ListGroups") ||
+		strings.HasSuffix(method, "GetDefinition") {
+
+		action = auth.ActionBrowse
+	}
+
+	if strings.HasSuffix(method, "LockDefinition") || strings.HasSuffix(method, "UnlockDefinition") {
+		action = auth.ActionDefinition
+
+	}
 
 	return action
 }

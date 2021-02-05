@@ -20,7 +20,6 @@ const (
 	TaskStateExecuting  TaskState = 3
 	TaskStateEndedOk    TaskState = 4
 	TaskStateEndedNotOk TaskState = 5
-	TaskStateHold       TaskState = 6
 )
 
 type taskInTicket struct {
@@ -37,7 +36,7 @@ type activeTask struct {
 	orderID   unique.TaskOrderID
 	orderDate date.Odate
 	tickets   []taskInTicket
-	runNumber int
+	runNumber int32
 	worker    string
 	waiting   string
 	startTime time.Time
@@ -113,7 +112,7 @@ func (task *activeTask) OrderID() unique.TaskOrderID {
 func (task *activeTask) OrderDate() date.Odate {
 	return task.orderDate
 }
-func (task *activeTask) RunNumber() int {
+func (task *activeTask) RunNumber() int32 {
 	defer task.lock.RUnlock()
 	task.lock.RLock()
 
@@ -124,6 +123,19 @@ func (task *activeTask) Confirmed() bool {
 	task.lock.RLock()
 	return task.confirmed
 }
+
+func (task *activeTask) SetConfirm() bool {
+	defer task.lock.RUnlock()
+	task.lock.RLock()
+
+	if task.confirmed == true {
+		return false
+	}
+
+	task.confirmed = true
+	return true
+}
+
 func (task *activeTask) SetStartTime() {
 	defer task.lock.Unlock()
 	task.lock.Lock()
@@ -176,10 +188,17 @@ func (task *activeTask) AddOutput(data []string) {
 func (task *activeTask) Hold() {
 	defer task.lock.Unlock()
 	task.lock.Lock()
-	task.state = TaskStateHold
+	task.holded = true
 }
 func (task *activeTask) Free() {
 	defer task.lock.Unlock()
 	task.lock.Lock()
-	task.state = TaskStateWaiting
+	task.holded = false
+}
+func (task *activeTask) IsHeld() bool {
+	defer task.lock.RUnlock()
+	task.lock.RLock()
+
+	return task.holded
+
 }

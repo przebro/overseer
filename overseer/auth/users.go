@@ -3,6 +3,10 @@ package auth
 import (
 	"context"
 	"overseer/datastore"
+	"overseer/overseer/config"
+	"strings"
+
+	"golang.org/x/crypto/bcrypt"
 
 	"github.com/przebro/databazaar/collection"
 )
@@ -12,12 +16,12 @@ type UserManager struct {
 	col collection.DataCollection
 }
 
-func NewUserManager(collectionName string, provider *datastore.Provider) (*UserManager, error) {
+func NewUserManager(conf config.SecurityConfiguration, provider *datastore.Provider) (*UserManager, error) {
 
 	var col collection.DataCollection
 	var err error
 
-	if col, err = provider.GetCollection(collectionName); err != nil {
+	if col, err = provider.GetCollection(conf.Collection); err != nil {
 		return nil, err
 	}
 
@@ -27,7 +31,8 @@ func NewUserManager(collectionName string, provider *datastore.Provider) (*UserM
 func (m *UserManager) Get(username string) (UserModel, bool) {
 
 	model := dsUserModel{}
-	if err := m.col.Get(context.Background(), username, &model); err != nil {
+
+	if err := m.col.Get(context.Background(), idFormatter(userNamespace, username), &model); err != nil {
 
 		return UserModel{}, false
 	}
@@ -56,4 +61,38 @@ func (m *UserManager) Modify(model UserModel) error {
 func (m *UserManager) Delete(username string) error {
 
 	return m.col.Delete(context.Background(), idFormatter(userNamespace, username))
+}
+
+func (m *UserManager) All(filter string) ([]UserModel, error) {
+
+	crsr, err := m.col.All(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	umodel := dsUserModel{}
+	result := []UserModel{}
+
+	for crsr.Next(context.Background()) {
+		if err := crsr.Decode(&umodel); err != nil {
+			return nil, err
+		}
+
+		if strings.HasPrefix(umodel.ID, userNamespace) {
+			result = append(result, umodel.UserModel)
+		}
+	}
+
+	return result, nil
+}
+
+func (m *UserManager) CheckChangePassword(crypt, old, new []byte) (string, error) {
+
+	var err error
+
+	if err = bcrypt.CompareHashAndPassword(crypt, old); err != nil {
+		return "", err
+	}
+
+	return HashPassword(new)
 }

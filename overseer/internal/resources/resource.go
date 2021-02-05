@@ -40,3 +40,12 @@ const (
 	//FlagPolicyExclusive - only one task can run with exclusive policy
 	FlagPolicyExclusive FlagResourcePolicy = 1
 )
+
+type ticketSorter struct{ list []TicketResource }
+
+func (s ticketSorter) Len() int      { return len(s.list) }
+func (s ticketSorter) Swap(i, j int) { s.list[i], s.list[j] = s.list[j], s.list[i] }
+
+func (s ticketSorter) Less(i, j int) bool {
+	return s.list[i].Name < s.list[j].Name
+}

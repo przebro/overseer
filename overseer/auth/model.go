@@ -3,9 +3,9 @@ package auth
 //UserModel -
 type UserModel struct {
 	Username string `json:"username" validate:"required,max=32"`
-	FullName string `json:"fullname" validate:"max=128"`
+	FullName string `json:"fullname" validate:"max=64,auth"`
 	Password string `json:"password" validate:"required"`
-	Mail     string `json:"mail" validate:"email"`
+	Mail     string `json:"mail" validate:"email,max=64"`
 	Enabled  bool   `json:"enabled"`
 }
 
@@ -18,8 +18,8 @@ type dsUserModel struct {
 
 //RoleAssociationModel -
 type RoleAssociationModel struct {
-	Username string   `json:"username" validate:"required,max=32"`
-	Roles    []string `json:"roles"`
+	UserID string   `json:"userid" validate:"required,max=32"`
+	Roles  []string `json:"uroles"`
 }
 
 type dsRoleAssociationModel struct {
@@ -31,11 +31,10 @@ type dsRoleAssociationModel struct {
 //RoleModel -
 type RoleModel struct {
 	Name        string `json:"name" validate:"required,max=32"`
-	Description string `json:"description"`
+	Description string `json:"description" validate:"max=64,auth"`
 	//ServerManagement
 	//UsersManagement
-	UserManagment bool `json:"users"`
-	RoleManagment bool `json:"roles"`
+	Administration bool `json:"administration"`
 	//Active Pool Management
 	Restart      bool `json:"restart"`
 	SetToOK      bool `json:"setok"`
@@ -43,6 +42,9 @@ type RoleModel struct {
 	RemoveTicket bool `json:"removeticket"`
 	SetFlag      bool `json:"setflag"`
 	Confirm      bool `json:"confirm"`
+	Bypass       bool `json:"bypass"`
+	Hold         bool `json:"hold"`
+	Free         bool `json:"free"`
 	//Definition Management
 	Order      bool `json:"order"`
 	Force      bool `json:"force"`
