@@ -33,7 +33,7 @@ func createResourceClient(t *testing.T) services.ResourceServiceClient {
 	}
 
 	resservice := NewResourceService(resmanager)
-	rsrvc = resservice
+	rsrvc = resservice.(*ovsResourceService)
 
 	services.RegisterResourceServiceServer(mocksrv.grpcServer, resservice)
 

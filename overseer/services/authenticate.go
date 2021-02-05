@@ -17,7 +17,7 @@ type ovsAuthenticateService struct {
 }
 
 //NewAuthenticateService - Creates a new Authentication service
-func NewAuthenticateService(security config.SecurityConfiguration, tm *auth.TokenCreatorVerifier, provider *datastore.Provider) (*ovsAuthenticateService, error) {
+func NewAuthenticateService(security config.SecurityConfiguration, tm *auth.TokenCreatorVerifier, provider *datastore.Provider) (services.AuthenticateServiceServer, error) {
 
 	authman, err := auth.NewAuthenticationManager(security.Collection, provider)
 	if err != nil {

@@ -37,7 +37,7 @@ func createAuthClient(t *testing.T) services.AuthenticateServiceClient {
 	if err != nil {
 		t.Error(err)
 	}
-	asrvc = authservice
+	asrvc = authservice.(*ovsAuthenticateService)
 
 	services.RegisterAuthenticateServiceServer(mocksrv.grpcServer, authservice)
 

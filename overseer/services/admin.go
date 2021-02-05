@@ -17,7 +17,7 @@ type ovsAdministrationService struct {
 }
 
 //NewAdministrationService - returns a new instance of ovsAdministrationService
-func NewAdministrationService(u *auth.UserManager, r *auth.RoleManager, a *auth.RoleAssociationManager) *ovsAdministrationService {
+func NewAdministrationService(u *auth.UserManager, r *auth.RoleManager, a *auth.RoleAssociationManager) services.AdministrationServiceServer {
 
 	return &ovsAdministrationService{umanager: u, rmanager: r, amanager: a, log: logger.Get()}
 }
@@ -210,6 +210,7 @@ func (srv *ovsAdministrationService) GetUser(ctx context.Context, msg *services.
 	var ok bool
 
 	if err := validator.Valid.ValidateTag(msg.Username, "required,max=32"); err != nil {
+		return nil, err
 
 	}
 
@@ -370,7 +371,7 @@ func (srv *ovsAdministrationService) GetRole(ctx context.Context, msg *services.
 	var ok bool
 
 	if err := validator.Valid.ValidateTag(msg.Rolename, "required,max=32"); err != nil {
-		return nil, fmt.Errorf("role does not exists")
+		return nil, err
 
 	}
 

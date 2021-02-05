@@ -18,7 +18,7 @@ type ovsResourceService struct {
 }
 
 //NewResourceService - Creates new service for ResourceManager
-func NewResourceService(rm resources.ResourceManager) *ovsResourceService {
+func NewResourceService(rm resources.ResourceManager) services.ResourceServiceServer {
 
 	rservice := &ovsResourceService{resManager: rm, log: logger.Get()}
 	return rservice

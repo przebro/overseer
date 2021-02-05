@@ -13,7 +13,7 @@ type ovsStatusService struct {
 }
 
 //NewStatusService - Creates a new status service
-func NewStatusService() *ovsStatusService {
+func NewStatusService() services.StatusServiceServer {
 	return &ovsStatusService{log: logger.Get()}
 
 }

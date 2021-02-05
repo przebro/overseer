@@ -31,6 +31,7 @@ func newFlagReadWriter(colname, objectID string, provider *datastore.Provider) (
 	return &flagReadWriter{colname: colname, col: col, objectID: objectID}, nil
 }
 
+//Load - load items from a persistent store
 func (cl *flagReadWriter) Load() (map[string]interface{}, error) {
 
 	model := FlagsResourceModel{Flags: []FlagResource{}}
@@ -51,6 +52,8 @@ func (cl *flagReadWriter) Load() (map[string]interface{}, error) {
 
 	return data, nil
 }
+
+//Write - writes items to the persistent store
 func (cl *flagReadWriter) Write(items map[string]interface{}) error {
 
 	model := []FlagResource{}

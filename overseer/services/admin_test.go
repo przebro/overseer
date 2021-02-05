@@ -43,7 +43,7 @@ func createAdminCLient(t *testing.T) services.AdministrationServiceClient {
 	}
 
 	admservice := NewAdministrationService(umanager, rmanager, amanager)
-	srvc = admservice
+	srvc = admservice.(*ovsAdministrationService)
 
 	services.RegisterAdministrationServiceServer(mocksrv.grpcServer, admservice)
 
@@ -319,7 +319,6 @@ func TestDeleteUser(t *testing.T) {
 		t.Error("unexpected result:", r.Success, "expected:", true)
 
 	}
-
 }
 
 func TestGetRole(t *testing.T) {

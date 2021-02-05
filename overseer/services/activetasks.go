@@ -21,7 +21,7 @@ type ovsActiveTaskService struct {
 }
 
 //NewTaskService - New task service
-func NewTaskService(m *pool.ActiveTaskPoolManager, p pool.TaskViewer) *ovsActiveTaskService {
+func NewTaskService(m *pool.ActiveTaskPoolManager, p pool.TaskViewer) services.TaskServiceServer {
 
 	tservice := &ovsActiveTaskService{manager: m, poolView: p, log: logger.Get()}
 
@@ -46,7 +46,6 @@ func (srv *ovsActiveTaskService) OrderTask(ctx context.Context, in *services.Tas
 		response.Success = false
 		response.Message = err.Error()
 		return response, nil
-
 	}
 
 	result, err := srv.manager.Order(data, odate)
@@ -54,7 +53,6 @@ func (srv *ovsActiveTaskService) OrderTask(ctx context.Context, in *services.Tas
 		response.Success = false
 		response.Message = err.Error()
 		return response, err
-
 	}
 
 	response.Message = fmt.Sprintf("TaskID:%s", result)
@@ -79,7 +77,6 @@ func (srv *ovsActiveTaskService) ForceTask(ctx context.Context, in *services.Tas
 		response.Success = false
 		response.Message = err.Error()
 		return response, nil
-
 	}
 
 	result, err := srv.manager.Force(data, odate)
