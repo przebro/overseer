@@ -1,7 +1,7 @@
 package pool
 
 import (
-	"overseer/overseer/internal/date"
+	"overseer/common/types/date"
 	"overseer/overseer/internal/taskdef"
 	"overseer/overseer/internal/unique"
 	"sync"

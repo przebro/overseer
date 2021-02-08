@@ -1,7 +1,7 @@
 package resources
 
 import (
-	"overseer/overseer/internal/date"
+	"overseer/common/types/date"
 )
 
 type (

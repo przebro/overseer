@@ -1,7 +1,7 @@
 package events
 
 import (
-	"overseer/overseer/internal/date"
+	"overseer/common/types/date"
 	task "overseer/overseer/internal/taskdef"
 	"overseer/overseer/internal/unique"
 )

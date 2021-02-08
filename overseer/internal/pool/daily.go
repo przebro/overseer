@@ -2,7 +2,7 @@ package pool
 
 import (
 	"overseer/common/logger"
-	"overseer/overseer/internal/date"
+	"overseer/common/types/date"
 	"overseer/overseer/internal/events"
 	"time"
 )

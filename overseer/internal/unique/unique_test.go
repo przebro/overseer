@@ -2,7 +2,7 @@ package unique
 
 import (
 	"encoding/hex"
-	"overseer/overseer/internal/date"
+	"overseer/common/types/date"
 	"testing"
 )
 

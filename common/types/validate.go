@@ -9,6 +9,7 @@ import (
 
 func init() {
 	validator.Valid.RegisterTypeValidator("HourMinTime", "hmtime", HourMinTimeValidator)
+
 }
 
 //HourMinTimeValidator - validator function for HH:MM format

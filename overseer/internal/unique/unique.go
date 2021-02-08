@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"math/rand"
-	"overseer/overseer/internal/date"
+	"overseer/common/types/date"
 	"regexp"
 	"sync"
 	"sync/atomic"

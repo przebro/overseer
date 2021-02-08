@@ -3,9 +3,9 @@ package resources
 import (
 	"errors"
 	"overseer/common/logger"
+	"overseer/common/types/date"
 	"overseer/datastore"
 	"overseer/overseer/config"
-	"overseer/overseer/internal/date"
 	"overseer/overseer/internal/events"
 	"overseer/overseer/internal/taskdef"
 	"regexp"

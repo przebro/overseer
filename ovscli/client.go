@@ -6,12 +6,15 @@ import (
 	"io"
 	"overseer/proto/services"
 	"strings"
+	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 )
 
 var state []string = []string{"", "Waiting", "Starting", "Executing", "Ended OK", "Ended NOT OK", "Hold"}
 
+//ListResult - contains base information about the task
 type ListResult struct {
 	ID     string
 	Group  string
@@ -20,153 +23,380 @@ type ListResult struct {
 	Info   []string
 }
 
-type OverseerClient struct {
-	connectionString string
-	conn             *grpc.ClientConn
+//TicketValue - represents ticket value
+type TicketValue struct {
+	Name, Odate string
 }
 
-func NewClient(conn string) (*OverseerClient, error) {
-	var err error
+//OverseerClient - holds connection to ovs server
+type OverseerClient struct {
+	conn  *grpc.ClientConn
+	token string
+}
+
+//CreateClient - creates a new instance of OverseerClient
+func CreateClient() *OverseerClient {
+
+	return &OverseerClient{}
+}
+
+//Close - closes current connection
+func (cli *OverseerClient) Close() {
+	if cli.conn != nil {
+		cli.conn.Close()
+	}
+}
+
+//Connect - setup  connection to server
+func (cli *OverseerClient) Connect(addr string, cert string) string {
 
 	var opt []grpc.DialOption
-	opt = append(opt, grpc.WithInsecure())
-	cli := &OverseerClient{connectionString: conn}
-	cli.conn, err = grpc.Dial(cli.connectionString, opt...)
-	if err != nil {
-		return nil, err
+	var err error
+
+	opt = append(opt, grpc.WithBlock(), grpc.WithTimeout(5*time.Second))
+	if cert == "" {
+		opt = append(opt, grpc.WithInsecure())
+	} else {
+
 	}
-	fmt.Println("connection initialized")
-	return cli, nil
+
+	if cli.conn != nil {
+		cli.token = ""
+	}
+
+	cli.conn, err = grpc.Dial(addr, opt...)
+	if err != nil {
+		return fmt.Sprintf("failed to initalize connection:%v\n", err)
+	}
+
+	return fmt.Sprintf("connected to:%s", addr)
+
 }
 
-func (cli *OverseerClient) AddTicket(name, odate string) string {
+//Authenticate - authenticates user against server
+func (cli *OverseerClient) Authenticate(username, passwd string) (string, error) {
+
+	if cli.conn == nil {
+		return "", fmt.Errorf("client not connected,connect first")
+	}
+	service := services.NewAuthenticateServiceClient(cli.conn)
+
+	r, err := service.Authenticate(context.Background(), &services.AuthorizeActionMsg{Username: username, Password: passwd})
+	if err != nil {
+		return "", err
+	}
+
+	if r.Success == true {
+		cli.token = r.Message
+		return "client authenticated", nil
+	}
+
+	return "", fmt.Errorf(r.Message)
+}
+
+//AddTicket - adds a ticket with given name and odate
+func (cli *OverseerClient) AddTicket(name, odate string) (string, error) {
+
+	if cli.conn == nil {
+		return "", fmt.Errorf("client not connected,connect first")
+	}
 
 	service := services.NewResourceServiceClient(cli.conn)
 
-	result, err := service.AddTicket(context.Background(), &services.TicketActionMsg{Name: name, Odate: odate})
+	ctx := metadata.AppendToOutgoingContext(context.Background(), "Authorization", cli.token)
+
+	result, err := service.AddTicket(ctx, &services.TicketActionMsg{Name: name, Odate: odate})
 	if err != nil {
-		return err.Error()
+		return "", err
 	}
 
-	return result.GetMessage()
+	return result.Message, nil
 }
-func (cli *OverseerClient) DelTicket(name, odate string) string {
+
+//DelTicket - removes a ticket
+func (cli *OverseerClient) DelTicket(name, odate string) (string, error) {
+
+	if cli.conn == nil {
+		return "", fmt.Errorf("client not connected,connect first")
+	}
+
+	ctx := metadata.AppendToOutgoingContext(context.Background(), "Authorization", cli.token)
+	service := services.NewResourceServiceClient(cli.conn)
+
+	result, err := service.DeleteTicket(ctx, &services.TicketActionMsg{Name: name, Odate: odate})
+	if err != nil {
+		return "", err
+	}
+	return result.Message, nil
+}
+
+//CheckTicket - checks if given ticket exists
+func (cli *OverseerClient) CheckTicket(name, odate string) (string, error) {
+
+	if cli.conn == nil {
+		return "", fmt.Errorf("client not connected,connect first")
+	}
+
+	ctx := metadata.AppendToOutgoingContext(context.Background(), "Authorization", cli.token)
 
 	service := services.NewResourceServiceClient(cli.conn)
-	result, err := service.DeleteTicket(context.Background(), &services.TicketActionMsg{Name: name, Odate: odate})
+	result, err := service.CheckTicket(ctx, &services.TicketActionMsg{Name: name, Odate: odate})
 	if err != nil {
-		return err.Error()
+		return "", err
 	}
-	return result.GetMessage()
+	return result.Message, nil
 }
-func (cli *OverseerClient) CheckTicket(name, odate string) string {
+
+//ListTickets - returns a list of tickets
+func (cli *OverseerClient) ListTickets(name, odate string) ([]TicketValue, error) {
+
+	var result = []TicketValue{}
+	if cli.conn == nil {
+		return []TicketValue{}, fmt.Errorf("client not connected,connect first")
+	}
+
+	ctx := metadata.AppendToOutgoingContext(context.Background(), "Authorization", cli.token)
 
 	service := services.NewResourceServiceClient(cli.conn)
-	result, err := service.CheckTicket(context.Background(), &services.TicketActionMsg{Name: name, Odate: odate})
+	r, err := service.ListTickets(ctx, &services.TicketActionMsg{Name: name, Odate: odate})
 	if err != nil {
-		return err.Error()
+		return []TicketValue{}, err
 	}
-	return result.GetMessage()
+
+	for {
+		t, err := r.Recv()
+		if err != nil && err != io.EOF {
+			return []TicketValue{}, err
+		}
+		if err == io.EOF {
+			break
+		}
+		result = append(result, TicketValue{Name: t.Name, Odate: t.Odate})
+
+	}
+
+	return result, nil
 }
-func (cli *OverseerClient) SetFlag(name string, value int32) string {
+
+//SetFlag - sets a new flag or change current flag
+func (cli *OverseerClient) SetFlag(name string, value int32) (string, error) {
+
+	if cli.conn == nil {
+		return "", fmt.Errorf("client not connected,connect first")
+	}
+
+	ctx := metadata.AppendToOutgoingContext(context.Background(), "Authorization", cli.token)
 
 	service := services.NewResourceServiceClient(cli.conn)
-	result, err := service.SetFlag(context.Background(), &services.FlagActionMsg{Name: name, State: value})
+	result, err := service.SetFlag(ctx, &services.FlagActionMsg{Name: name, State: value})
 	if err != nil {
-		return err.Error()
+		return "", err
 	}
-	return result.GetMessage()
-}
-func (cli *OverseerClient) CheckFlag(name string, value int32) string {
-
-	return ""
+	return result.Message, nil
 }
 
-func (cli *OverseerClient) OrderTask(group, name, odate string, force bool) string {
+//DestroyFlag - destroys flag resource
+func (cli *OverseerClient) DestroyFlag(name string) (string, error) {
+
+	if cli.conn == nil {
+		return "", fmt.Errorf("client not connected,connect first")
+	}
+
+	ctx := metadata.AppendToOutgoingContext(context.Background(), "Authorization", cli.token)
+
+	service := services.NewResourceServiceClient(cli.conn)
+	result, err := service.DestroyFlag(ctx, &services.FlagActionMsg{Name: name})
+	if err != nil {
+		return "", err
+	}
+
+	return result.Message, nil
+}
+
+//OrderTask - orders a task definition to active task pool
+func (cli *OverseerClient) OrderTask(group, name, odate string, force bool) (string, error) {
+
+	if cli.conn == nil {
+		return "", fmt.Errorf("client not connected,connect first")
+	}
+
+	ctx := metadata.AppendToOutgoingContext(context.Background(), "Authorization", cli.token)
 
 	var result *services.ActionResultMsg
+	var msg string
 	var err error
 	service := services.NewTaskServiceClient(cli.conn)
 
 	if force {
-		result, err = service.ForceTask(context.Background(), &services.TaskOrderMsg{TaskGroup: group, TaskName: name, Odate: odate})
+		result, err = service.ForceTask(ctx, &services.TaskOrderMsg{TaskGroup: group, TaskName: name, Odate: odate})
 	} else {
-		result, err = service.OrderTask(context.Background(), &services.TaskOrderMsg{TaskGroup: group, TaskName: name, Odate: odate})
+		result, err = service.OrderTask(ctx, &services.TaskOrderMsg{TaskGroup: group, TaskName: name, Odate: odate})
 	}
 
-	if err != nil {
-		return err.Error()
+	if err == nil {
+		msg = result.Message
 	}
 
-	return result.GetMessage()
+	return msg, err
 }
-func (cli *OverseerClient) ListTasks() []ListResult {
+
+//ListTasks - returns a list of tasks in active task pool
+func (cli *OverseerClient) ListTasks() ([]ListResult, error) {
+
+	if cli.conn == nil {
+		return []ListResult{}, fmt.Errorf("client not connected,connect first")
+	}
+
+	ctx := metadata.AppendToOutgoingContext(context.Background(), "Authorization", cli.token)
 
 	var err error
-	res := make([]ListResult, 0)
+	var result = []ListResult{}
+
 	service := services.NewTaskServiceClient(cli.conn)
-	stream, err := service.ListTasks(context.Background(), &services.TaskFilterMsg{})
+	stream, err := service.ListTasks(ctx, &services.TaskFilterMsg{})
 
 	if err != nil {
-		return nil
+		return result, err
 	}
 	for {
-		result, err := stream.Recv()
+		r, err := stream.Recv()
+		if err != nil && err != io.EOF {
+			break
+		}
 		if err == io.EOF {
 			break
 		}
-		if err != nil {
-			fmt.Println(err)
-		}
 		lr := ListResult{
-			Group:  result.GroupName,
-			Name:   result.TaskName,
-			ID:     result.TaskId,
-			Status: state[result.TaskStatus],
-			Info:   strings.Split(result.Waiting, ";"),
+			Group:  r.GroupName,
+			Name:   r.TaskName,
+			ID:     r.TaskId,
+			Status: state[r.TaskStatus],
+			Info:   strings.Split(r.Waiting, ";"),
 		}
-		res = append(res, lr)
+		result = append(result, lr)
 	}
-	return res
-}
-func (cli *OverseerClient) TaskDetail(orderID string) []string {
-	service := services.NewTaskServiceClient(cli.conn)
-	result, err := service.TaskDetail(context.Background(), &services.TaskActionMsg{TaskID: orderID})
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	fmt.Println("Group:", result.BaseData.GroupName, "Name:", result.BaseData.TaskName)
-	fmt.Println("Task ID:", result.BaseData.TaskId)
-	fmt.Println("Order Date:", result.BaseData.OrderDate)
-	fmt.Println("Status:", state[result.BaseData.TaskStatus])
-	fmt.Println("Start Time:", result.StartTime)
-	fmt.Println("End Time:", result.EndTime)
-	fmt.Println("Output:")
-	for _, x := range result.Output {
-		fmt.Println(x)
-	}
-
-	return []string{}
-
+	return result, nil
 }
 
-func (cli *OverseerClient) SetToOK(orderID string) string {
-	service := services.NewTaskServiceClient(cli.conn)
-	result, err := service.SetToOk(context.Background(), &services.TaskActionMsg{TaskID: orderID})
-	if err != nil {
+//TaskDetail - returns a detailed information about task
+func (cli *OverseerClient) TaskDetail(orderID string) (string, error) {
 
+	if cli.conn == nil {
+		return "", fmt.Errorf("client not connected,connect first")
 	}
 
-	return result.Message
+	ctx := metadata.AppendToOutgoingContext(context.Background(), "Authorization", cli.token)
+
+	service := services.NewTaskServiceClient(cli.conn)
+	result, err := service.TaskDetail(ctx, &services.TaskActionMsg{TaskID: orderID})
+
+	if err != nil {
+		return "", err
+	}
+
+	details := []string{
+		fmt.Sprintf("Group:%s", result.BaseData.GroupName),
+		fmt.Sprintf("Name:%s", result.BaseData.TaskName),
+		fmt.Sprintf("TaskID:%s", result.BaseData.TaskId),
+		fmt.Sprintf("Order Date:%s", result.BaseData.OrderDate),
+		fmt.Sprintf("Run Number:%d", result.BaseData.RunNumber),
+		fmt.Sprintf("Confirmed:%v", result.BaseData.Confirmed),
+		fmt.Sprintf("Held:%v", result.BaseData.Held),
+		fmt.Sprintf("Status:%s", state[result.BaseData.TaskStatus]),
+		fmt.Sprintf("Start Time:%s", result.StartTime),
+		fmt.Sprintf("End Time:%s", result.EndTime),
+	}
+
+	return strings.Join(details, "\n"), nil
+
 }
 
-func (cli *OverseerClient) Rerun(orderID string) string {
-	service := services.NewTaskServiceClient(cli.conn)
-	result, err := service.RerunTask(context.Background(), &services.TaskActionMsg{TaskID: orderID})
-	if err != nil {
-		return err.Error()
+//SetToOK - sets a task to status ended ok
+func (cli *OverseerClient) SetToOK(orderID string) (string, error) {
+
+	if cli.conn == nil {
+		return "", fmt.Errorf("client not connected,connect first")
 	}
 
-	return result.Message
+	ctx := metadata.AppendToOutgoingContext(context.Background(), "Authorization", cli.token)
+
+	service := services.NewTaskServiceClient(cli.conn)
+	result, err := service.SetToOk(ctx, &services.TaskActionMsg{TaskID: orderID})
+	if err != nil {
+		return "", err
+	}
+
+	return result.Message, nil
+}
+
+//Rerun - reruns an ended task
+func (cli *OverseerClient) Rerun(orderID string) (string, error) {
+
+	if cli.conn == nil {
+		return "", fmt.Errorf("client not connected,connect first")
+	}
+
+	ctx := metadata.AppendToOutgoingContext(context.Background(), "Authorization", cli.token)
+
+	service := services.NewTaskServiceClient(cli.conn)
+	result, err := service.RerunTask(ctx, &services.TaskActionMsg{TaskID: orderID})
+	if err != nil {
+		return "", err
+	}
+
+	return result.Message, nil
+}
+
+//Confirm - confirms manually a task
+func (cli *OverseerClient) Confirm(orderID string) (string, error) {
+
+	if cli.conn == nil {
+		return "", fmt.Errorf("client not connected,connect first")
+	}
+
+	ctx := metadata.AppendToOutgoingContext(context.Background(), "Authorization", cli.token)
+
+	service := services.NewTaskServiceClient(cli.conn)
+	result, err := service.ConfirmTask(ctx, &services.TaskActionMsg{TaskID: orderID})
+	if err != nil {
+		return "", err
+	}
+
+	return result.Message, nil
+}
+
+//Hold - holds a task
+func (cli *OverseerClient) Hold(orderID string) (string, error) {
+
+	if cli.conn == nil {
+		return "", fmt.Errorf("client not connected,connect first")
+	}
+
+	ctx := metadata.AppendToOutgoingContext(context.Background(), "Authorization", cli.token)
+
+	service := services.NewTaskServiceClient(cli.conn)
+	result, err := service.HoldTask(ctx, &services.TaskActionMsg{TaskID: orderID})
+	if err != nil {
+		return "", err
+	}
+
+	return result.Message, nil
+}
+
+//Free - frees a holded task
+func (cli *OverseerClient) Free(orderID string) (string, error) {
+
+	if cli.conn == nil {
+		return "", fmt.Errorf("client not connected,connect first")
+	}
+
+	ctx := metadata.AppendToOutgoingContext(context.Background(), "Authorization", cli.token)
+
+	service := services.NewTaskServiceClient(cli.conn)
+	result, err := service.HoldTask(ctx, &services.TaskActionMsg{TaskID: orderID})
+	if err != nil {
+		return "", err
+	}
+
+	return result.Message, nil
 }

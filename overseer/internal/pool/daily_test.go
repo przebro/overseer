@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"overseer/common/logger"
 	"overseer/common/types"
-	"overseer/overseer/internal/date"
+	"overseer/common/types/date"
 	"overseer/overseer/internal/events"
 	"sync"
 	"testing"

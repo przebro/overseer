@@ -18,8 +18,7 @@ if ((Test-Path -Path ".\bin" -PathType Container) -eq $False){
 if ($targetname -eq "build"){
     go build -race -o bin/ cmd/overseer/ovs.go
 	go build -race -o bin/ cmd/ovswork/ovswork.go
-	go build -o bin/tools/ cmd/ovstools/ovsres/ovsres.go
-	go build -o bin/tools/ cmd/ovstools/ovstask/ovstask.go
+    go build -o bin/tools/ cmd/ovstools/ovscli.go
 	go build -o bin/chkprg chkprg/main.go
 }
 if ($targetname -eq "tests"){

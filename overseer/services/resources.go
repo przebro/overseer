@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"overseer/common/logger"
+	"overseer/common/types/date"
 	"overseer/common/validator"
 	"overseer/overseer/auth"
-	"overseer/overseer/internal/date"
 	"overseer/overseer/internal/resources"
 	"overseer/proto/services"
 	"strings"
@@ -232,7 +232,7 @@ func validateTicketFields(name string, odate date.Odate) error {
 
 func validateResourceName(name string) error {
 
-	return validator.Valid.ValidateTag(name, "resname,required,max=32")
+	return validator.Valid.ValidateTag(name, "resvalue,required,max=32")
 
 }
 

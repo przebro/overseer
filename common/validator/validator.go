@@ -17,6 +17,10 @@ var errValidatorNotRegistered = errors.New("Validator for given type not registe
 
 func init() {
 	Valid = &DataValidator{v: validator.New(), regTypes: make(map[string]string, 0)}
+
+	Valid.RegisterValidatorRule("resname", ResourceNameValidator)
+	Valid.RegisterValidatorRule("resvalue", ResourceValueValidator)
+	Valid.RegisterValidatorRule("varname", VariableNameValidator)
 }
 
 //RegisterValidatorRule - Registers a custom rule for a field validation

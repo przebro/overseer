@@ -3,7 +3,7 @@ package pool
 import (
 	"fmt"
 	"overseer/common/logger"
-	"overseer/overseer/internal/date"
+	"overseer/common/types/date"
 	"overseer/overseer/internal/events"
 	"overseer/overseer/internal/taskdef"
 	"strconv"
