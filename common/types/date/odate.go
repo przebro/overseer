@@ -98,14 +98,34 @@ func (date Odate) Woyear() int {
 	return w
 }
 
-//Wday - returns a day of week from odate
-func (date Odate) Wday() int {
+//Wday0 - returns a day of week from odate thist is 0 based where Sunday = 0
+func (date Odate) Wday0() int {
 	year, _ := strconv.Atoi(fmt.Sprintf("20%s", date.Oyear()))
 	month, _ := strconv.Atoi(date.Omonth())
 	day, _ := strconv.Atoi(date.Oday())
 
 	t := time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.Local)
 	return int(t.Weekday())
+}
+
+//Wday - returns a day of week from odate Sunday = 7
+func (date Odate) Wday() int {
+	year, _ := strconv.Atoi(fmt.Sprintf("20%s", date.Oyear()))
+	month, _ := strconv.Atoi(date.Omonth())
+	day, _ := strconv.Atoi(date.Oday())
+
+	t := time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.Local)
+	wday := t.Weekday()
+	if wday == 0 {
+		wday = 7
+	}
+	return int(wday)
+}
+
+//Day - returns a day of week from odate
+func (date Odate) Day() int {
+	day, _ := strconv.Atoi(date.Oday())
+	return day
 }
 
 //CurrentOdate - returns current odate in local time
@@ -118,13 +138,12 @@ func CurrentOdate() Odate {
 }
 
 //IsInDayOfWeek - check if tasks day of week is in odate
-func IsInDayOfWeek(odate Odate, values []string) bool {
+func IsInDayOfWeek(odate Odate, values []int) bool {
 
 	wday := odate.Wday()
 	for _, val := range values {
 
-		ival, _ := strconv.Atoi(string(val))
-		if ival == wday {
+		if val == wday {
 			return true
 		}
 	}
@@ -133,11 +152,11 @@ func IsInDayOfWeek(odate Odate, values []string) bool {
 }
 
 //IsInDayOfMonth - check if day of execution is in odate
-func IsInDayOfMonth(odate Odate, values []string) bool {
+func IsInDayOfMonth(odate Odate, values []int) bool {
 
-	day := odate.Oday()
+	day := odate.Day()
 	for _, val := range values {
-		if string(val) == day {
+		if val == day {
 			return true
 		}
 	}
@@ -186,7 +205,7 @@ func IsBeforeCurrent(odate Odate, currentOdate Odate) bool {
 }
 
 //AddDays - adds num days to given date and return new odate
-func AddDays(odate Odate, num int) (Odate, error) {
+func AddDays(odate Odate, num int) Odate {
 
 	y, m, d := odate.Ymd()
 	otime := time.Date(y, time.Month(m), d, 0, 0, 0, 0, time.Local)
@@ -194,6 +213,19 @@ func AddDays(odate Odate, num int) (Odate, error) {
 	ny, nm, nd := otime.AddDate(0, 0, num).Date()
 	odat := fmt.Sprintf("%s%02s%02s", strconv.Itoa(ny), strconv.Itoa(int(nm)), strconv.Itoa(nd))
 
-	return Odate(odat), nil
+	return Odate(odat)
 
+}
+
+//FromDateString - convert string date in format YYYY-MM-DD to Odate
+func FromDateString(date string) Odate {
+
+	return Odate(fmt.Sprintf("%s%s%s", string(date[0:4]), string(date[5:7]), string(date[8:])))
+
+}
+
+func FromTime(t time.Time) Odate {
+	y, m, d := t.Date()
+	odat := fmt.Sprintf("%d%02d%02d", y, m, d)
+	return Odate(odat)
 }

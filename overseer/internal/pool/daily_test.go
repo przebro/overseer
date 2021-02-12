@@ -66,7 +66,7 @@ func TestCheckDailyProcedure(t *testing.T) {
 	}
 
 	taskPoolT.config.NewDayProc = types.HourMinTime(fmt.Sprintf("%2d:%2d", h, m-2))
-	taskPoolT.currentOdate, _ = date.AddDays(taskPoolT.currentOdate, -1)
+	taskPoolT.currentOdate = date.AddDays(taskPoolT.currentOdate, -1)
 
 	result = daily.CheckDailyProcedure(tm)
 	if result != true {

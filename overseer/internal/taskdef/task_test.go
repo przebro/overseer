@@ -24,7 +24,7 @@ var expect TaskDefinition = &baseTaskDefinition{
 		FromTime:  "11:30",
 		ToTime:    "",
 		Months:    []time.Month{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
-		Values:    []string{"1", "3", "5"},
+		Dayvalues: []int{1, 3, 5},
 	},
 }
 var expect2 TaskDefinition = &baseTaskDefinition{
@@ -38,7 +38,7 @@ var expect2 TaskDefinition = &baseTaskDefinition{
 		FromTime:  "15:30",
 		ToTime:    "",
 		Months:    []time.Month{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
-		Values:    []string{"1", "3", "5"},
+		Dayvalues: []int{1, 3, 5},
 	},
 }
 
@@ -54,7 +54,7 @@ var expect3 TaskDefinition = &baseTaskDefinition{
 		FromTime:     "15:30",
 		ToTime:       "",
 		Months:       []time.Month{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
-		Values:       []string{"1", "3", "5"},
+		Dayvalues:    []int{1, 3, 5},
 		AllowPastSub: false,
 	},
 }
@@ -108,11 +108,11 @@ func TestUnmarshalTask(t *testing.T) {
 		t.Errorf("Unmarshal failed, FromTime not equal")
 
 	}
-	if len(expect.Values()) != len(result.Values()) {
+	if len(expect.Days()) != len(result.Days()) {
 		t.Error("Unmarshal failed, Values not equal")
 	}
-	for x, n := range expect.Values() {
-		if result.Values()[x] != n {
+	for x, n := range expect.Days() {
+		if result.Days()[x] != n {
 			t.Error("Unmarshal failed, Values not equal")
 		}
 	}
@@ -341,11 +341,11 @@ func TestGetTask(t *testing.T) {
 	tlist := []taskdata.GroupNameData{{Name: "dummy_01", Group: "test"}, {Name: "task_that_does_not_exists", Group: "test"}}
 
 	result := manager.GetTasks(tlist...)
-	if len(result) != len(tlist) {
+	if len(result) != 1 {
 		t.Error("unexpected result, expected :", len(tlist), "got:", len(result))
 	}
 
-	if result[0].Result == false || result[1].Result == true {
+	if result[0].Result == false {
 		t.Error("unexpected values expected:", true, false, "got:", result[0].Result, result[1].Result)
 	}
 
@@ -469,7 +469,7 @@ func helperCreateTasks() (t1, t2, t3, t4 TaskDefinition) {
 			FromTime:  "15:30",
 			ToTime:    "",
 			Months:    []time.Month{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
-			Values:    []string{"1", "3", "5"},
+			Dayvalues: []int{1, 3, 5},
 		},
 	}
 
@@ -485,7 +485,7 @@ func helperCreateTasks() (t1, t2, t3, t4 TaskDefinition) {
 			FromTime:  "11:30",
 			ToTime:    "",
 			Months:    []time.Month{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
-			Values:    []string{"1", "3", "5"},
+			Dayvalues: []int{1, 3, 5},
 		},
 	}
 
@@ -501,7 +501,7 @@ func helperCreateTasks() (t1, t2, t3, t4 TaskDefinition) {
 			FromTime:  "11:30",
 			ToTime:    "",
 			Months:    []time.Month{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
-			Values:    []string{"1", "3", "5"},
+			Dayvalues: []int{1, 3, 5},
 		},
 	}
 	t4 = &baseTaskDefinition{
@@ -516,7 +516,7 @@ func helperCreateTasks() (t1, t2, t3, t4 TaskDefinition) {
 			FromTime:  "11:30",
 			ToTime:    "",
 			Months:    []time.Month{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
-			Values:    []string{"1", "3", "5"},
+			Dayvalues: []int{1, 3, 5},
 		},
 	}
 	return

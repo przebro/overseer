@@ -18,9 +18,6 @@ func TestNewManager(t *testing.T) {
 func TestOrder(t *testing.T) {
 
 	_, err := activeTaskManagerT.Order(taskdata.GroupNameData{Group: "test", Name: "noexists"}, date.CurrentOdate())
-
-	t.Log(err)
-
 	if err == nil {
 		t.Error("Unexpected result")
 	}
@@ -31,6 +28,63 @@ func TestOrder(t *testing.T) {
 	}
 
 	activeTaskManagerT.pool.tasks.Remove(unique.TaskOrderID(id))
+
+}
+
+func TestHoldFree(t *testing.T) {
+
+	orderid, err := activeTaskManagerT.Order(taskdata.GroupNameData{Group: "test", Name: "dummy_03"}, date.CurrentOdate())
+	if err != nil {
+		t.Error("Unexpected result:", err)
+	}
+	_, err = activeTaskManagerT.Hold(unique.TaskOrderID(orderid))
+	if err != nil {
+		t.Error("Unexpected result:", err)
+	}
+
+	_, err = activeTaskManagerT.Hold(unique.TaskOrderID(orderid))
+
+	if err == nil {
+		t.Error("Unexpected result, expected error")
+	}
+
+	_, err = activeTaskManagerT.Free(unique.TaskOrderID(orderid))
+
+	if err != nil {
+		t.Error("Unexpected result:", err)
+	}
+
+	_, err = activeTaskManagerT.Free(unique.TaskOrderID(orderid))
+
+	if err == nil {
+		t.Error("Unexpected result, expected error")
+	}
+
+	activeTaskManagerT.pool.tasks.Remove(unique.TaskOrderID(orderid))
+
+}
+func TestConfirm(t *testing.T) {
+	orderid, err := activeTaskManagerT.Force(taskdata.GroupNameData{Group: "test", Name: "dummy_04"}, date.CurrentOdate())
+	if err != nil {
+		t.Error("Unexpected result:", err)
+	}
+
+	_, err = activeTaskManagerT.Confirm(unique.TaskOrderID(orderid))
+	if err != nil {
+		t.Error("Unexpected result:", err)
+	}
+
+	_, err = activeTaskManagerT.Confirm(unique.TaskOrderID(orderid))
+	if err == nil {
+		t.Error("Unexpected result, expected error")
+	}
+
+	_, err = activeTaskManagerT.Confirm(unique.TaskOrderID("12345"))
+	if err == nil {
+		t.Error("Unexpected result, expected error")
+	}
+
+	activeTaskManagerT.pool.tasks.Remove(unique.TaskOrderID(orderid))
 
 }
 

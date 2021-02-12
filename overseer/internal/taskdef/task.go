@@ -58,12 +58,13 @@ func (data VariableData) Expand() string {
 
 //SchedulingData - Holds informations how task should be scheduled.
 type SchedulingData struct {
-	OrderType    SchedulingOption  `json:"type" validate:"required,oneof=manual daily weekday dayofmonth exact"`
+	OrderType    SchedulingOption  `json:"type" validate:"required,oneof=manual daily weekday dayofmonth exact fromend"`
 	FromTime     types.HourMinTime `json:"from" validate:"omitempty,hmtime"`
 	ToTime       types.HourMinTime `json:"to" validate:"omitempty,hmtime"`
 	AllowPastSub bool              `json:"pastsub"`
 	Months       []time.Month      `json:"months" validate:"unique"`
-	Values       []string          `json:"values"`
+	Exactdates   []string          `json:"exact" validate:"unique"`
+	Dayvalues    []int             `json:"days"  validate:"unique"`
 }
 
 type baseTaskDefinition struct {
@@ -84,11 +85,22 @@ type baseTaskDefinition struct {
 
 //Ordering options
 const (
-	OrderingManual     SchedulingOption = "manual"
-	OrderingDaily      SchedulingOption = "daily"
-	OrderingWeek       SchedulingOption = "weekday"
+	//manual means that there are no specific rules for the task, however this definition will be not scheduled during the end of day procedure.
+	OrderingManual SchedulingOption = "manual"
+	//daily means that the task will be scheduled on each day
+	OrderingDaily SchedulingOption = "daily"
+	//weekday means that the task will be scheduled on a specified day of the week
+	OrderingWeek SchedulingOption = "weekday"
+	//dayofmonth means that the task will be scheduled on a specified exact day of a month
 	OrderingDayOfMonth SchedulingOption = "dayofmonth"
-	OrderingExact      SchedulingOption = "exact"
+	//exact means that the task will be scheduled on the exact date
+	OrderingExact SchedulingOption = "exact"
+	/*fromend means that the task will be scheduled on a specified day from the end of the month
+	where 1 means the last day, 2 means the day before the last day, and so on, up to 14
+	for instance: fromend 1 means 31 of July,30 of June and 28 of February or 29 of February if it is a leap year
+				  fromend 2 means 30 of July 29 of June and 27 of February or 28 of February if it is a leap year
+	*/
+	OrderingFromEnd SchedulingOption = "fromend"
 )
 
 //Possible flag types
@@ -117,7 +129,9 @@ type TaskScheduling interface {
 	TimeSpan() (types.HourMinTime, types.HourMinTime)
 	Months() []time.Month
 	AllowPast() bool
-	Values() []string
+	ExactDate() []string
+	Days() []int
+	Calendar() SchedulingData
 }
 
 func (task *baseTaskDefinition) OrderType() SchedulingOption {
@@ -133,8 +147,15 @@ func (task *baseTaskDefinition) AllowPast() bool {
 	return task.Schedule.AllowPastSub
 }
 
-func (task *baseTaskDefinition) Values() []string {
-	return task.Schedule.Values
+func (task *baseTaskDefinition) ExactDate() []string {
+	return task.Schedule.Exactdates
+}
+
+func (task *baseTaskDefinition) Calendar() SchedulingData {
+	return task.Schedule
+}
+func (task *baseTaskDefinition) Days() []int {
+	return task.Schedule.Dayvalues
 }
 
 //BaseInfo - returns base informations

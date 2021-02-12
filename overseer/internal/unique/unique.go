@@ -31,7 +31,7 @@ var (
 )
 
 const (
-	maxOidSeq = 238328
+	maxOidSeq = 14776336
 	base62Str = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 )
 
@@ -116,10 +116,10 @@ func NewOrderID() TaskOrderID {
 	seq := atomic.AddInt32(&oidSeq, 1)
 
 	pos := 0
-	result := make([]byte, 3)
+	result := make([]byte, 4)
 
 	odate := date.CurrentOdate()
-	mth := odate.Omonth()
+	week := odate.Woyear()
 
 	for seq != 0 {
 		result[pos] = byte((seq % 62))
@@ -130,5 +130,5 @@ func NewOrderID() TaskOrderID {
 
 	atomic.CompareAndSwapInt32(&oidSeq, maxOidSeq, 0)
 
-	return TaskOrderID(string([]byte{mth[0], mth[1], base62Str[result[2]], base62Str[result[1]], base62Str[result[0]]}))
+	return TaskOrderID(string([]byte{base62Str[week], base62Str[result[3]], base62Str[result[2]], base62Str[result[1]], base62Str[result[0]]}))
 }

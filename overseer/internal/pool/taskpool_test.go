@@ -21,7 +21,7 @@ func TestTaskAddGetDetailList(t *testing.T) {
 	orderID := unique.TaskOrderID("33333")
 	builder := taskdef.DummyTaskBuilder{}
 
-	odate, _ := date.AddDays(taskPoolT.currentOdate, -2)
+	odate := date.AddDays(taskPoolT.currentOdate, -2)
 	def, _ := builder.WithBase("test", "task", "testdescription").WithRetention(0).Build()
 	atask := &activeTask{TaskDefinition: def, orderID: orderID, orderDate: odate}
 	atask.state = TaskStateEndedOk
@@ -82,7 +82,7 @@ func TestCleanUp(t *testing.T) {
 	orderID := unique.TaskOrderID("12345")
 	builder := taskdef.DummyTaskBuilder{}
 
-	odate, _ := date.AddDays(taskPoolT.currentOdate, -2)
+	odate := date.AddDays(taskPoolT.currentOdate, -2)
 	def, _ := builder.WithBase("test", "task", "testdescription").WithRetention(0).Build()
 	atask := &activeTask{TaskDefinition: def, orderID: orderID, orderDate: odate}
 	atask.state = TaskStateEndedOk

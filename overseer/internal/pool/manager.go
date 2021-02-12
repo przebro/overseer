@@ -45,17 +45,11 @@ func NewActiveTaskPoolManager(dispatcher events.Dispatcher, tdm taskdef.TaskDefi
 //Order - Orders a new task, this method checks if all precoditions are met before it adds a new task
 func (manager *ActiveTaskPoolManager) Order(task taskdata.GroupNameData, odate date.Odate) (string, error) {
 
-	result := manager.tdm.GetTasks(task)
-
-	if len(result) != 1 {
+	var err error
+	var definition taskdef.TaskDefinition
+	if definition, err = manager.tdm.GetTask(task); err != nil {
 		return "", ErrUnableFindDef
 	}
-
-	if len(result) == 1 && result[0].Result == false {
-		return "", result[0].Msg
-	}
-
-	definition := result[0].Definition
 
 	orderID, descr := manager.orderDefinition(definition, odate)
 	if descr != "" {
@@ -68,17 +62,11 @@ func (manager *ActiveTaskPoolManager) Order(task taskdata.GroupNameData, odate d
 //Force - forces a new task, this method does not check for precondtions
 func (manager *ActiveTaskPoolManager) Force(task taskdata.GroupNameData, odate date.Odate) (string, error) {
 
-	result := manager.tdm.GetTasks(task)
-
-	if len(result) != 1 {
+	var err error
+	var definition taskdef.TaskDefinition
+	if definition, err = manager.tdm.GetTask(task); err != nil {
 		return "", ErrUnableFindDef
 	}
-
-	if len(result) == 1 && result[0].Result == false {
-		return "", result[0].Msg
-	}
-
-	definition := result[0].Definition
 
 	orderID, descr := manager.forceDefinition(definition, odate)
 	if descr != "" {
@@ -182,7 +170,7 @@ func (manager *ActiveTaskPoolManager) Confirm(id unique.TaskOrderID) (string, er
 
 	result := task.SetConfirm()
 	if result == false {
-		return fmt.Sprintf("task with id:%s already confirmed", id), err
+		return fmt.Sprintf("task with id:%s already confirmed", id), fmt.Errorf("task confirmed")
 	}
 
 	return fmt.Sprintf("confirm task:%s ok", id), nil
@@ -383,18 +371,13 @@ func (manager *ActiveTaskPoolManager) processAddToActivePool(msg events.RouteTas
 	var rmsg string
 	var id unique.TaskOrderID
 	var result events.RouteTaskActionResponseFormat
+	var definition taskdef.TaskDefinition
+	var err error
 
-	defresult := manager.tdm.GetTasks(taskdata.GroupNameData{Name: msg.Name, Group: msg.Group})
-
-	if len(defresult) != 1 {
+	if definition, err = manager.tdm.GetTask(taskdata.GroupNameData{Name: msg.Name, Group: msg.Group}); err != nil {
 		return result, ErrUnableFindDef
-	}
 
-	if len(defresult) == 1 && defresult[0].Result == false {
-		return result, defresult[0].Msg
 	}
-
-	definition := defresult[0].Definition
 
 	if msg.Force {
 		id, rmsg = manager.forceDefinition(definition, date.Odate(msg.Odate))

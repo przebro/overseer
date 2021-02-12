@@ -39,6 +39,7 @@ type taskManager struct {
 //TaskDefinitionManager - main component responsible for a task CRUD
 type TaskDefinitionManager interface {
 	GetTasks(tasks ...taskdata.GroupNameData) []TaskDefinitionResult
+	GetTask(task taskdata.GroupNameData) (TaskDefinition, error)
 	GetGroups() []string
 	GetTasksFromGroup(groups []string) ([]taskdata.GroupNameData, error)
 	Lock(task taskdata.GroupNameData) (uint32, error)
@@ -60,18 +61,27 @@ func NewManager(path string) (TaskDefinitionManager, error) {
 
 	return t, nil
 }
+func (m *taskManager) GetTask(task taskdata.GroupNameData) (TaskDefinition, error) {
 
+	var err error
+	var result TaskDefinition
+
+	defPath := filepath.Join(m.dirPath, task.Group, fmt.Sprintf("%v.json", task.Name))
+	if result, err = FromDefinitionFile(defPath); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
 func (m *taskManager) GetTasks(tasks ...taskdata.GroupNameData) []TaskDefinitionResult {
 
 	result := make([]TaskDefinitionResult, 0)
 	for _, n := range tasks {
 
-		defPath := filepath.Join(m.dirPath, n.Group, fmt.Sprintf("%v.json", n.Name))
-		if t, err := FromDefinitionFile(defPath); err == nil {
+		if t, err := m.GetTask(n); err == nil {
 			result = append(result, TaskDefinitionResult{Definition: t, Result: true, Msg: nil})
 		} else {
 			m.log.Error("GetTasks:", err)
-			result = append(result, TaskDefinitionResult{Definition: nil, Result: false, Msg: err})
 		}
 
 	}

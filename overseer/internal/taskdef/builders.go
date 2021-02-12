@@ -51,8 +51,11 @@ func (builder *DummyTaskBuilder) FromTemplate(templ TaskDefinition) TaskBuilder 
 	builder.def.Schedule.Months = make([]time.Month, len(templ.Months()))
 	copy(builder.def.Schedule.Months, templ.Months())
 
-	builder.def.Schedule.Values = make([]string, len(templ.Values()))
-	copy(builder.def.Schedule.Values, templ.Values())
+	builder.def.Schedule.Dayvalues = make([]int, len(templ.Days()))
+	copy(builder.def.Schedule.Dayvalues, templ.Days())
+
+	builder.def.Schedule.Exactdates = make([]string, len(templ.ExactDate()))
+	copy(builder.def.Schedule.Exactdates, templ.ExactDate())
 
 	return builder
 }

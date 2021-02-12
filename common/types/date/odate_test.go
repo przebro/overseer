@@ -69,11 +69,11 @@ func TestDateRange(t *testing.T) {
 
 	odate := Odate("20200905")
 	var res bool
-	res = IsInDayOfMonth(odate, []string{"05"})
+	res = IsInDayOfMonth(odate, []int{5})
 	if res == false {
 		t.Error("odate not in day of month")
 	}
-	res = IsInDayOfMonth(odate, []string{"06"})
+	res = IsInDayOfMonth(odate, []int{6})
 	if res {
 		t.Error("odate in day of month")
 	}
@@ -107,16 +107,16 @@ func TestDateRange(t *testing.T) {
 		t.Error("odate is in month")
 	}
 
-	res = IsInDayOfWeek(odate, []string{"1", "6"})
+	res = IsInDayOfWeek(odate, []int{1, 6})
 	if res == false {
 		t.Error("odate is not in day of week")
 	}
-	res = IsInDayOfWeek(odate, []string{"0", "5"})
+	res = IsInDayOfWeek(odate, []int{0, 5})
 	if res == true {
 		t.Error("odate is in day of week")
 	}
 
-	ndat, _ := AddDays(odate, 10)
+	ndat := AddDays(odate, 10)
 	if string(ndat) != "20200915" {
 		t.Error(fmt.Sprintf("Add day unexpected value:%s,expeted:%s", ndat, "20200915"))
 	}
@@ -245,4 +245,11 @@ func TestValidate(t *testing.T) {
 		t.Error("unexpected value, epxected:", errOdateInvalidDay, "actual", err)
 	}
 
+}
+func TestFromTime(t *testing.T) {
+
+	r := FromTime(time.Now())
+	if r != CurrentOdate() {
+		t.Error("unexpected result:")
+	}
 }

@@ -47,20 +47,12 @@ type activeTask struct {
 
 func newActiveTask(orderID unique.TaskOrderID, odate date.Odate, definition taskdef.TaskDefinition) *activeTask {
 
-	resolvedOdate := map[date.OdateValue]string{
-		date.OdateValueDate: string(odate),
-		date.OdateValuePrev: string(odate),
-		date.OdateValueNext: string(odate),
-		date.OdateValueAny:  string(date.OdateValueNone),
-	}
-
 	tickets := make([]taskInTicket, 0)
 
 	for _, e := range definition.TicketsIn() {
 
-		date, _ := resolvedOdate[e.Odate]
-
-		tickets = append(tickets, taskInTicket{odate: date, name: e.Name, fulfilled: false})
+		realOdat := calcRealOdate(odate, e.Odate, definition.Calendar())
+		tickets = append(tickets, taskInTicket{odate: string(realOdat), name: e.Name, fulfilled: false})
 	}
 
 	isconfirmed := func() bool {

@@ -56,7 +56,7 @@ func (pool *ActiveTaskPool) cleanupCompletedTasks() int {
 
 	pool.tasks.ForEach(func(k unique.TaskOrderID, v *activeTask) {
 
-		cleanDate, _ := date.AddDays(v.OrderDate(), v.Retention())
+		cleanDate := date.AddDays(v.OrderDate(), v.Retention())
 		if v.State() == TaskStateEndedOk && date.IsBeforeCurrent(cleanDate, pool.currentOdate) {
 			delete(pool.tasks.store, v.OrderID())
 			numDeleted++

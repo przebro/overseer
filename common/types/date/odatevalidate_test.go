@@ -77,4 +77,40 @@ func TestOdateValueValidator(t *testing.T) {
 		t.Error("Unexpected value")
 	}
 
+	value = OdateValue("-001")
+	err = validator.Valid.Validate(value)
+	if err != nil {
+		t.Error("Unexpected value")
+	}
+
+	value = OdateValue("+001")
+	err = validator.Valid.Validate(value)
+	if err != nil {
+		t.Error("Unexpected value")
+	}
+
+	value = OdateValue("=001")
+	err = validator.Valid.Validate(value)
+	if err == nil {
+		t.Error("Unexpected value")
+	}
+
+	value = OdateValue("+01")
+	err = validator.Valid.Validate(value)
+	if err == nil {
+		t.Error("Unexpected value")
+	}
+
+	value = OdateValue("001")
+	err = validator.Valid.Validate(value)
+	if err == nil {
+		t.Error("Unexpected value")
+	}
+
+	value = OdateValue("+00A")
+	err = validator.Valid.Validate(value)
+	if err == nil {
+		t.Error("Unexpected value")
+	}
+
 }

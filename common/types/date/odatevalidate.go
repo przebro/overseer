@@ -2,6 +2,7 @@ package date
 
 import (
 	"overseer/common/validator"
+	"regexp"
 
 	vl "github.com/go-playground/validator/v10"
 )
@@ -91,7 +92,16 @@ func (oval OdateValue) validateValue() (bool, error) {
 		return true, nil
 	}
 
-	err := validator.Valid.Validate(Odate(oval))
+	ok, err := regexp.MatchString(`^[\-|\+]{1}\d{3}$`, string(oval))
+	if err != nil {
+		return false, err
+	}
+
+	if ok {
+		return true, nil
+	}
+
+	err = validator.Valid.Validate(Odate(oval))
 	if err != nil {
 		return false, err
 	}
