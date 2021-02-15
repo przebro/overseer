@@ -15,6 +15,14 @@ type WorkerConfiguration struct {
 	WorkerPort int    `json:"workerPort"`
 }
 
+//WorkerManagerConfiguration - setting for worker manager
+type WorkerManagerConfiguration struct {
+	Timeout          int                   `json:"timeout"`
+	WorkerInterval   int                   `json:"interval"`
+	WorkerMaxAttemps int                   `json:"attemps"`
+	Workers          []WorkerConfiguration `json:"workers"`
+}
+
 //LogConfiguration - configuration for logger
 type LogConfiguration struct {
 	LogLevel     int    `json:"logLevel"`
@@ -53,9 +61,7 @@ type OverseerConfiguration struct {
 	TimeInterval        IntervalValue              `json:"timeInterval" validate:"min=1,max=60"`
 	StoreProvider       StoreProviderConfiguration `json:"StoreProvider"`
 	Security            SecurityConfiguration      `json:"security"`
-	WorkerTimeout       int
-	WorkerMaxAttemps    int
-	Workers             []WorkerConfiguration `json:"workers"`
+	WorkerManager       WorkerManagerConfiguration `json:"WorkerConfiguration"`
 }
 
 type StoreProviderConfiguration struct {
@@ -121,4 +127,8 @@ func (cfg *OverseerConfiguration) GetStoreProviderConfiguration() StoreProviderC
 
 func (cfg *OverseerConfiguration) GetSecurityConfiguration() SecurityConfiguration {
 	return cfg.Security
+}
+
+func (cfg *OverseerConfiguration) GetWorkerManagerConfiguration() WorkerManagerConfiguration {
+	return cfg.WorkerManager
 }

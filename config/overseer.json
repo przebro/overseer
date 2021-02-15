@@ -16,9 +16,15 @@
         "maxOkReturnCode" : 4
     },
     "timeInterval" : 2,
-    "workers" : [
-        {"name":"worker_01","workerHost" : "127.0.0.1","workerPort" : 7055}
-    ],
+    "WorkerConfiguration":{
+        "timeout" : 5,
+        "attemps" : 3,
+        "interval" : 5,
+        "workers" : [
+            {"name":"worker_01","workerHost" : "127.0.0.1","workerPort" : 7055}
+        ]
+    },
+    
     "StoreProvider" : {
         "store" : [
             {"id" : "security", "connectionString":"local;/data/security?updatesync=true"},
@@ -32,7 +38,7 @@
 
     "security" : {
         "ssl" : false,
-        "allowAnonymous" : false,
+        "allowAnonymous" : true,
         "collectionName" : "auth",
         "timeout" : 0,
         "issuer" : "issuername",

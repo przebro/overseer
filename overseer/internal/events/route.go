@@ -9,14 +9,14 @@ type RouteName string
 
 //Route names
 const (
-	RouteTimeOut  RouteName = "TICKER_OUT"
-	RouteTicketIn RouteName = "COND_IN"
-	//	RouteTicketOut       RouteName = "COND_OUT"
+	RouteTimeOut         RouteName = "TICKER_OUT"
+	RouteTicketIn        RouteName = "COND_IN"
 	RouteTicketCheck     RouteName = "COND_CHECK"
 	RouteTaskAct         RouteName = "TASK_ACT"
 	RouteChangeTaskState RouteName = "TASK_STATE"
 	RouteWorkLaunch      RouteName = "WORK_LAUNCH"
 	RouteWorkCheck       RouteName = "WORK_CHECK"
+	RouteTaskClean       RouteName = "TASK_CLEAN"
 )
 
 //messageRoute - holds participants of route

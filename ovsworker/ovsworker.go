@@ -5,7 +5,6 @@ import (
 	"net"
 	"overseer/common/logger"
 	"overseer/ovsworker/config"
-	"overseer/ovsworker/launcher"
 	"overseer/ovsworker/services"
 	"overseer/proto/wservices"
 
@@ -16,7 +15,6 @@ type ovsWorkerService struct {
 	config     *config.Config
 	grpcServer *grpc.Server
 	listener   net.Listener
-	workExec   *launcher.FragmentLauncher
 	log        logger.AppLogger
 }
 
@@ -42,7 +40,6 @@ func NewWorkerService(config *config.Config) OvsWorkerService {
 
 	srvc := services.NewWorkerExecutionService()
 	wservices.RegisterTaskExecutionServiceServer(wsrvc.grpcServer, srvc)
-	wsrvc.workExec = launcher.NewFragmentLauncher()
 	wsrvc.log = log
 
 	return wsrvc

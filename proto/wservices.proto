@@ -8,6 +8,8 @@ option go_package = "proto/wservices";
 
 service TaskExecutionService{
 	rpc StartTask(StartTaskMsg) returns (TaskExecutionResponseMsg){}
+	rpc TerminateTask(TaskIdMsg) returns (TaskActionMsg){}
+	rpc CompleteTask(TaskIdMsg) returns (TaskActionMsg){}
 	rpc TaskStatus(TaskIdMsg) returns (TaskExecutionResponseMsg) {}
 	rpc WorkerStatus(google.protobuf.Empty) returns(WorkerStatusResponseMsg){}
 }
@@ -24,12 +26,26 @@ message StartTaskMsg{
 }
 
 message TaskExecutionResponseMsg{
-	bool started      = 1;
-	bool ended        = 2;
-	int32 returnCode  = 3;
-	int32 statusCode  = 4;
-	int32 pid         = 5;
+	enum TaskStatus{
+		RECEIVED = 0;
+		EXECUTING = 1;
+		ENDED = 2;
+		FAILED = 3;
+		//for future use
+		WAITING = 4;
+		IDLE = 5;
+		STARTING = 6;
+	}
+	TaskStatus status = 1;
+	int32 returnCode  = 2;
+	int32 statusCode  = 3;
+	int32 pid         = 4;
 	repeated string output = 6;
+}
+
+message TaskActionMsg{
+	bool success = 1;
+	string message = 2;
 }
 
 message WorkerStatusResponseMsg{

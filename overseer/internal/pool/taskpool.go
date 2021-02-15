@@ -22,6 +22,7 @@ type ActiveTaskPool struct {
 	tasks        *Store
 	log          logger.AppLogger
 	isProcActive bool
+	processing   chan *activeTask
 }
 
 //TaskViewer - Provides a view for an active tasks in pool
@@ -40,6 +41,7 @@ func NewTaskPool(dispatcher events.Dispatcher, cfg config.ActivePoolConfiguratio
 		config:       cfg,
 		isProcActive: true,
 		log:          logger.Get(),
+		processing:   make(chan *activeTask, 8),
 	}
 
 	if dispatcher != nil {

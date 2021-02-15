@@ -1,30 +1,26 @@
 package work
 
 import (
-	"errors"
 	"overseer/common/logger"
+	"overseer/common/types"
 	"overseer/overseer/config"
 	"overseer/overseer/internal/events"
 	"overseer/overseer/internal/unique"
+	"sync"
+	"time"
 )
-
-type taskExecuteMsg struct {
-	receiver events.EventReceiver
-	data     events.RouteTaskExecutionMsg
-}
-
-type taskGetStatusMsg struct {
-	receiver   events.EventReceiver
-	orderID    unique.TaskOrderID
-	workername string
-}
 
 type workerManager struct {
 	askChannel    chan taskGetStatusMsg
+	resultChannel chan events.RouteWorkResponseMsg
 	launchChannel chan taskExecuteMsg
-	workerQueue   chan string
-	log           logger.AppLogger
-	workers       map[string]WorkerMediator
+	cleanChannel  chan taskCleanMsg
+	workStatus    chan struct{}
+
+	log     logger.AppLogger
+	workers map[string]WorkerMediator
+	status  map[unique.TaskOrderID]events.RouteWorkResponseMsg
+	lock    sync.Mutex
 }
 
 //WorkerManager - Manages actions between
@@ -33,56 +29,69 @@ type WorkerManager interface {
 }
 
 //NewWorkerManager - Creates a new WorkerManager
-func NewWorkerManager(d events.Dispatcher, wconfig []config.WorkerConfiguration) WorkerManager {
+func NewWorkerManager(d events.Dispatcher, conf config.WorkerManagerConfiguration) WorkerManager {
 
 	w := &workerManager{}
 	w.log = logger.Get()
 	w.askChannel = make(chan taskGetStatusMsg)
+	w.resultChannel = make(chan events.RouteWorkResponseMsg)
 	w.launchChannel = make(chan taskExecuteMsg)
+	w.cleanChannel = make(chan taskCleanMsg)
 	w.workers = make(map[string]WorkerMediator)
-	w.workerQueue = make(chan string)
+	w.workStatus = make(chan struct{})
+	w.lock = sync.Mutex{}
+	w.status = map[unique.TaskOrderID]events.RouteWorkResponseMsg{}
 
 	if d != nil {
 		d.Subscribe(events.RouteWorkLaunch, w)
 		d.Subscribe(events.RouteWorkCheck, w)
+		d.Subscribe(events.RouteTimeOut, w)
+		d.Subscribe(events.RouteTaskClean, w)
 	}
 
-	conv := NewConverterChain()
-
-	for _, n := range wconfig {
-		w.log.Info("Crateing service worker:", n.WorkerName, ",", n.WorkerHost, ":", n.WorkerPort)
-		sworker := NewWorkerMediator(n.WorkerName, n.WorkerHost, n.WorkerPort, conv)
-
-		if sworker != nil {
-			w.workers[n.WorkerName] = sworker
-		}
-
+	for _, n := range conf.Workers {
+		w.log.Info("Creating service worker:", n.WorkerName, ",", n.WorkerHost, ":", n.WorkerPort)
+		sworker := NewWorkerMediator(n, conf.Timeout, w.resultChannel)
+		w.workers[n.WorkerName] = sworker
 	}
+
+	go func() {
+		w.updateWorkers(conf.WorkerInterval)
+	}()
+
 	return w
 }
 func (w *workerManager) Run() error {
 
 	go func() {
 		for {
-
 			select {
 			case msg := <-w.launchChannel:
 				{
-					result, err := w.LaunchTask(msg.data)
-					if err != nil {
-						events.ResponseToReceiver(msg.receiver, err)
-						break
-					}
+					//Task request to process a work on remote worker
+					result := w.startTask(msg.data)
 					events.ResponseToReceiver(msg.receiver, result)
+
 				}
 			case msg := <-w.askChannel:
 				{
-					result, err := w.CheckTaskStatus(msg.workername, msg.orderID)
-					if err != nil {
-						events.ResponseToReceiver(msg.receiver, err)
-						break
-					}
+					//task asking for status or sending an information that remote task should be cleaned
+					result := w.getTaskStatus(msg.workername, msg.orderID)
 					events.ResponseToReceiver(msg.receiver, result)
+				}
+			case msg := <-w.resultChannel:
+				{
+					//An information from worker has been returned, update status
+					w.updateTaskStatus(msg)
+				}
+			case msg := <-w.cleanChannel:
+				{
+					w.cleanupTask(msg.workername, msg.orderID, msg.terminate)
+				}
+			case <-w.workStatus:
+				{
+					//time out,request workers for actual task statuses
+					w.requestTaskStatus()
 				}
 			}
 		}
@@ -91,25 +100,95 @@ func (w *workerManager) Run() error {
 	return nil
 }
 
-func (w *workerManager) LaunchTask(msg events.RouteTaskExecutionMsg) (events.RouteWorkResponseMsg, error) {
+func (w *workerManager) startTask(msg events.RouteTaskExecutionMsg) events.RouteWorkResponseMsg {
 
-	var result events.RouteWorkResponseMsg
-	var err error = errors.New("unable to find worker")
-	for _, wrkr := range w.workers {
-		if wrkr.Available() {
-			w.log.Info("Available worker Found,", wrkr.Name(), ", launching task:", msg.OrderID)
-			result, err = wrkr.StartTaskExecution(msg)
-			break
+	var response events.RouteWorkResponseMsg
+	var wname string
+
+	if wname = w.getWorker(); wname == "" {
+		response = events.RouteWorkResponseMsg{
+			Status:     types.WorkerTaskStatusFailed,
+			OrderID:    msg.OrderID,
+			WorkerName: "",
+		}
+		return response
+	}
+
+	defer w.lock.Unlock()
+	w.lock.Lock()
+
+	response = events.RouteWorkResponseMsg{
+		Status:     types.WorkerTaskStatusStarting,
+		OrderID:    msg.OrderID,
+		WorkerName: wname,
+	}
+
+	w.status[msg.OrderID] = response
+
+	go func() { w.workers[wname].StartTask(msg) }()
+
+	return response
+}
+
+func (w *workerManager) getWorker() string {
+	for name, wrkr := range w.workers {
+		if wrkr.Active() {
+			return name
 		}
 	}
-	return result, err
+	return ""
 }
-func (w *workerManager) CheckTaskStatus(workername string, orderID unique.TaskOrderID) (events.RouteWorkResponseMsg, error) {
 
-	w.log.Debug("Checking worker status.")
-	worker := w.workers[workername]
-	result, err := worker.CheckTaskStatus(orderID)
-	return result, err
+func (w *workerManager) updateTaskStatus(msg events.RouteWorkResponseMsg) {
+
+	defer w.lock.Unlock()
+	w.lock.Lock()
+
+	w.status[msg.OrderID] = msg
+}
+
+func (w *workerManager) getTaskStatus(workername string, orderID unique.TaskOrderID) events.RouteWorkResponseMsg {
+	defer w.lock.Unlock()
+	w.lock.Lock()
+
+	stat := w.status[orderID]
+	return stat
+}
+
+func (w *workerManager) requestTaskStatus() {
+	defer w.lock.Unlock()
+	w.lock.Lock()
+
+	for orderid, msg := range w.status {
+		go func(orderID unique.TaskOrderID, workername string) {
+			w.workers[workername].RequestTaskStatusFromWorker(orderID)
+		}(orderid, msg.WorkerName)
+
+	}
+}
+
+func (w *workerManager) cleanupTask(worker string, orderID unique.TaskOrderID, terminate bool) {
+
+	defer w.lock.Unlock()
+	w.lock.Lock()
+
+	delete(w.status, orderID)
+
+	if terminate {
+		w.workers[worker].TerminateTask(orderID)
+	} else {
+		w.workers[worker].CompleteTask(orderID)
+	}
+}
+
+func (w *workerManager) updateWorkers(interval int) {
+	for {
+		time.Sleep(time.Duration(interval) * time.Second)
+		for _, worker := range w.workers {
+
+			worker.Available()
+		}
+	}
 }
 
 func (w *workerManager) Process(receiver events.EventReceiver, routename events.RouteName, msg events.DispatchedMessage) {
@@ -137,6 +216,17 @@ func (w *workerManager) Process(receiver events.EventReceiver, routename events.
 			}
 
 			w.askChannel <- taskGetStatusMsg{receiver: receiver, orderID: data.OrderID, workername: data.WorkerName}
+		}
+	case events.RouteTaskClean:
+		{
+			data, isOk := msg.Message().(events.RouteTaskCleanMsg)
+			if isOk == false {
+			}
+			w.cleanChannel <- taskCleanMsg{terminate: data.Terminate, orderID: data.OrderID, workername: data.WorkerName}
+		}
+	case events.RouteTimeOut:
+		{
+			w.workStatus <- struct{}{}
 		}
 	default:
 		{

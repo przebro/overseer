@@ -1,20 +1,18 @@
 package fragments
 
 import (
+	common "overseer/common/types"
 	"sync"
 )
 
 //FragmentStatus - Contains inforamtion about a task status.
 type FragmentStatus struct {
-	TaskID        string
-	Started       bool
-	Ended         bool
-	MarkForDelete bool
-	ReturnCode    int
-	StatusCode    int
-	PID           int
-
-	Output []string
+	TaskID     string
+	State      common.WorkerTaskStatus
+	ReturnCode int
+	StatusCode int
+	PID        int
+	Output     []string
 }
 
 //StatusStore - Holds status of a fragment

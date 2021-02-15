@@ -4,81 +4,138 @@ import (
 	"context"
 	"fmt"
 	"overseer/common/logger"
+	"overseer/common/types"
+	"overseer/overseer/config"
 	"overseer/overseer/internal/events"
 	"overseer/overseer/internal/unique"
 	"overseer/proto/wservices"
+	"sync"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type workerMediator struct {
-	name       string
+	config     config.WorkerConfiguration
 	connection *grpc.ClientConn
 	client     wservices.TaskExecutionServiceClient
 	log        logger.AppLogger
 	converter  ActionConverter
+	taskStatus chan events.RouteWorkResponseMsg
+	timeout    int
+	wdata      workerStatus
+	lock       sync.Mutex
 }
 
 //NewWorkerMediator - Creates a new WorkerMediator.
-func NewWorkerMediator(name, host string, port int, conv ActionConverter) WorkerMediator {
+func NewWorkerMediator(conf config.WorkerConfiguration, timeout int, status chan events.RouteWorkResponseMsg) WorkerMediator {
 
 	var err error
-	worker := &workerMediator{}
-	log := logger.Get()
-
-	opt := make([]grpc.DialOption, 0)
-	opt = append(opt, grpc.WithInsecure())
-
-	targetAddr := fmt.Sprintf("%s:%d", host, port)
-	worker.connection, err = grpc.Dial(targetAddr, opt...)
-	if err != nil {
-		log.Error("Unable to create worker:", err)
-		return nil
+	worker := &workerMediator{
+		config:     conf,
+		timeout:    timeout,
+		log:        logger.Get(),
+		converter:  NewConverterChain(),
+		taskStatus: status,
+		wdata:      workerStatus{},
+		lock:       sync.Mutex{},
 	}
-	worker.log = log
-	worker.name = name
-	worker.client = wservices.NewTaskExecutionServiceClient(worker.connection)
-	worker.converter = conv
+
+	if err = worker.connect(conf.WorkerHost, conf.WorkerPort, worker.timeout); err != nil {
+		worker.wdata.connected = false
+	} else {
+		worker.wdata.connected = true
+	}
 
 	return worker
-
 }
 
-//WorkerMediator - WorkerMediator is responsible for communication with
+//WorkerMediator - WorkerMediator is responsible for communication with remote workers
 type WorkerMediator interface {
-	Available() bool
+	Available()
+	Active() bool
 	Name() string
-	StartTaskExecution(msg events.RouteTaskExecutionMsg) (events.RouteWorkResponseMsg, error)
-	CheckTaskStatus(taskID unique.TaskOrderID) (events.RouteWorkResponseMsg, error)
+	StartTask(msg events.RouteTaskExecutionMsg)
+	RequestTaskStatusFromWorker(taskID unique.TaskOrderID)
+	TerminateTask(taskID unique.TaskOrderID)
+	CompleteTask(taskID unique.TaskOrderID)
 }
 
 //Name - Returns name of a worker
 func (worker *workerMediator) Name() string {
-	return worker.name
+	return worker.config.WorkerName
 }
 
-//Avaliable - Gets status of a worker
-func (worker *workerMediator) Available() bool {
+func (worker *workerMediator) connect(host string, port int, timeout int) error {
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-
-	defer cancel()
-	result, err := worker.client.WorkerStatus(ctx, &empty.Empty{})
-	if err != nil {
-		worker.log.Error(err)
-		return false
+	defer worker.lock.Unlock()
+	worker.lock.Lock()
+	opt := []grpc.DialOption{
+		grpc.WithInsecure(),
+		grpc.WithBlock(),
+		grpc.WithTimeout(time.Second * time.Duration(timeout)),
 	}
-	worker.log.Info("Worker avalible result:", result)
+	targetAddr := fmt.Sprintf("%s:%d", host, port)
+	conn, err := grpc.Dial(targetAddr, opt...)
+	if err != nil {
+		worker.wdata = workerStatus{connected: false}
+		return err
+	}
 
-	return true
+	worker.client = wservices.NewTaskExecutionServiceClient(conn)
+
+	return nil
+
 }
 
-//StartTaskExecution - Sends a work to execution.
-func (worker *workerMediator) StartTaskExecution(msg events.RouteTaskExecutionMsg) (events.RouteWorkResponseMsg, error) {
+//Avaliable - Gets a status of a worker
+func (worker *workerMediator) Available() {
 
-	s := events.RouteWorkResponseMsg{Output: make([]string, 0)}
+	go func() {
+
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		defer worker.lock.Unlock()
+		result, err := worker.client.WorkerStatus(ctx, &empty.Empty{})
+		if err != nil {
+			worker.lock.Lock()
+			worker.wdata = workerStatus{connected: false}
+		} else {
+			worker.lock.Lock()
+			if !worker.wdata.connected {
+				worker.wdata = workerStatus{
+					connected: true,
+					cpu:       int(result.Cpuload),
+					memused:   int(result.Memused),
+					memtotal:  int(result.Memtotal),
+					tasks:     int(result.Tasks),
+				}
+				// if connection was broken, reconnect with worker
+				worker.connect(worker.config.WorkerHost, worker.config.WorkerPort, worker.timeout)
+			}
+		}
+	}()
+
+}
+
+//Active - returns whether a connection with the worker is active
+func (worker *workerMediator) Active() bool {
+	defer worker.lock.Unlock()
+	worker.lock.Lock()
+	return worker.wdata.connected
+}
+
+//StartTaskExecution - Sends a task to execution.
+func (worker *workerMediator) StartTask(msg events.RouteTaskExecutionMsg) {
+
+	status := events.RouteWorkResponseMsg{
+		Output:     make([]string, 0),
+		OrderID:    msg.OrderID,
+		WorkerName: worker.config.WorkerName,
+	}
 
 	smsg := &wservices.StartTaskMsg{}
 	smsg.TaskID = &wservices.TaskIdMsg{}
@@ -87,47 +144,80 @@ func (worker *workerMediator) StartTaskExecution(msg events.RouteTaskExecutionMs
 
 	if smsg.Command = worker.converter.Convert(msg.Command, msg.Variables); smsg.Command == nil {
 
+		status.Status = types.WorkerTaskStatusFailed
+		worker.taskStatus <- status
+		return
+
 	}
 
-	smsg.Variables = make(map[string]string, len(msg.Variables))
-	for _, x := range msg.Variables {
-		name := x.Expand()
-		smsg.Variables[name] = x.Value
-	}
-	resp, err := worker.client.StartTask(context.Background(), smsg)
+	go func() {
+		s := events.RouteWorkResponseMsg{
+			Output:     make([]string, 0),
+			OrderID:    msg.OrderID,
+			WorkerName: worker.config.WorkerName,
+		}
+		resp, err := worker.client.StartTask(context.Background(), smsg)
+		if err != nil {
+			worker.log.Error(err)
+			s.Status = types.WorkerTaskStatusFailed
+		} else {
+			s.ReturnCode = resp.ReturnCode
+			s.WorkerName = worker.config.WorkerName
+			s.Output = append(s.Output, resp.Output...)
+			s.Status = reverseStatusMap[resp.Status]
 
-	if err != nil {
-		worker.log.Error(err)
-		return s, err
-	}
+		}
 
-	s.ReturnCode = resp.ReturnCode
-	s.Started = true
-	s.Ended = resp.Ended
-	s.WorkerName = worker.name
-	s.Output = append(s.Output, resp.Output...)
+		worker.taskStatus <- s
 
-	return s, nil
+	}()
+	status.Status = types.WorkerTaskStatusStarting
+	worker.taskStatus <- status
 
 }
 
-//CheckTaskStatus - Sends request for a status update.
-func (worker *workerMediator) CheckTaskStatus(taskID unique.TaskOrderID) (events.RouteWorkResponseMsg, error) {
+//RequestTaskStatusFromWorker - sends a request for a new status of a work
+func (worker *workerMediator) RequestTaskStatusFromWorker(taskID unique.TaskOrderID) {
 
-	s := events.RouteWorkResponseMsg{Output: make([]string, 0)}
+	result := events.RouteWorkResponseMsg{Output: make([]string, 0)}
 
 	resp, err := worker.client.TaskStatus(context.Background(), &wservices.TaskIdMsg{TaskID: string(taskID)})
-	worker.log.Debug("statusTaskRemote: sending response with task status,", resp)
 	if err != nil {
-		return s, err
+		if s, ok := status.FromError(err); ok {
+			//something really bad happen with worker and task is lost
+			if s.Code() == codes.NotFound {
+
+				result.Status = types.WorkerTaskStatusFailed
+				result.WorkerName = worker.config.WorkerName
+				result.OrderID = taskID
+				result.Output = append(result.Output, s.Message())
+				worker.taskStatus <- result
+			}
+		}
+	} else {
+
+		result.Status = reverseStatusMap[resp.Status]
+		result.ReturnCode = resp.ReturnCode
+		result.WorkerName = worker.config.WorkerName
+		result.OrderID = taskID
+		result.Output = append(result.Output, resp.Output...)
+
+		worker.taskStatus <- result
 	}
+}
 
-	s.ReturnCode = resp.ReturnCode
-	s.Ended = resp.Ended
-	s.Started = true
-	s.WorkerName = worker.name
-	s.Output = append(s.Output, resp.Output...)
+//TerminateTask - terminates a task on a remote worker
+func (worker *workerMediator) TerminateTask(taskID unique.TaskOrderID) {
 
-	return s, nil
+	go func() {
+		worker.client.TerminateTask(context.Background(), &wservices.TaskIdMsg{TaskID: string(taskID)})
+	}()
+}
 
+//CompleteTask - sends information that the task is complete and all resources can be released
+func (worker *workerMediator) CompleteTask(taskID unique.TaskOrderID) {
+
+	go func() {
+		worker.client.CompleteTask(context.Background(), &wservices.TaskIdMsg{TaskID: string(taskID)})
+	}()
 }

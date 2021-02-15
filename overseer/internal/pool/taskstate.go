@@ -3,6 +3,7 @@ package pool
 import (
 	"fmt"
 	"overseer/common/logger"
+	"overseer/common/types"
 	"overseer/common/types/date"
 	"overseer/overseer/internal/events"
 	"overseer/overseer/internal/taskdef"
@@ -323,7 +324,7 @@ func (state ostateStarting) processState(ctx *TaskExecutionContext) bool {
 		return true
 	}
 
-	if !result.Started {
+	if result.Status != types.WorkerTaskStatusStarting {
 		ctx.state = &ostatePostProcessing{}
 		ctx.task.SetState(TaskStateEndedNotOk)
 		ctx.log.Info("Task not executed:")
@@ -340,13 +341,14 @@ func (state ostateExecuting) processState(ctx *TaskExecutionContext) bool {
 
 	ctx.log.Info("Checking task state")
 	ctx.task.SetState(TaskStateExecuting)
-	ctx.task.OrderID()
+
 	msg := events.NewMsg(events.WorkRouteCheckStatusMsg{OrderID: ctx.task.OrderID(), WorkerName: ctx.task.WorkerName()})
 	receiver := events.NewWorkLaunchReceiver()
 
 	ctx.dispatcher.PushEvent(receiver, events.RouteWorkCheck, msg)
 
 	result, err := receiver.WaitForResult()
+	fmt.Println(result, err)
 
 	if err != nil {
 		ctx.log.Error("State executing error:", err)
@@ -355,7 +357,7 @@ func (state ostateExecuting) processState(ctx *TaskExecutionContext) bool {
 
 	ctx.task.AddOutput(result.Output)
 
-	if result.Ended {
+	if result.Status == types.WorkerTaskStatusEnded || result.Status == types.WorkerTaskStatusFailed {
 
 		n, g, _ := ctx.task.GetInfo()
 		ctx.log.Info("Task ended:", n, " group:", g, " id:", ctx.task.OrderID(), " rc:", result.ReturnCode)
@@ -363,19 +365,28 @@ func (state ostateExecuting) processState(ctx *TaskExecutionContext) bool {
 		ctx.task.SetEndTime()
 		ctx.state = &ostatePostProcessing{}
 
-		if result.ReturnCode > ctx.maxRc {
+		if result.Status == types.WorkerTaskStatusFailed {
 			ctx.task.SetState(TaskStateEndedNotOk)
-			return true
 		}
 
-		ctx.task.SetState(TaskStateEndedOk)
-		return true
+		if result.Status == types.WorkerTaskStatusEnded {
 
+			if result.ReturnCode > ctx.maxRc {
+				ctx.task.SetState(TaskStateEndedNotOk)
+			} else {
+				ctx.task.SetState(TaskStateEndedOk)
+			}
+		}
+
+		return true
 	}
 
 	return false
 }
 func (state ostatePostProcessing) processState(ctx *TaskExecutionContext) bool {
+
+	msg := events.NewMsg(events.RouteTaskCleanMsg{OrderID: ctx.task.OrderID(), WorkerName: ctx.task.WorkerName(), Terminate: false})
+	ctx.dispatcher.PushEvent(nil, events.RouteTaskClean, msg)
 
 	if ctx.task.State() == TaskStateEndedNotOk {
 		ctx.log.Info("Task post processing ends")

@@ -2,7 +2,9 @@ package events
 
 import (
 	"errors"
+	"fmt"
 	"overseer/common/logger"
+	"overseer/common/types"
 	"overseer/overseer/internal/unique"
 	"testing"
 	"time"
@@ -221,16 +223,14 @@ func TestWorkLaunchReceiver(t *testing.T) {
 
 	go func() {
 
-		ResponseToReceiver(wlr, RouteWorkResponseMsg{Ended: true})
+		ResponseToReceiver(wlr, RouteWorkResponseMsg{Status: types.WorkerTaskStatusEnded})
 	}()
 
 	data, err := wlr.WaitForResult()
+	fmt.Println(data)
 
 	if err != nil {
 		t.Error("Unexpected result", err)
-	}
-	if data.Ended != true {
-		t.Error("Unexpected value", data.Ended)
 	}
 
 	go func() {
@@ -281,6 +281,56 @@ func TestChangeTaskStateReceiver(t *testing.T) {
 	}
 	if data.Message != "Message" {
 		t.Error("Unexpected value", data.Message)
+	}
+
+	go func() {
+
+		ResponseToReceiver(wlr, "invalid value")
+	}()
+
+	data, err = wlr.WaitForResult()
+
+	if err == nil {
+		t.Error("Unexpected result")
+	}
+	if err != ErrUnrecognizedMsgFormat {
+		t.Error("Unexpected result", err, "expected:", ErrUnrecognizedMsgFormat)
+	}
+
+	customError := errors.New("Custom error")
+
+	go func() {
+
+		ResponseToReceiver(wlr, customError)
+	}()
+
+	data, err = wlr.WaitForResult()
+
+	if err == nil {
+		t.Error("Unexpected result")
+	}
+	if err != customError {
+		t.Error("Unexpected result", err, "expected:", customError)
+	}
+
+}
+
+func TestTaskCleanReceiver(t *testing.T) {
+
+	wlr := NewTaskCleanReceiver()
+
+	go func() {
+
+		ResponseToReceiver(wlr, RouteTaskCleanMsg{OrderID: "12345"})
+	}()
+
+	data, err := wlr.WaitForResult()
+
+	if err != nil {
+		t.Error("Unexpected result", err)
+	}
+	if data.OrderID != "12345" {
+		t.Error("Unexpected value", data.OrderID)
 	}
 
 	go func() {

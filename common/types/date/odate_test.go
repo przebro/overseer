@@ -17,6 +17,10 @@ func TestOdate(t *testing.T) {
 	day := fmt.Sprintf("%02d", ctime.Day())
 	dyear := ctime.YearDay()
 	wday := int(ctime.Weekday())
+	wday0 := int(ctime.Weekday())
+	if wday == 0 {
+		wday = 7
+	}
 	_, wofyear := ctime.ISOWeek()
 
 	tOdat := fmt.Sprintf("%s%s%s", year, month, day)
@@ -55,6 +59,9 @@ func TestOdate(t *testing.T) {
 	if result.Wday() != wday {
 		t.Error("invalid Wday expected:", wday, " actual:", result.Wday())
 	}
+	if result.Wday0() != wday0 {
+		t.Error("invalid Wday expected:", wday, " actual:", result.Wday())
+	}
 	if result.Woyear() != wofyear {
 		t.Error("invalid Woyear expected:", wofyear, " actual:", result.Woyear())
 	}
@@ -62,6 +69,10 @@ func TestOdate(t *testing.T) {
 	form := fmt.Sprintf("%s-%s-%s", year, month, day)
 	if result.FormatDate() != form {
 		t.Error("invalid Format expected:", form, " actual:", result.FormatDate())
+	}
+
+	if Odate("20201101").Wday() != 7 {
+		t.Error("invalid Wday expected:", 7, " actual:", Odate("20201101").Wday())
 	}
 
 }

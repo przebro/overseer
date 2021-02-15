@@ -74,7 +74,7 @@ func (s *Overseer) Start() error {
 	timer.tickerFunc(evDispatcher, s.conf.TimeInterval)
 
 	s.logger.Info("Start work runner")
-	s.wrunner = work.NewWorkerManager(evDispatcher, s.conf.Workers)
+	s.wrunner = work.NewWorkerManager(evDispatcher, s.conf.GetWorkerManagerConfiguration())
 	s.wrunner.Run()
 
 	s.logger.Info("Start taskpool")

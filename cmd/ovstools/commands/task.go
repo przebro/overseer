@@ -61,7 +61,7 @@ func createTaskCmd(client *ovscli.OverseerClient) *cobra.Command {
 			var selected int
 			var ok bool
 
-			if setok == false && hold == false && free == false && confirm == false && rerun && show == false {
+			if setok == false && hold == false && free == false && confirm == false && rerun == false && show == false {
 				return fmt.Errorf("a flag is required")
 			}
 			acts := map[int]taskAction{
@@ -216,5 +216,8 @@ func clientShowTaskpool(client *ovscli.OverseerClient) {
 
 	for _, v := range result {
 		fmt.Printf("%6s %20s %20s %s\n", v.ID, v.Group, v.Name, v.Status)
+		for _, n := range v.Info {
+			fmt.Println(n)
+		}
 	}
 }

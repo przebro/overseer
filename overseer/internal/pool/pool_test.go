@@ -3,6 +3,7 @@ package pool
 import (
 	"errors"
 	"overseer/common/logger"
+	"overseer/common/types"
 	"overseer/overseer/config"
 	"overseer/overseer/internal/events"
 	"overseer/overseer/internal/taskdef"
@@ -23,7 +24,7 @@ func (m *mockDispatcher) PushEvent(receiver events.EventReceiver, route events.R
 				receiver.Done(errors.New(""))
 			} else {
 				dat := events.RouteWorkResponseMsg{
-					Started: true,
+					Status: types.WorkerTaskStatusExecuting,
 				}
 				events.ResponseToReceiver(receiver, dat)
 			}
@@ -43,9 +44,9 @@ func (m *mockDispatcher) PushEvent(receiver events.EventReceiver, route events.R
 					events.ResponseToReceiver(receiver, errors.New(""))
 				}
 				if m.processNotEnded {
-					receiver.Done(events.RouteWorkResponseMsg{Ended: false, ReturnCode: 0})
+					receiver.Done(events.RouteWorkResponseMsg{Status: types.WorkerTaskStatusExecuting, ReturnCode: 0})
 				} else {
-					receiver.Done(events.RouteWorkResponseMsg{Ended: true, ReturnCode: 0})
+					receiver.Done(events.RouteWorkResponseMsg{Status: types.WorkerTaskStatusEnded, ReturnCode: 0})
 				}
 
 			}

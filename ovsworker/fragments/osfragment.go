@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"overseer/common/types"
 	"overseer/ovsworker/msgheader"
 	"overseer/proto/actions"
 	"strings"
@@ -43,7 +44,6 @@ func newOsFragment(header msgheader.TaskHeader, action *actions.OsTaskAction) (W
 	frag := &OsWorkFragment{}
 	frag.taskID = header.TaskID
 	frag.start = make(chan FragmentStatus)
-	frag.Status = NewStore()
 	cmdarg := strings.Split(action.CommandLine, " ")
 	frag.Command = cmdarg[0]
 	frag.Arguments = cmdarg[1:]
@@ -58,7 +58,7 @@ func newOsFragment(header msgheader.TaskHeader, action *actions.OsTaskAction) (W
 }
 
 //StartFragment - starts a new work
-func (frag *OsWorkFragment) StartFragment(ctx context.Context) FragmentStatus {
+func (frag *OsWorkFragment) StartFragment(ctx context.Context, stat chan FragmentStatus) {
 
 	var err error
 	var cmdCtx context.Context
@@ -70,27 +70,17 @@ func (frag *OsWorkFragment) StartFragment(ctx context.Context) FragmentStatus {
 
 	frag.stdout, err = cmd.StdoutPipe()
 	if err != nil {
-		frag.Status.Set(FragmentStatus{TaskID: frag.taskID,
-			Started:       false,
-			Ended:         true,
-			ReturnCode:    999,
-			PID:           0,
-			Output:        []string{err.Error()},
-			MarkForDelete: true,
-		})
-		return frag.Status.Get()
+		stat <- FragmentStatus{TaskID: frag.taskID,
+			State:      types.WorkerTaskStatusFailed,
+			ReturnCode: 999,
+			PID:        0,
+			Output:     []string{err.Error()},
+		}
+
+	} else {
+		go frag.run(cmd, stat)
 	}
-	ch := make(chan struct{})
-	go frag.run(cmd, ch)
 
-	<-ch
-
-	return frag.Status.Get()
-}
-
-//StatusFragment - gets current status of a fragment
-func (frag *OsWorkFragment) StatusFragment() FragmentStatus {
-	return frag.Status.Get()
 }
 
 //CancelFragment - cancels current work
@@ -101,32 +91,30 @@ func (frag *OsWorkFragment) CancelFragment() error {
 	return nil
 }
 
-func (frag *OsWorkFragment) run(cmd *exec.Cmd, s chan<- struct{}) {
+func (frag *OsWorkFragment) run(cmd *exec.Cmd, stat chan FragmentStatus) {
 
 	var err error
 	err = cmd.Start()
+
 	if err != nil {
-		frag.Status.Set(FragmentStatus{TaskID: frag.taskID,
-			Started:       false,
-			Ended:         true,
-			ReturnCode:    999,
-			PID:           0,
-			Output:        []string{err.Error()},
-			MarkForDelete: true,
-		})
-		s <- struct{}{}
+		stat <- FragmentStatus{TaskID: frag.taskID,
+			State:      types.WorkerTaskStatusFailed,
+			ReturnCode: 999,
+			PID:        0,
+			Output:     []string{err.Error()},
+		}
 		return
+
 	}
 
-	frag.Status.Set(FragmentStatus{TaskID: frag.taskID,
-		Started:    true,
-		Ended:      false,
+	stat <- FragmentStatus{
+		TaskID:     frag.taskID,
+		State:      types.WorkerTaskStatusExecuting,
 		ReturnCode: 0,
 		PID:        0,
 		Output:     []string{},
-	})
+	}
 
-	s <- struct{}{}
 	outs := stdout(frag.stdout)
 	err = cmd.Wait()
 
@@ -134,14 +122,13 @@ func (frag *OsWorkFragment) run(cmd *exec.Cmd, s chan<- struct{}) {
 		outs = append(outs, err.Error())
 	}
 
-	frag.Status.Set(FragmentStatus{TaskID: frag.taskID,
-		Started:       true,
-		Ended:         true,
-		ReturnCode:    cmd.ProcessState.ExitCode(),
-		PID:           cmd.ProcessState.Pid(),
-		Output:        outs,
-		MarkForDelete: true,
-	})
+	stat <- FragmentStatus{
+		TaskID:     frag.taskID,
+		State:      types.WorkerTaskStatusEnded,
+		ReturnCode: cmd.ProcessState.ExitCode(),
+		PID:        cmd.ProcessState.Pid(),
+		Output:     outs,
+	}
 }
 
 //TaskID - Returns ID of a task associated with this fragment.
@@ -173,6 +160,5 @@ func stdout(out io.ReadCloser) []string {
 	}()
 
 	wait.Wait()
-
 	return stdOutput
 }

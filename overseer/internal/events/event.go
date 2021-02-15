@@ -189,6 +189,46 @@ func (r *changeTaskStateReceiver) WaitForResult() (RouteChangeStateResponseMsg, 
 	return result, err
 }
 
+//TaskCleanReceiver - Receiver for RouteTaskClean
+type TaskCleanReceiver interface {
+	EventReceiver
+	WaitForResult() (RouteTaskCleanMsg, error)
+}
+
+type taskCleanReceiver struct {
+	eventReceiver
+}
+
+//NewTaskCleanReceiver - Creates a new TaskCleanReceiver
+func NewTaskCleanReceiver() TaskCleanReceiver {
+	l := &taskCleanReceiver{}
+	l.done = make(chan interface{})
+	return l
+}
+
+func (r *taskCleanReceiver) WaitForResult() (RouteTaskCleanMsg, error) {
+
+	var result RouteTaskCleanMsg
+	var err error = nil
+
+	x := <-r.done
+	switch val := x.(type) {
+	case RouteTaskCleanMsg:
+		{
+			result = val
+		}
+	case error:
+		{
+			err = val
+		}
+	default:
+		{
+			err = ErrUnrecognizedMsgFormat
+		}
+	}
+	return result, err
+}
+
 //ResponseToReceiver - Helper function, sends response to receiver. If receiver is nil this function does nothing
 func ResponseToReceiver(r EventReceiver, data interface{}) {
 

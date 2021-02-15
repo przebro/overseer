@@ -1,6 +1,7 @@
 package events
 
 import (
+	"overseer/common/types"
 	"overseer/common/types/date"
 	task "overseer/overseer/internal/taskdef"
 	"overseer/overseer/internal/unique"
@@ -97,10 +98,10 @@ type RouteTaskExecutionMsg struct {
 
 //RouteWorkResponseMsg - Contains information about the status of executing work.
 type RouteWorkResponseMsg struct {
+	Status     types.WorkerTaskStatus
+	OrderID    unique.TaskOrderID
 	Output     []string
 	WorkerName string
-	Started    bool
-	Ended      bool
 	ReturnCode int32
 }
 
@@ -117,4 +118,11 @@ type RouteChangeStateMsg struct {
 type RouteChangeStateResponseMsg struct {
 	OrderID unique.TaskOrderID
 	Message string
+}
+
+//RoutTaskCleanMMsg -  Message for cleaning or termintating a task on remote worker
+type RouteTaskCleanMsg struct {
+	OrderID    unique.TaskOrderID
+	WorkerName string
+	Terminate  bool
 }

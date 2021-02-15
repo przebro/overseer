@@ -3,6 +3,7 @@ package fragments
 import (
 	"errors"
 	"fmt"
+	"overseer/common/types"
 	"overseer/ovsworker/msgheader"
 	"overseer/proto/actions"
 
@@ -33,7 +34,6 @@ func newDummyFragment(header msgheader.TaskHeader, action *actions.DummyTaskActi
 	frag := &DummyFragment{}
 	frag.taskID = header.TaskID
 	frag.start = make(chan FragmentStatus)
-	frag.Status = NewStore()
 	frag.Variables = make([]string, len(header.Variables))
 	for k, v := range header.Variables {
 		frag.Variables = append(frag.Variables, fmt.Sprintf("%s=%s", k, v))
@@ -43,18 +43,12 @@ func newDummyFragment(header msgheader.TaskHeader, action *actions.DummyTaskActi
 }
 
 //StartFragment - Start a new work
-func (frag *DummyFragment) StartFragment(ctx context.Context) FragmentStatus {
+func (frag *DummyFragment) StartFragment(ctx context.Context, stat chan FragmentStatus) {
 
-	frag.Status.Set(FragmentStatus{TaskID: frag.taskID, Started: true, Ended: false, ReturnCode: 0})
-	return frag.Status.Get()
-
-}
-
-//StatusFragment - Gets current status of a fragment
-func (frag *DummyFragment) StatusFragment() FragmentStatus {
-
-	frag.Status.Set(FragmentStatus{TaskID: frag.taskID, Started: true, Ended: true, ReturnCode: 0, MarkForDelete: true})
-	return frag.Status.Get()
+	go func() {
+		status := FragmentStatus{TaskID: frag.taskID, ReturnCode: 0, PID: 0, State: types.WorkerTaskStatusEnded}
+		stat <- status
+	}()
 }
 
 //CancelFragment - cancels current fragment
