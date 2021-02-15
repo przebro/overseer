@@ -20,6 +20,7 @@ const (
 	TaskStateExecuting  TaskState = 3
 	TaskStateEndedOk    TaskState = 4
 	TaskStateEndedNotOk TaskState = 5
+	TaskStateHold       TaskState = 6
 )
 
 type taskInTicket struct {
@@ -181,11 +182,13 @@ func (task *activeTask) Hold() {
 	defer task.lock.Unlock()
 	task.lock.Lock()
 	task.holded = true
+	task.state = TaskStateHold
 }
 func (task *activeTask) Free() {
 	defer task.lock.Unlock()
 	task.lock.Lock()
 	task.holded = false
+	task.state = TaskStateWaiting
 }
 func (task *activeTask) IsHeld() bool {
 	defer task.lock.RUnlock()
