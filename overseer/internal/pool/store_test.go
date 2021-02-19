@@ -9,7 +9,7 @@ import (
 
 func TestStore(t *testing.T) {
 
-	store := NewStore()
+	store, _ := NewStore(testCollectionName, log, provider, 0)
 	if store == nil {
 		t.Error("Store not created")
 	}
@@ -17,20 +17,20 @@ func TestStore(t *testing.T) {
 	orderID := unique.TaskOrderID("12345")
 	task := &activeTask{orderID: orderID}
 
-	store.Add(orderID, task)
-	store.Add(unique.TaskOrderID("33333"), &activeTask{orderID: unique.TaskOrderID("33333")})
-	store.Add(unique.TaskOrderID("12346"), &activeTask{orderID: unique.TaskOrderID("12346")})
+	store.add(orderID, task)
+	store.add(unique.TaskOrderID("33333"), &activeTask{orderID: unique.TaskOrderID("33333")})
+	store.add(unique.TaskOrderID("12346"), &activeTask{orderID: unique.TaskOrderID("12346")})
 
-	if store.Len() != 3 {
-		t.Error("Invalid store size expected 1 actual :", store.Len())
+	if store.len() != 3 {
+		t.Error("Invalid store size expected 1 actual :", store.len())
 	}
 
-	_, exists := store.Get(unique.TaskOrderID("54321"))
+	_, exists := store.get(unique.TaskOrderID("54321"))
 	if exists == true {
 		t.Error("Unexpected result expected", false, "actual", exists)
 	}
 
-	ts, exists := store.Get(unique.TaskOrderID("12345"))
+	ts, exists := store.get(unique.TaskOrderID("12345"))
 	if exists == false {
 		t.Error("Unexpected result expected", false, "actual", exists)
 	}
@@ -39,18 +39,18 @@ func TestStore(t *testing.T) {
 		t.Error("Unexpected result expected", orderID, "actual", ts.orderID)
 	}
 
-	store.Remove(unique.TaskOrderID("12346"))
-	store.Remove(unique.TaskOrderID("12346"))
+	store.remove(unique.TaskOrderID("12346"))
+	store.remove(unique.TaskOrderID("12346"))
 
-	if store.Len() != 2 {
-		t.Error("Invalid store size expected 1 actual :", store.Len())
+	if store.len() != 2 {
+		t.Error("Invalid store size expected 1 actual :", store.len())
 	}
 
 }
 
 func TestStoreOver(t *testing.T) {
 
-	store := NewStore()
+	store, _ := NewStore(testCollectionName, log, provider, 0)
 	if store == nil {
 		t.Error("Store not created")
 	}
@@ -63,9 +63,9 @@ func TestStoreOver(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 
-	store.Add(unique.TaskOrderID("33333"), &activeTask{orderID: unique.TaskOrderID("33333")})
-	store.Add(unique.TaskOrderID("44444"), &activeTask{orderID: unique.TaskOrderID("44444")})
-	store.Add(unique.TaskOrderID("55555"), &activeTask{orderID: unique.TaskOrderID("55555")})
+	store.add(unique.TaskOrderID("33333"), &activeTask{orderID: unique.TaskOrderID("33333")})
+	store.add(unique.TaskOrderID("44444"), &activeTask{orderID: unique.TaskOrderID("44444")})
+	store.add(unique.TaskOrderID("55555"), &activeTask{orderID: unique.TaskOrderID("55555")})
 
 	go func(s *Store) {
 
@@ -84,7 +84,7 @@ func TestStoreOver(t *testing.T) {
 		ids := []string{"33333", "44444", "55555"}
 		time.Sleep(10 * time.Millisecond)
 		for _, n := range ids {
-			t, _ := s.Get(unique.TaskOrderID(n))
+			t, _ := s.get(unique.TaskOrderID(n))
 			vchan <- string(t.orderID)
 		}
 
@@ -108,7 +108,7 @@ func TestStoreOver(t *testing.T) {
 }
 func TestStoreForEach(t *testing.T) {
 
-	store := NewStore()
+	store, _ := NewStore(testCollectionName, log, provider, 0)
 	if store == nil {
 		t.Error("Store not created")
 	}
@@ -121,9 +121,9 @@ func TestStoreForEach(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 
-	store.Add(unique.TaskOrderID("33333"), &activeTask{orderID: unique.TaskOrderID("33333")})
-	store.Add(unique.TaskOrderID("44444"), &activeTask{orderID: unique.TaskOrderID("44444")})
-	store.Add(unique.TaskOrderID("55555"), &activeTask{orderID: unique.TaskOrderID("55555")})
+	store.add(unique.TaskOrderID("33333"), &activeTask{orderID: unique.TaskOrderID("33333")})
+	store.add(unique.TaskOrderID("44444"), &activeTask{orderID: unique.TaskOrderID("44444")})
+	store.add(unique.TaskOrderID("55555"), &activeTask{orderID: unique.TaskOrderID("55555")})
 
 	go func(s *Store) {
 
@@ -142,7 +142,7 @@ func TestStoreForEach(t *testing.T) {
 		ids := []string{"33333", "44444", "55555"}
 		time.Sleep(20 * time.Millisecond)
 		for _, n := range ids {
-			v, _ := s.Get(unique.TaskOrderID(n))
+			v, _ := s.get(unique.TaskOrderID(n))
 			vchan <- string(v.orderID)
 		}
 

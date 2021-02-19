@@ -38,7 +38,13 @@ func (cl *flagReadWriter) Load() (map[string]interface{}, error) {
 
 	err := cl.col.Get(context.Background(), cl.objectID, &model)
 	if err != nil {
-		return nil, err
+		if err == collection.ErrNoDocuments {
+			model.ID = cl.objectID
+			cl.col.Create(context.Background(), &model)
+
+		} else {
+			return nil, err
+		}
 	}
 	cl.rev = model.REV
 

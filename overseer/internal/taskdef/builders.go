@@ -2,6 +2,7 @@ package taskdef
 
 import (
 	"overseer/common/types"
+	"overseer/common/validator"
 	"time"
 )
 
@@ -30,15 +31,19 @@ func (builder *DummyTaskBuilder) FromTemplate(templ TaskDefinition) TaskBuilder 
 	builder.def.Name, builder.def.Group, builder.def.Description = templ.GetInfo()
 	builder.def.TaskType = templ.TypeName()
 
-	builder.def.InTickets = make([]InTicketData, len(templ.TicketsIn()))
-	copy(builder.def.InTickets, templ.TicketsIn())
+	if templ.TicketsIn() != nil {
+		builder.def.InTickets = make([]InTicketData, len(templ.TicketsIn()))
+		copy(builder.def.InTickets, templ.TicketsIn())
+	}
 
 	builder.def.InRelation = templ.Relation()
 	builder.def.DataRetention = templ.Retention()
 	builder.def.ConfirmFlag = templ.Confirm()
 
-	builder.def.OutTickets = make([]OutTicketData, len(templ.TicketsOut()))
-	copy(builder.def.OutTickets, templ.TicketsOut())
+	if templ.TicketsOut() != nil {
+		builder.def.OutTickets = make([]OutTicketData, len(templ.TicketsOut()))
+		copy(builder.def.OutTickets, templ.TicketsOut())
+	}
 
 	builder.def.FlagsTab = make([]FlagData, len(templ.Flags()))
 	copy(builder.def.FlagsTab, templ.Flags())
@@ -133,6 +138,9 @@ func (builder *DummyTaskBuilder) Build() (TaskDefinition, error) {
 
 	//make a copy of a final product and clear builder instance of an object
 	prod := builder.def
+	if err := validator.Valid.Validate(prod); err != nil {
+		return nil, err
+	}
 	builder.def = baseTaskDefinition{}
 	return &prod, nil
 }

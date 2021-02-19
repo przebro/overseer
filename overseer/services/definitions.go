@@ -48,22 +48,15 @@ func (srv *ovsDefinitionService) GetDefinition(ctx context.Context, msg *service
 
 	for _, t := range tasks {
 
-		if t.Result == false {
+		data, err := json.Marshal(t)
+
+		if err != nil {
 			success = false
-			resultMsg = t.Msg.Error()
-
+			n, grp, _ := t.GetInfo()
+			resultMsg = fmt.Sprintf("unable to parse definition group:%s name:%s", n, grp)
 		} else {
-			data, err := json.Marshal(t.Definition)
-
-			if err != nil {
-				success = false
-				n, grp, _ := t.Definition.GetInfo()
-				resultMsg = fmt.Sprintf("unable to parse definition group:%s name:%s", n, grp)
-			} else {
-				success = true
-				resultMsg = string(data)
-			}
-
+			success = true
+			resultMsg = string(data)
 		}
 
 		result.DefinitionMsg = append(result.DefinitionMsg, &services.DefinitionResult{Success: success, Message: resultMsg})

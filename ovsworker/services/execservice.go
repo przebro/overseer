@@ -95,12 +95,12 @@ func (wsrvc *workerExecutionService) TaskStatus(ctx context.Context, msg *wservi
 
 }
 
-func (wsrvc *workerExecutionService) TerminateTask(context.Context, *wservices.TaskIdMsg) (*wservices.TaskActionMsg, error) {
+func (wsrvc *workerExecutionService) TerminateTask(context.Context, *wservices.TaskIdMsg) (*wservices.WorkerActionMsg, error) {
 	return nil, status.Error(codes.Unimplemented, "not implemented")
 }
-func (wsrvc *workerExecutionService) CompleteTask(ctx context.Context, msg *wservices.TaskIdMsg) (*wservices.TaskActionMsg, error) {
+func (wsrvc *workerExecutionService) CompleteTask(ctx context.Context, msg *wservices.TaskIdMsg) (*wservices.WorkerActionMsg, error) {
 
-	resp := &wservices.TaskActionMsg{Message: "task removed", Success: true}
+	resp := &wservices.WorkerActionMsg{Message: "task removed", Success: true}
 	wsrvc.te.CleanupTask(msg.TaskID)
 	return resp, nil
 }

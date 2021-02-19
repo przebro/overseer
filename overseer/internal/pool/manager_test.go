@@ -6,6 +6,7 @@ import (
 	"overseer/overseer/internal/unique"
 	"overseer/overseer/taskdata"
 	"testing"
+	"time"
 )
 
 func TestNewManager(t *testing.T) {
@@ -27,7 +28,7 @@ func TestOrder(t *testing.T) {
 		t.Error("Unexpected result:", err)
 	}
 
-	activeTaskManagerT.pool.tasks.Remove(unique.TaskOrderID(id))
+	activeTaskManagerT.pool.tasks.remove(unique.TaskOrderID(id))
 
 }
 
@@ -60,7 +61,7 @@ func TestHoldFree(t *testing.T) {
 		t.Error("Unexpected result, expected error")
 	}
 
-	activeTaskManagerT.pool.tasks.Remove(unique.TaskOrderID(orderid))
+	activeTaskManagerT.pool.tasks.remove(unique.TaskOrderID(orderid))
 
 }
 func TestConfirm(t *testing.T) {
@@ -84,9 +85,134 @@ func TestConfirm(t *testing.T) {
 		t.Error("Unexpected result, expected error")
 	}
 
-	activeTaskManagerT.pool.tasks.Remove(unique.TaskOrderID(orderid))
+	activeTaskManagerT.pool.tasks.remove(unique.TaskOrderID(orderid))
 
 }
+
+func TestSetWorkerName(t *testing.T) {
+
+	id, err := activeTaskManagerT.Force(taskdata.GroupNameData{Group: "test", Name: "dummy_03"}, date.CurrentOdate())
+	if err != nil {
+		t.Error("Unexpected result:", err)
+	}
+
+	task, _ := activeTaskManagerT.pool.tasks.get(unique.TaskOrderID(id))
+
+	task.SetWorkerName("test_workername")
+	if task.WorkerName() != "test_workername" {
+		t.Error("unexpected result:", task.WorkerName(), "expected: test_workername")
+	}
+	activeTaskManagerT.pool.tasks.remove(unique.TaskOrderID(id))
+}
+
+func TestStartEndTime(t *testing.T) {
+
+	id, err := activeTaskManagerT.Force(taskdata.GroupNameData{Group: "test", Name: "dummy_03"}, date.CurrentOdate())
+	if err != nil {
+		t.Error("Unexpected result:", err)
+	}
+
+	task, _ := activeTaskManagerT.pool.tasks.get(unique.TaskOrderID(id))
+
+	now := time.Now()
+
+	task.SetStartTime()
+	task.SetEndTime()
+	if task.StartTime().Before(now) {
+		t.Error("unexpected value:", task.StartTime(), " is before:", now)
+	}
+
+	if task.EndTime().Before(now) {
+		t.Error("unexpected value:", task.EndTime(), " is before:", now)
+	}
+	activeTaskManagerT.pool.tasks.remove(unique.TaskOrderID(id))
+}
+
+func TestGetModel(t *testing.T) {
+
+	id, err := activeTaskManagerT.Force(taskdata.GroupNameData{Group: "test", Name: "dummy_03"}, date.CurrentOdate())
+	if err != nil {
+		t.Error("Unexpected result:", err)
+	}
+
+	task, _ := activeTaskManagerT.pool.tasks.get(unique.TaskOrderID(id))
+
+	model := task.getModel()
+	if model.OrderID != id {
+		t.Error("unexpected result, model does not match to  the origin task, orderID is different")
+	}
+	if model.OrderDate != date.CurrentOdate() {
+		t.Error("unexpected result, model does not match to  the origin task, ODATE is different")
+	}
+	if model.Confirmed != true {
+		t.Error("unexpected result, model does not match to  the origin task, Confirmed is different")
+	}
+
+	if len(model.Tickets) != 1 {
+		t.Error("unexpected result, model does not match to  the origin task, In Tickets are different")
+	}
+	if model.Tickets[0].Name != "IN-DUMMY03" {
+		t.Error("unexpected result, model does not match to  the origin task, Ticket name is different")
+	}
+
+	if model.Tickets[0].Odate != string(date.CurrentOdate()) {
+		t.Error("unexpected result, model does not match to  the origin task, Ticket ODATE is different")
+	}
+
+	badModel := activeTaskModel{Definition: []byte("{}")}
+
+	if _, err = fromModel(badModel); err == nil {
+		t.Error("unexpected result")
+	}
+
+	badModel.Tickets = nil
+
+	if _, err = fromModel(badModel); err == nil {
+		t.Error("unexpected result")
+	}
+
+	def, err := fromModel(model)
+	if err != nil {
+		t.Error("unexpected result")
+	}
+
+	if def.orderID != task.orderID {
+		t.Error("unexpected result")
+	}
+
+	if def.orderDate != task.orderDate {
+		t.Error("unexpected result")
+	}
+
+	activeTaskManagerT.pool.tasks.remove(unique.TaskOrderID(id))
+}
+
+/*
+{
+    "type" : "dummy",
+    "name" :"dummy_03",
+    "group" : "test",
+    "description" :"sample dummy task definition",
+    "inticket" : [
+        {"name" : "IN-DUMMY03","odate" : "ODATE" }
+    ],
+    "relation" :"AND",
+    "flags" : [],
+    "outticket" :[
+        {"name" : "OK-DUMMY03","odate" : "ODATE" ,"action":"ADD"},
+        {"name" : "IN-DUMMY03","odate" : "ODATE" ,"action":"REM"}
+
+    ],
+    "schedule" :{
+        "type" : "manual",
+        "from" : "",
+        "to" : ""
+    },
+    "other" : {"name" :"xxx","val" :"yyyy"}
+
+}
+
+*/
 
 func TestForce(t *testing.T) {
 
@@ -103,7 +229,7 @@ func TestForce(t *testing.T) {
 		t.Error("Unexpected result:", err)
 	}
 
-	activeTaskManagerT.pool.tasks.Remove(unique.TaskOrderID(id))
+	activeTaskManagerT.pool.tasks.remove(unique.TaskOrderID(id))
 
 }
 
@@ -188,7 +314,7 @@ func TestChangeState(t *testing.T) {
 	}
 
 	msg = events.NewMsg(events.RouteChangeStateMsg{SetOK: true, OrderID: orderID})
-	task, _ := activeTaskManagerT.pool.tasks.Get(orderID)
+	task, _ := activeTaskManagerT.pool.tasks.get(orderID)
 	task.state = TaskStateEndedNotOk
 
 	go func(msg events.DispatchedMessage) {
@@ -269,7 +395,7 @@ func TestChangeState(t *testing.T) {
 		t.Log("Unexpected result:", err)
 	}
 
-	activeTaskManagerT.pool.tasks.Remove(unique.TaskOrderID(id))
+	activeTaskManagerT.pool.tasks.remove(unique.TaskOrderID(id))
 
 }
 
@@ -311,7 +437,7 @@ func TestProcesAddTask(t *testing.T) {
 	}
 	taskID := result.Data[0].TaskID
 
-	activeTaskManagerT.pool.tasks.Remove(taskID)
+	activeTaskManagerT.pool.tasks.remove(taskID)
 
 	msg = events.NewMsg(events.RouteTaskActionMsgFormat{Group: "test", Name: "dummy_03", Force: false, Odate: date.CurrentOdate()})
 
@@ -325,6 +451,5 @@ func TestProcesAddTask(t *testing.T) {
 	}
 	taskID = result.Data[0].TaskID
 
-	activeTaskManagerT.pool.tasks.Remove(taskID)
-
+	activeTaskManagerT.pool.tasks.remove(taskID)
 }

@@ -15,20 +15,26 @@ func TestNewTaskPool(t *testing.T) {
 		t.Error("TaskPool not initialized")
 	}
 
+	taskPoolConfig.Collection = "invalid_collection"
+	_, err := NewTaskPool(mDispatcher, taskPoolConfig, provider)
+	if err == nil {
+		t.Error("unexpected result")
+	}
+
 }
 func TestTaskAddGetDetailList(t *testing.T) {
 
 	orderID := unique.TaskOrderID("33333")
 	builder := taskdef.DummyTaskBuilder{}
 
-	odate := date.AddDays(taskPoolT.currentOdate, -2)
-	def, _ := builder.WithBase("test", "task", "testdescription").WithRetention(0).Build()
+	odate := date.AddDays(date.CurrentOdate(), -2)
+	def, _ := builder.WithBase("test", "task", "testdescription").WithSchedule(taskdef.SchedulingData{OrderType: taskdef.OrderingManual}).WithRetention(0).Build()
 	atask := &activeTask{TaskDefinition: def, orderID: orderID, orderDate: odate}
 	atask.state = TaskStateEndedOk
 
 	taskPoolT.addTask(orderID, atask)
 
-	if taskPoolT.tasks.Len() != 1 {
+	if taskPoolT.tasks.len() != 1 {
 		t.Error("unexpected result")
 	}
 
@@ -62,7 +68,7 @@ func TestTaskAddGetDetailList(t *testing.T) {
 
 	}
 
-	taskPoolT.tasks.Remove(orderID)
+	taskPoolT.tasks.remove(orderID)
 
 }
 func TestProcessingFlag(t *testing.T) {
@@ -82,19 +88,19 @@ func TestCleanUp(t *testing.T) {
 	orderID := unique.TaskOrderID("12345")
 	builder := taskdef.DummyTaskBuilder{}
 
-	odate := date.AddDays(taskPoolT.currentOdate, -2)
-	def, _ := builder.WithBase("test", "task", "testdescription").WithRetention(0).Build()
+	odate := date.AddDays(date.CurrentOdate(), -2)
+	def, _ := builder.WithBase("test", "task", "testdescription").WithSchedule(taskdef.SchedulingData{OrderType: taskdef.OrderingManual}).WithRetention(0).Build()
 	atask := &activeTask{TaskDefinition: def, orderID: orderID, orderDate: odate}
 	atask.state = TaskStateEndedOk
 	taskPoolT.addTask(orderID, atask)
 
-	if taskPoolT.tasks.Len() != 1 {
+	if taskPoolT.tasks.len() != 1 {
 		t.Error("unexpected result")
 	}
 
 	taskPoolT.cleanupCompletedTasks()
 
-	if taskPoolT.tasks.Len() != 0 {
+	if taskPoolT.tasks.len() != 0 {
 		t.Error("unexpected result")
 	}
 

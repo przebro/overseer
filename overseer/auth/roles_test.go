@@ -47,7 +47,6 @@ func rprepare(t *testing.T) {
 	if err != nil {
 		t.Fatal("unable to init store")
 	}
-
 }
 
 func TestNewRoleManager(t *testing.T) {
@@ -57,6 +56,12 @@ func TestNewRoleManager(t *testing.T) {
 	_, err := NewRoleManager(rconf, provider)
 	if err != nil {
 		t.Error("unexpected resutlt:", err)
+	}
+
+	cfg := config.SecurityConfiguration{Collection: "invalid_name"}
+	_, err = NewRoleManager(cfg, provider)
+	if err == nil {
+		t.Error("unexpected result")
 	}
 }
 

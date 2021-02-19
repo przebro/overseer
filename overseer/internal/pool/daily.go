@@ -9,15 +9,16 @@ import (
 
 //DailyExecutor - Executes New Day Procedure
 type DailyExecutor struct {
-	pool    *ActiveTaskPool
-	manager *ActiveTaskPoolManager
-	log     logger.AppLogger
+	pool              *ActiveTaskPool
+	manager           *ActiveTaskPoolManager
+	log               logger.AppLogger
+	lastExecutionDate date.Odate
 }
 
 //NewDailyExecutor - Creates new DailyExecutor
 func NewDailyExecutor(dispatcher events.Dispatcher, manager *ActiveTaskPoolManager, pool *ActiveTaskPool) *DailyExecutor {
 
-	daily := &DailyExecutor{pool: pool, manager: manager, log: logger.Get()}
+	daily := &DailyExecutor{pool: pool, manager: manager, log: logger.Get(), lastExecutionDate: date.CurrentOdate()}
 	if dispatcher != nil {
 		dispatcher.Subscribe(events.RouteTimeOut, daily)
 	}
@@ -33,14 +34,14 @@ func (exec *DailyExecutor) CheckDailyProcedure(tm time.Time) bool {
 
 	odt1 := time.Date(y, time.Month(mth), d, h, m, 0, 0, time.Local)
 
-	return odt1.Before(tm) && date.IsBeforeCurrent(exec.pool.currentOdate, date.CurrentOdate())
+	return odt1.Before(tm) && date.IsBeforeCurrent(exec.lastExecutionDate, date.CurrentOdate())
 }
 
 //DailyProcedure - Cleanups and place new tasks in the Active Pool
 func (exec *DailyExecutor) DailyProcedure() (int, int) {
 
 	exec.log.Info("Starting new day procedure")
-	exec.pool.currentOdate = date.CurrentOdate()
+	exec.lastExecutionDate = date.CurrentOdate()
 
 	deleted := exec.pool.cleanupCompletedTasks()
 	ordered := exec.manager.orderNewTasks()

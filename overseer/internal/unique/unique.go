@@ -5,10 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"math/rand"
-	"overseer/common/types/date"
-	"regexp"
 	"sync"
-	"sync/atomic"
 	"time"
 )
 
@@ -23,19 +20,14 @@ type MsgID [12]byte
 type TaskOrderID string
 
 var (
-	oidSeq         int32   = 0
 	unq            *unique = nil
 	once           sync.Once
 	errInvalidLen  = errors.New("TaskOrderID invalid length")
 	errInvalidChar = errors.New("TaskOrderID contains invalid characters")
 )
 
-const (
-	maxOidSeq = 14776336
-	base62Str = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-)
-
 func initialize() {
+
 	unq = &unique{m: sync.Mutex{}}
 	rand.Seed(time.Now().UnixNano())
 }
@@ -61,20 +53,6 @@ func (msgid MsgID) Hex() string {
 	bytes := make([]byte, 12)
 	copy(bytes, msgid[:])
 	return hex.EncodeToString(bytes)
-}
-
-//ValidateValue - Validates TaskOrderID
-func (orderID TaskOrderID) validateValue() (bool, error) {
-
-	if len(orderID) != 5 {
-		return false, errInvalidLen
-	}
-	match, _ := regexp.MatchString(`[0-9A-Za-z]{5}`, string(orderID))
-
-	if !match {
-		return false, errInvalidChar
-	}
-	return true, nil
 }
 
 func getUniqueBytes() MsgID {
@@ -108,27 +86,4 @@ func getUniqueBytes() MsgID {
 
 	return mid
 
-}
-
-//NewOrderID - Generates a new unique OrderID
-func NewOrderID() TaskOrderID {
-
-	seq := atomic.AddInt32(&oidSeq, 1)
-
-	pos := 0
-	result := make([]byte, 4)
-
-	odate := date.CurrentOdate()
-	week := odate.Woyear()
-
-	for seq != 0 {
-		result[pos] = byte((seq % 62))
-		seq = seq / 62
-		pos++
-
-	}
-
-	atomic.CompareAndSwapInt32(&oidSeq, maxOidSeq, 0)
-
-	return TaskOrderID(string([]byte{base62Str[week], base62Str[result[3]], base62Str[result[2]], base62Str[result[1]], base62Str[result[0]]}))
 }

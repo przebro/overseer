@@ -6,6 +6,7 @@ import (
 	"overseer/common/logger"
 	"overseer/common/types"
 	"overseer/common/types/date"
+	"overseer/datastore"
 	"overseer/overseer/config"
 	"overseer/overseer/internal/events"
 	"overseer/overseer/internal/unique"
@@ -18,7 +19,6 @@ import (
 type ActiveTaskPool struct {
 	config       config.ActivePoolConfiguration
 	dispatcher   events.Dispatcher
-	currentOdate date.Odate
 	tasks        *Store
 	log          logger.AppLogger
 	isProcActive bool
@@ -32,15 +32,22 @@ type TaskViewer interface {
 }
 
 //NewTaskPool - creates new task pool
-func NewTaskPool(dispatcher events.Dispatcher, cfg config.ActivePoolConfiguration) *ActiveTaskPool {
+func NewTaskPool(dispatcher events.Dispatcher, cfg config.ActivePoolConfiguration, provider *datastore.Provider) (*ActiveTaskPool, error) {
+
+	var store *Store
+	var err error
+	log := logger.Get()
+
+	if store, err = NewStore(cfg.Collection, log, provider, cfg.SyncTime); err != nil {
+		return nil, err
+	}
 
 	pool := &ActiveTaskPool{
-		currentOdate: date.CurrentOdate(),
-		tasks:        NewStore(),
+		tasks:        store,
 		dispatcher:   dispatcher,
 		config:       cfg,
 		isProcActive: true,
-		log:          logger.Get(),
+		log:          log,
 		processing:   make(chan *activeTask, 8),
 	}
 
@@ -48,7 +55,7 @@ func NewTaskPool(dispatcher events.Dispatcher, cfg config.ActivePoolConfiguratio
 		dispatcher.Subscribe(events.RouteTimeOut, pool)
 	}
 
-	return pool
+	return pool, nil
 }
 
 func (pool *ActiveTaskPool) cleanupCompletedTasks() int {
@@ -59,7 +66,7 @@ func (pool *ActiveTaskPool) cleanupCompletedTasks() int {
 	pool.tasks.ForEach(func(k unique.TaskOrderID, v *activeTask) {
 
 		cleanDate := date.AddDays(v.OrderDate(), v.Retention())
-		if v.State() == TaskStateEndedOk && date.IsBeforeCurrent(cleanDate, pool.currentOdate) {
+		if v.State() == TaskStateEndedOk && date.IsBeforeCurrent(cleanDate, date.CurrentOdate()) {
 			delete(pool.tasks.store, v.OrderID())
 			numDeleted++
 		}
@@ -70,7 +77,7 @@ func (pool *ActiveTaskPool) cleanupCompletedTasks() int {
 }
 func (pool *ActiveTaskPool) addTask(orderID unique.TaskOrderID, t *activeTask) {
 
-	pool.tasks.Add(orderID, t)
+	pool.tasks.add(orderID, t)
 }
 
 //Task - Returns an active task with given id or error if the task was not found.
@@ -78,7 +85,7 @@ func (pool *ActiveTaskPool) task(orderID unique.TaskOrderID) (*activeTask, error
 
 	var err error = nil
 
-	task, exists := pool.tasks.Get(orderID)
+	task, exists := pool.tasks.get(orderID)
 	if !exists {
 		return nil, errors.New("task does not exists")
 	}
@@ -92,7 +99,7 @@ func (pool *ActiveTaskPool) cycleTasks(t time.Time) {
 	tsart := time.Now()
 	routines := 8
 
-	tchannel := make(chan *activeTask, pool.tasks.Len())
+	tchannel := make(chan *activeTask, pool.tasks.len())
 	wg := sync.WaitGroup{}
 	wg.Add(routines)
 
@@ -104,7 +111,6 @@ func (pool *ActiveTaskPool) cycleTasks(t time.Time) {
 
 	close(tchannel)
 	wg.Wait()
-	pool.log.Debug("cycleTask - end cycle")
 	pool.log.Info(time.Since(tsart))
 }
 
@@ -118,7 +124,8 @@ func (pool *ActiveTaskPool) processTaskState(ch <-chan *activeTask, wg *sync.Wai
 		}
 
 		exCtx := &TaskExecutionContext{
-			odate:      pool.currentOdate,
+			//odate:      pool.currentOdate,
+			odate:      date.CurrentOdate(),
 			task:       task,
 			time:       t,
 			maxRc:      pool.config.MaxOkReturnCode,
@@ -157,7 +164,7 @@ func (pool *ActiveTaskPool) Detail(orderID unique.TaskOrderID) (events.TaskDetai
 	var t *activeTask
 	var exists bool
 
-	if t, exists = pool.tasks.Get(orderID); exists == false {
+	if t, exists = pool.tasks.get(orderID); exists == false {
 		return result, errors.New("unable  to find task with give ID")
 	}
 

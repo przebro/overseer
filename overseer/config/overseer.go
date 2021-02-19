@@ -34,6 +34,8 @@ type ActivePoolConfiguration struct {
 	MaxOkReturnCode int32             `json:"maxOkReturnCode"`
 	NewDayProc      types.HourMinTime `json:"newDayProc"`
 	ForceNewDayProc bool              `json:"forceNewDayProc"`
+	Collection      string            `json:"collection"`
+	SyncTime        int               `json:"syncTime"`
 }
 type ResourceEntry struct {
 	Collection string `json:"collectionName"`
@@ -48,12 +50,20 @@ type ResourcesConfigurartion struct {
 //IntervalValue - represents limited interval value
 type IntervalValue int
 
+//ServerConfiguration - main server parameters
+type ServerConfiguration struct {
+	ProcessDirectory string
+	RootDirectory    string
+	Host             string `json:"ovshost"`
+	Port             int    `json:"ovsport"`
+	TLS              bool   `json:"tls"`
+	ServerCert       string `json:"cert"`
+	ServerKey        string `json:"key"`
+}
+
 //OverseerConfiguration - main configuration
 type OverseerConfiguration struct {
-	ProcessDirectory    string
-	RootDirectory       string
-	Host                string                     `json:"ovshost"`
-	Port                int                        `json:"ovsport"`
+	Server              ServerConfiguration        `json:"serverConfiguration"`
 	DefinitionDirectory string                     `json:"definitionDirectory"`
 	Resources           ResourcesConfigurartion    `json:"ResourceConfiguration"`
 	Log                 LogConfiguration           `json:"LogConfiguration"`
@@ -80,7 +90,6 @@ type CollectionConfiguration struct {
 }
 
 type SecurityConfiguration struct {
-	Ssl            bool          `json:"ssl"`
 	AllowAnonymous bool          `json:"allowAnonymous"`
 	Timeout        int           `json:"timeout"`
 	Issuer         string        `json:"issuer"`
@@ -105,6 +114,11 @@ func Load(path string) (*OverseerConfiguration, error) {
 	}
 
 	return config, nil
+}
+
+func (cfg *OverseerConfiguration) GetServerConfiguration() ServerConfiguration {
+
+	return cfg.Server
 }
 
 //GetLogConfiguration - Gets a log configuration section

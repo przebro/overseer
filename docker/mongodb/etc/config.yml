@@ -1,0 +1,14 @@
+net:
+   tls:
+      allowInvalidCertificates : true 
+# allowTLS | requireTLS preferTLS
+      mode: preferTLS
+#Path Key 
+#     PEMKeyPassword : ""
+      certificateKeyFile : "/opt/mongo/cert/mongodb.pem"
+#Path to CA file
+      CAFile : "/opt/mongo/cert/root_ca.crt"
+      allowConnectionsWithoutCertificates: true
+
+storage: 
+   dbPath: "/data/db"

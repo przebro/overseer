@@ -2,11 +2,15 @@ package pool
 
 import (
 	"errors"
+	"fmt"
+	"os"
 	"overseer/common/logger"
 	"overseer/common/types"
+	"overseer/datastore"
 	"overseer/overseer/config"
 	"overseer/overseer/internal/events"
 	"overseer/overseer/internal/taskdef"
+	"overseer/overseer/internal/unique"
 	"path/filepath"
 )
 
@@ -86,18 +90,64 @@ func (m *mockDispatcher) Unsubscribe(route events.RouteName, participant events.
 
 }
 
+var storeConfig config.StoreProviderConfiguration = config.StoreProviderConfiguration{
+	Store: []config.StoreConfiguration{
+		{ID: "teststore", ConnectionString: "local;/../../../data/tests"},
+	},
+	Collections: []config.CollectionConfiguration{
+		{Name: "tasks", StoreID: "teststore"},
+		{Name: "sequence", StoreID: "teststore"},
+	},
+}
+
+var testCollectionName = "tasks"
+var taskPoolConfig config.ActivePoolConfiguration = config.ActivePoolConfiguration{
+	ForceNewDayProc: true, MaxOkReturnCode: 4,
+	NewDayProc: "00:30",
+	SyncTime:   5,
+	Collection: testCollectionName,
+}
+
+type mockSequence struct {
+	val int
+}
+
+func (m *mockSequence) Next() unique.TaskOrderID {
+
+	m.val++
+	return unique.TaskOrderID(fmt.Sprintf("%05d", m.val))
+}
+
+var seq = &mockSequence{val: 1}
+
+var provider *datastore.Provider
+
 var definitionManagerT taskdef.TaskDefinitionManager
 var mDispatcher = &mockDispatcher{Tickets: make(map[string]string, 0)}
-var taskPoolT *ActiveTaskPool = NewTaskPool(mDispatcher, config.ActivePoolConfiguration{ForceNewDayProc: true, MaxOkReturnCode: 4, NewDayProc: "00:30"})
+var taskPoolT *ActiveTaskPool
 var activeTaskManagerT *ActiveTaskPoolManager
 var log logger.AppLogger = logger.NewTestLogger()
 
 func init() {
 
-	taskPoolT.log = log
+	f, _ := os.Create("../../../data/tests/tasks.json")
+	f.Write([]byte("{}"))
+	f.Close()
+
+	f2, _ := os.Create("../../../data/tests/sequence.json")
+	f2.Write([]byte(`{}`))
+	f2.Close()
+
+	provider, _ = datastore.NewDataProvider(storeConfig)
+	initTaskPool()
+	taskPoolT.log = logger.NewTestLogger()
 	path, _ := filepath.Abs("../../../def/")
 	definitionManagerT, _ = taskdef.NewManager(path)
-	activeTaskManagerT = NewActiveTaskPoolManager(mDispatcher, definitionManagerT, taskPoolT)
+	activeTaskManagerT, _ = NewActiveTaskPoolManager(mDispatcher, definitionManagerT, taskPoolT, provider)
 	activeTaskManagerT.log = log
+	activeTaskManagerT.sequence = seq
 
+}
+func initTaskPool() {
+	taskPoolT, _ = NewTaskPool(mDispatcher, taskPoolConfig, provider)
 }

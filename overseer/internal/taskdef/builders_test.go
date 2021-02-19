@@ -1,18 +1,26 @@
 package taskdef
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestBuilderFromTemplate(t *testing.T) {
 
 	builder, builder2 := &DummyTaskBuilder{}, &DummyTaskBuilder{}
 
-	sd := SchedulingData{FromTime: "10:30", AllowPastSub: true}
+	sd := SchedulingData{FromTime: "10:30", AllowPastSub: true, OrderType: OrderingManual}
 	intd := []InTicketData{{Name: "TICKET01", Odate: "ODATE"}}
 	outtd := []OutTicketData{{Action: "ADD", Name: "TICKET01", Odate: "ODATE"}}
 
-	task, _ := builder.WithBase("testgroup", "testname", "testdescription").WithRetention(5).WithConfirm().Build()
+	task, err := builder.WithBase("testgroup", "testname", "testdescription").WithSchedule(SchedulingData{OrderType: OrderingManual}).WithRetention(5).WithConfirm().Build()
+	if err != nil {
+		t.Error(err)
+	}
 
-	task2, _ := builder2.FromTemplate(task).WithSchedule(sd).WithInTicekts(intd, InTicketAND).WithOutTickets(outtd).Build()
+	task2, err := builder2.FromTemplate(task).WithSchedule(sd).WithInTicekts(intd, InTicketAND).WithOutTickets(outtd).Build()
+	if err != nil {
+		t.Error(err)
+	}
 
 	n, g, d := task2.GetInfo()
 

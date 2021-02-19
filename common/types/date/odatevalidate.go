@@ -92,16 +92,13 @@ func (oval OdateValue) validateValue() (bool, error) {
 		return true, nil
 	}
 
-	ok, err := regexp.MatchString(`^[\-|\+]{1}\d{3}$`, string(oval))
-	if err != nil {
-		return false, err
-	}
+	ok, _ := regexp.MatchString(`^[\-|\+]{1}\d{3}$`, string(oval))
 
 	if ok {
 		return true, nil
 	}
 
-	err = validator.Valid.Validate(Odate(oval))
+	err := validator.Valid.Validate(Odate(oval))
 	if err != nil {
 		return false, err
 	}

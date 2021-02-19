@@ -5,9 +5,6 @@ import (
 	"os"
 	"overseer/common/logger"
 	"overseer/overseer/config"
-
-	_ "github.com/przebro/couchstore/store"
-
 	"testing"
 )
 
@@ -99,6 +96,7 @@ func TestProviderCollections(t *testing.T) {
 	if err == nil {
 		t.Error("unexpected result", err)
 	}
+
 }
 
 func TestGetCollection(t *testing.T) {
@@ -130,5 +128,19 @@ func TestGetCollection(t *testing.T) {
 	}
 	if col == nil {
 		t.Error("unexpected error nil collection")
+	}
+
+	conf.Collections = []config.CollectionConfiguration{{Name: "resources2", StoreID: "not_exists"}}
+
+	prov, err := NewDataProvider(conf)
+
+	if err != nil {
+		t.Error("unexpected result", err)
+	}
+
+	_, err = prov.GetCollection("resources2")
+
+	if err == nil {
+		t.Error("unexpected result")
 	}
 }

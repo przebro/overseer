@@ -10,6 +10,7 @@ import (
 	"github.com/przebro/databazaar/store"
 	//required driver
 	_ "github.com/przebro/localstore/store"
+	_ "github.com/przebro/mongostore/store"
 
 	"github.com/przebro/databazaar/collection"
 )

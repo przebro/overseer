@@ -22,3 +22,15 @@ protoc:
 	 protoc --proto_path=./proto/  --go_out=plugins=grpc:./ proto/wservices.proto 
 	 protoc --proto_path=./proto/  --go_out=plugins=grpc:./ proto/actions.proto 
 	 protoc --proto_path=./proto/  --go_out=plugins=grpc:./ proto/services.proto
+dockerbuild:
+	docker build -t overseer/mongodb -f docker/mongodb/Dockerfile .
+start:
+	docker run -d -l ovsdbmongo --name mongo_ovs -p23017:27017 -v ${PWD}/docker/mongodb/etc:/etc/mongo \
+		-e MONGO_INITDB_ROOT_USERNAME=admin \
+		-e MONGO_INITDB_ROOT_PASSWORD=notsecure \
+		-e MONGO_INITDB_DATABASE=overseer \
+		overseer/mongodb --config /etc/mongo/config.yml
+stop:
+	docker stop mongo_ovs
+remove:
+	docker rm -f $$( docker ps -qaf "label=ovsdbmongo")

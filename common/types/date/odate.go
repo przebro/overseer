@@ -220,10 +220,18 @@ func AddDays(odate Odate, num int) Odate {
 //FromDateString - convert string date in format YYYY-MM-DD to Odate
 func FromDateString(date string) Odate {
 
-	return Odate(fmt.Sprintf("%s%s%s", string(date[0:4]), string(date[5:7]), string(date[8:])))
+	if len(date) != 10 {
+		return ""
+	}
+	odat := Odate(fmt.Sprintf("%s%s%s", string(date[0:4]), string(date[5:7]), string(date[8:])))
+	if ok, _ := odat.validateValue(); !ok {
+		return ""
+	}
 
+	return odat
 }
 
+//FromTime - creates odate from time
 func FromTime(t time.Time) Odate {
 	y, m, d := t.Date()
 	odat := fmt.Sprintf("%d%02d%02d", y, m, d)

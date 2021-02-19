@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"overseer/common/logger"
 	"overseer/common/types/date"
+	"overseer/datastore"
 	"overseer/overseer/internal/events"
 	"overseer/overseer/internal/taskdef"
 	"overseer/overseer/internal/unique"
@@ -14,32 +15,44 @@ import (
 )
 
 var (
+	//ErrUnableFindDef - a definition was not found
 	ErrUnableFindDef = errors.New("unable to find definition")
+	//ErrInvalidStatus - invalid status
 	ErrInvalidStatus = errors.New("Invalid status")
 )
 
 //ActiveTaskPoolManager - Manages tasks in Active task pool
 type ActiveTaskPoolManager struct {
-	lock sync.RWMutex
-	log  logger.AppLogger
-	tdm  taskdef.TaskDefinitionManager
-	pool *ActiveTaskPool
+	lock     sync.RWMutex
+	log      logger.AppLogger
+	tdm      taskdef.TaskDefinitionManager
+	pool     *ActiveTaskPool
+	sequence SequenceGenerator
 }
 
 //NewActiveTaskPoolManager - Creates a new Managager
-func NewActiveTaskPoolManager(dispatcher events.Dispatcher, tdm taskdef.TaskDefinitionManager, pool *ActiveTaskPool) *ActiveTaskPoolManager {
+func NewActiveTaskPoolManager(dispatcher events.Dispatcher,
+	tdm taskdef.TaskDefinitionManager,
+	pool *ActiveTaskPool,
+	provider *datastore.Provider) (*ActiveTaskPoolManager, error) {
+
+	var err error
 	manager := &ActiveTaskPoolManager{}
 	manager.lock = sync.RWMutex{}
 	manager.tdm = tdm
 	manager.pool = pool
 	manager.log = logger.Get()
 
+	if manager.sequence, err = NewSequenceGenerator("sequence", provider); err != nil {
+		return nil, err
+	}
+
 	if dispatcher != nil {
 		dispatcher.Subscribe(events.RouteTaskAct, manager)
 		dispatcher.Subscribe(events.RouteChangeTaskState, manager)
 	}
 
-	return manager
+	return manager, nil
 }
 
 //Order - Orders a new task, this method checks if all precoditions are met before it adds a new task
@@ -188,16 +201,12 @@ func (manager *ActiveTaskPoolManager) orderNewTasks() int {
 	result := manager.tdm.GetTasks(taskData...)
 
 	for _, t := range result {
+
 		//It is a new day procedure so skip tasks that are ordered manually
-		if t.Result == false {
-			manager.log.Error(t.Msg)
-			continue
-		}
-		if t.Definition.OrderType() != taskdef.OrderingManual {
-			manager.orderDefinition(t.Definition, manager.pool.currentOdate)
+		if t.OrderType() != taskdef.OrderingManual {
+			manager.orderDefinition(t, date.CurrentOdate())
 			ordered++
 		}
-
 	}
 	return ordered
 }
@@ -216,7 +225,7 @@ func (manager *ActiveTaskPoolManager) orderDefinition(def taskdef.TaskDefinition
 		ignoreSubmission: false,
 		odate:            odate,
 		state:            &ostateCheckOtype{},
-		currentOdate:     manager.pool.currentOdate,
+		currentOdate:     date.CurrentOdate(),
 		reason:           make([]string, 0),
 		log:              manager.log,
 	}
@@ -230,7 +239,7 @@ func (manager *ActiveTaskPoolManager) orderDefinition(def taskdef.TaskDefinition
 		return "", strings.Join(ctx.reason, ",")
 
 	}
-	orderID := unique.NewOrderID()
+	orderID := manager.sequence.Next()
 
 	task := newActiveTask(orderID, odate, def)
 	manager.pool.addTask(orderID, task)
@@ -254,7 +263,7 @@ func (manager *ActiveTaskPoolManager) forceDefinition(def taskdef.TaskDefinition
 		ignoreSubmission: true,
 		odate:            odate,
 		state:            &ostateCheckOtype{},
-		currentOdate:     manager.pool.currentOdate,
+		currentOdate:     date.CurrentOdate(),
 		reason:           make([]string, 0),
 		log:              manager.log,
 	}
@@ -269,7 +278,7 @@ func (manager *ActiveTaskPoolManager) forceDefinition(def taskdef.TaskDefinition
 		return "", strings.Join(ctx.reason, ",")
 
 	}
-	orderID := unique.NewOrderID()
+	orderID := manager.sequence.Next()
 
 	task := newActiveTask(orderID, odate, def)
 	manager.pool.addTask(orderID, task)

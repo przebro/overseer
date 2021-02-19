@@ -77,6 +77,42 @@ func newActiveTask(orderID unique.TaskOrderID, odate date.Odate, definition task
 	return task
 }
 
+//FromModel - creates an active task from model
+func fromModel(model activeTaskModel) (*activeTask, error) {
+
+	def, err := taskdef.FromString(string(model.Definition))
+	if err != nil {
+		return nil, err
+	}
+
+	tickets := []taskInTicket{}
+	if model.Tickets != nil {
+		for _, n := range model.Tickets {
+			tickets = append(tickets, taskInTicket{name: n.Name, odate: n.Odate, fulfilled: n.Fulfilled})
+		}
+	}
+
+	task := &activeTask{
+		orderID:        unique.TaskOrderID(model.OrderID),
+		TaskDefinition: def,
+		orderDate:      model.OrderDate,
+		runNumber:      model.RunNumber,
+		tickets:        tickets,
+		state:          model.State,
+		startTime:      model.StartTime,
+		endTime:        model.EndTime,
+		lock:           sync.RWMutex{},
+		confirmed:      model.Confirmed,
+		holded:         model.Holded,
+		output:         model.Output,
+		waiting:        model.Waiting,
+		worker:         model.Worker,
+	}
+
+	return task, nil
+
+}
+
 func (task *activeTask) State() TaskState {
 	defer task.lock.RUnlock()
 	task.lock.RLock()
@@ -95,14 +131,20 @@ func (task *activeTask) SetRunNumber() {
 }
 
 func (task *activeTask) Tickets() []taskInTicket {
+	defer task.lock.RUnlock()
+	task.lock.RLock()
 	return task.tickets
 }
 
 func (task *activeTask) OrderID() unique.TaskOrderID {
+	defer task.lock.RUnlock()
+	task.lock.RLock()
 	return task.orderID
 }
 
 func (task *activeTask) OrderDate() date.Odate {
+	defer task.lock.RUnlock()
+	task.lock.RLock()
 	return task.orderDate
 }
 func (task *activeTask) RunNumber() int32 {
@@ -171,10 +213,14 @@ func (task *activeTask) SetWaitingInfo(info string) {
 }
 
 func (task *activeTask) Output() []string {
+	defer task.lock.RUnlock()
+	task.lock.RLock()
 	return task.output
 
 }
 func (task *activeTask) AddOutput(data []string) {
+	defer task.lock.Unlock()
+	task.lock.Lock()
 	task.output = append(task.output, data...)
 }
 
@@ -196,4 +242,32 @@ func (task *activeTask) IsHeld() bool {
 
 	return task.holded
 
+}
+
+func (task *activeTask) getModel() activeTaskModel {
+	defer task.lock.RUnlock()
+	task.lock.RLock()
+	def, _ := taskdef.WriteDefinitionFile(task.TaskDefinition)
+	t := activeTaskModel{
+		Definition: []byte(def),
+		State:      task.state,
+		Holded:     task.holded,
+		Confirmed:  task.confirmed,
+		OrderID:    string(task.orderID),
+		OrderDate:  task.orderDate,
+		Tickets:    []taskInTicketModel{},
+		RunNumber:  task.runNumber,
+		Worker:     task.worker,
+		Waiting:    task.waiting,
+		StartTime:  task.startTime,
+		EndTime:    task.endTime,
+		Output:     make([]string, len(task.output)),
+	}
+
+	copy(t.Output, task.output)
+	for _, n := range task.tickets {
+		t.Tickets = append(t.Tickets, taskInTicketModel{Name: n.name, Odate: n.odate, Fulfilled: n.fulfilled})
+	}
+
+	return t
 }

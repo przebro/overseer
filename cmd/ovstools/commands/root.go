@@ -13,10 +13,7 @@ var rootCmd = &cobra.Command{
 
 var ovsAddr string
 
-func init() {
-
-}
-
+//Setup - performs setup
 func Setup(client *ovscli.OverseerClient) {
 
 	rootCmd.AddCommand(createQuitCommand(client))
@@ -33,6 +30,7 @@ func Setup(client *ovscli.OverseerClient) {
 	rootCmd.AddCommand(createPoolCmd(client))
 }
 
+//Execute - executes commands
 func Execute(args []string) error {
 
 	rootCmd.SetArgs(args)

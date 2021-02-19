@@ -264,3 +264,24 @@ func TestFromTime(t *testing.T) {
 		t.Error("unexpected result:")
 	}
 }
+func TestFromDateString(t *testing.T) {
+
+	r := FromDateString("2020-01-01")
+	if r != Odate("20200101") {
+		t.Error("unexpected result:")
+	}
+
+	r = FromDateString("2020-01-0")
+	if r != "" {
+		t.Error("unexpected result:")
+	}
+
+	r = FromDateString("2020-02-30")
+	if r != "" {
+		t.Error("unexpected result:")
+	}
+	r = FromDateString("2020-02-11")
+	if r != "20200211" {
+		t.Error("unexpected result:")
+	}
+}

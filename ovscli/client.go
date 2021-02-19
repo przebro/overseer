@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"overseer/common/cert"
 	"overseer/proto/services"
 	"strings"
 	"time"
@@ -48,16 +49,20 @@ func (cli *OverseerClient) Close() {
 }
 
 //Connect - setup  connection to server
-func (cli *OverseerClient) Connect(addr string, cert string) string {
+func (cli *OverseerClient) Connect(addr string, certpath string) string {
 
 	var opt []grpc.DialOption
 	var err error
 
 	opt = append(opt, grpc.WithBlock(), grpc.WithTimeout(5*time.Second))
-	if cert == "" {
+	if certpath == "" {
 		opt = append(opt, grpc.WithInsecure())
 	} else {
-
+		if creds, err := cert.GetClientTLS(certpath, false); err != nil {
+			return fmt.Sprintf("failed to initalize connection:%v\n", err)
+		} else {
+			opt = append(opt, grpc.WithTransportCredentials(creds))
+		}
 	}
 
 	if cli.conn != nil {

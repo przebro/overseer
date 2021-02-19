@@ -7,7 +7,6 @@ import (
 	"overseer/common/types/date"
 	"overseer/overseer/internal/taskdef"
 
-	"overseer/overseer/internal/unique"
 	"testing"
 	"time"
 )
@@ -29,7 +28,7 @@ func TestStateCheckTime(t *testing.T) {
 
 	builder := taskdef.DummyTaskBuilder{}
 	definition, err := builder.WithBase("test", "dummy_04", "test task").
-		WithSchedule(taskdef.SchedulingData{FromTime: "", ToTime: ""}).
+		WithSchedule(taskdef.SchedulingData{FromTime: "", ToTime: "", OrderType: taskdef.OrderingManual}).
 		Build()
 	if err != nil {
 		t.Fatal("Unable to construct task")
@@ -41,7 +40,7 @@ func TestStateCheckTime(t *testing.T) {
 		dispatcher: mDispatcher,
 		time:       now,
 	}
-	ctx.task = newActiveTask(unique.NewOrderID(), date.CurrentOdate(), definition)
+	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition)
 
 	state := ostateCheckTime{}
 	result = state.processState(&ctx)
@@ -52,13 +51,13 @@ func TestStateCheckTime(t *testing.T) {
 
 	// now -> from "-" -> to "-"
 	definition, err = builder.FromTemplate(definition).WithSchedule(
-		taskdef.SchedulingData{FromTime: strnp10, ToTime: ""}).Build()
+		taskdef.SchedulingData{FromTime: strnp10, ToTime: "", OrderType: taskdef.OrderingDaily}).Build()
 
 	if err != nil {
 		t.Error(err)
 	}
 
-	ctx.task = newActiveTask(unique.NewOrderID(), date.CurrentOdate(), definition)
+	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition)
 
 	result = state.processState(&ctx)
 	if result == true {
@@ -68,13 +67,13 @@ func TestStateCheckTime(t *testing.T) {
 
 	// now -> from "-" -> to "-"
 	definition, err = builder.FromTemplate(definition).WithSchedule(
-		taskdef.SchedulingData{FromTime: "", ToTime: strnp20}).Build()
+		taskdef.SchedulingData{FromTime: "", ToTime: strnp20, OrderType: taskdef.OrderingDaily}).Build()
 
 	if err != nil {
 		t.Error(err)
 	}
 
-	ctx.task = newActiveTask(unique.NewOrderID(), date.CurrentOdate(), definition)
+	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition)
 
 	result = state.processState(&ctx)
 	if result != true {
@@ -84,13 +83,13 @@ func TestStateCheckTime(t *testing.T) {
 
 	//from "-" -> now -> to "-"
 	definition, err = builder.FromTemplate(definition).WithSchedule(
-		taskdef.SchedulingData{FromTime: strnm10, ToTime: strnp10}).Build()
+		taskdef.SchedulingData{FromTime: strnm10, ToTime: strnp10, OrderType: taskdef.OrderingDaily}).Build()
 
 	if err != nil {
 		t.Error(err)
 	}
 
-	ctx.task = newActiveTask(unique.NewOrderID(), date.CurrentOdate(), definition)
+	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition)
 
 	result = state.processState(&ctx)
 	if result != true {
@@ -100,13 +99,13 @@ func TestStateCheckTime(t *testing.T) {
 
 	//from "-" -> to "-" -> now
 	definition, err = builder.FromTemplate(definition).WithSchedule(
-		taskdef.SchedulingData{FromTime: strnm20, ToTime: strnm10}).Build()
+		taskdef.SchedulingData{FromTime: strnm20, ToTime: strnm10, OrderType: taskdef.OrderingDaily}).Build()
 
 	if err != nil {
 		t.Error(err)
 	}
 
-	ctx.task = newActiveTask(unique.NewOrderID(), date.CurrentOdate(), definition)
+	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition)
 
 	result = state.processState(&ctx)
 	if result == true {
@@ -116,13 +115,13 @@ func TestStateCheckTime(t *testing.T) {
 
 	//from "-" -> to "-" -> now
 	definition, err = builder.FromTemplate(definition).WithSchedule(
-		taskdef.SchedulingData{FromTime: "", ToTime: strnm10}).Build()
+		taskdef.SchedulingData{FromTime: "", ToTime: strnm10, OrderType: taskdef.OrderingDaily}).Build()
 
 	if err != nil {
 		t.Error(err)
 	}
 
-	ctx.task = newActiveTask(unique.NewOrderID(), date.CurrentOdate(), definition)
+	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition)
 
 	result = state.processState(&ctx)
 	if result == true {
@@ -132,13 +131,13 @@ func TestStateCheckTime(t *testing.T) {
 
 	//from "-" -> to "-" -> now
 	definition, err = builder.FromTemplate(definition).WithSchedule(
-		taskdef.SchedulingData{FromTime: strn, ToTime: ""}).Build()
+		taskdef.SchedulingData{FromTime: strn, ToTime: "", OrderType: taskdef.OrderingDaily}).Build()
 
 	if err != nil {
 		t.Error(err)
 	}
 
-	ctx.task = newActiveTask(unique.NewOrderID(), date.CurrentOdate(), definition)
+	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition)
 
 	//from now -> to "-"
 	result = state.processState(&ctx)
@@ -149,13 +148,13 @@ func TestStateCheckTime(t *testing.T) {
 
 	//from "-" -> to "-" -> now
 	definition, err = builder.FromTemplate(definition).WithSchedule(
-		taskdef.SchedulingData{FromTime: "", ToTime: strn}).Build()
+		taskdef.SchedulingData{FromTime: "", ToTime: strn, OrderType: taskdef.OrderingDaily}).Build()
 
 	if err != nil {
 		t.Error(err)
 	}
 
-	ctx.task = newActiveTask(unique.NewOrderID(), date.CurrentOdate(), definition)
+	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition)
 
 	//from '-' -> to now
 	result = state.processState(&ctx)
@@ -171,6 +170,7 @@ func TestStateCheckCond(t *testing.T) {
 
 	builder := taskdef.DummyTaskBuilder{}
 	definition, err := builder.WithBase("test", "dummy_04", "test task").
+		WithSchedule(taskdef.SchedulingData{OrderType: taskdef.OrderingManual}).
 		WithInTicekts([]taskdef.InTicketData{
 			{
 				Name: "TESTABC01", Odate: date.OdateValueDate,
@@ -191,7 +191,7 @@ func TestStateCheckCond(t *testing.T) {
 		time:       now,
 	}
 
-	ctx.task = newActiveTask(unique.NewOrderID(), date.CurrentOdate(), definition)
+	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition)
 
 	mDispatcher.withError = true
 	state := ostateCheckConditions{}
@@ -234,7 +234,7 @@ func TestStateCheckCond(t *testing.T) {
 		t.Error(err)
 	}
 
-	ctx.task = newActiveTask(unique.NewOrderID(), date.CurrentOdate(), definition)
+	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition)
 
 	result = state.processState(&ctx)
 
@@ -268,7 +268,7 @@ func TestStateCheckCond(t *testing.T) {
 		t.Error(err)
 	}
 
-	ctx.task = newActiveTask(unique.NewOrderID(), date.CurrentOdate(), definition)
+	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition)
 	result = state.processState(&ctx)
 
 	if result != true {
@@ -291,7 +291,7 @@ func TestStateCheckCond(t *testing.T) {
 		t.Error(err)
 	}
 
-	ctx.task = newActiveTask(unique.NewOrderID(), date.CurrentOdate(), definition)
+	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition)
 	mDispatcher.Tickets = make(map[string]string, 0)
 	ctx.dispatcher = mDispatcher
 
@@ -368,7 +368,7 @@ func TestStateConfirm(t *testing.T) {
 		time:       time.Now(),
 	}
 
-	ctx.task = newActiveTask(unique.NewOrderID(), date.CurrentOdate(), definition)
+	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition)
 
 	state := &ostateConfirm{}
 
@@ -385,7 +385,7 @@ func TestStateConfirm(t *testing.T) {
 		t.Error(err)
 	}
 
-	ctx.task = newActiveTask(unique.NewOrderID(), date.CurrentOdate(), definition)
+	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition)
 
 	result = state.processState(&ctx)
 
@@ -679,7 +679,7 @@ func TestStatesExecEndHold(t *testing.T) {
 		time:       time.Now(),
 	}
 
-	ctx.task = newActiveTask(unique.NewOrderID(), date.CurrentOdate(), definition)
+	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition)
 
 	state := &ostateStarting{}
 	runState := &ostateExecuting{}

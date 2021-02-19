@@ -15,7 +15,6 @@ import (
 	"sync/atomic"
 )
 
-//:TODO lock multithread
 var (
 	ErrLockIDNotExists error  = errors.New("given lockID does not exists")
 	ErrTaskNameEmpty   error  = errors.New("task name cannot be empty")
@@ -38,7 +37,7 @@ type taskManager struct {
 
 //TaskDefinitionManager - main component responsible for a task CRUD
 type TaskDefinitionManager interface {
-	GetTasks(tasks ...taskdata.GroupNameData) []TaskDefinitionResult
+	GetTasks(tasks ...taskdata.GroupNameData) []TaskDefinition
 	GetTask(task taskdata.GroupNameData) (TaskDefinition, error)
 	GetGroups() []string
 	GetTasksFromGroup(groups []string) ([]taskdata.GroupNameData, error)
@@ -73,13 +72,13 @@ func (m *taskManager) GetTask(task taskdata.GroupNameData) (TaskDefinition, erro
 
 	return result, nil
 }
-func (m *taskManager) GetTasks(tasks ...taskdata.GroupNameData) []TaskDefinitionResult {
+func (m *taskManager) GetTasks(tasks ...taskdata.GroupNameData) []TaskDefinition {
 
-	result := make([]TaskDefinitionResult, 0)
+	result := make([]TaskDefinition, 0)
 	for _, n := range tasks {
 
 		if t, err := m.GetTask(n); err == nil {
-			result = append(result, TaskDefinitionResult{Definition: t, Result: true, Msg: nil})
+			result = append(result, t)
 		} else {
 			m.log.Error("GetTasks:", err)
 		}

@@ -301,6 +301,7 @@ func (state ostateStarting) processState(ctx *TaskExecutionContext) bool {
 	variables := make([]taskdef.VariableData, 0)
 	variables = append(variables, taskdef.VariableData{Name: "%%RN", Value: fmt.Sprintf("%d", ctx.task.RunNumber())})
 	variables = append(variables, taskdef.VariableData{Name: "%%ODATE", Value: fmt.Sprintf("%s", ctx.odate.ODATE())})
+	variables = append(variables, taskdef.VariableData{Name: "%%TASKNAME", Value: fmt.Sprintf("%s", n)})
 	variables = append(variables, ctx.task.Variables()...)
 
 	data := events.RouteTaskExecutionMsg{
@@ -348,7 +349,6 @@ func (state ostateExecuting) processState(ctx *TaskExecutionContext) bool {
 	ctx.dispatcher.PushEvent(receiver, events.RouteWorkCheck, msg)
 
 	result, err := receiver.WaitForResult()
-	fmt.Println(result, err)
 
 	if err != nil {
 		ctx.log.Error("State executing error:", err)
@@ -371,7 +371,7 @@ func (state ostateExecuting) processState(ctx *TaskExecutionContext) bool {
 
 		if result.Status == types.WorkerTaskStatusEnded {
 
-			if result.ReturnCode > ctx.maxRc {
+			if result.ReturnCode > ctx.maxRc || result.ReturnCode < 0 {
 				ctx.task.SetState(TaskStateEndedNotOk)
 			} else {
 				ctx.task.SetState(TaskStateEndedOk)

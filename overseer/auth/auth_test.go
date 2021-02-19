@@ -144,6 +144,7 @@ func TestCreateNewAuthorizationProvider(t *testing.T) {
 	if err != nil {
 		t.Error("unexpected result")
 	}
+
 }
 
 func TestVerifyAction(t *testing.T) {

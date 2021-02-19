@@ -22,6 +22,7 @@ type Overseer struct {
 	resources  resources.ResourceManager
 	taskdef    taskdef.TaskDefinitionManager
 	taskpool   *pool.ActiveTaskPool
+	taskman    *pool.ActiveTaskPoolManager
 	wrunner    work.WorkerManager
 	logger     logger.AppLogger
 	ovsGrpcSrv services.OvsGrpcServer
@@ -42,8 +43,8 @@ func (s *Overseer) Start() error {
 	evDispatcher := events.NewDispatcher()
 	s.logger.Info("Starting resources manager")
 
-	if filepath.IsAbs(defPath) {
-		defPath = filepath.Join(s.conf.RootDirectory, s.conf.DefinitionDirectory)
+	if !filepath.IsAbs(s.conf.DefinitionDirectory) {
+		defPath = filepath.Join(s.conf.Server.RootDirectory, s.conf.DefinitionDirectory)
 	} else {
 		defPath = s.conf.DefinitionDirectory
 	}
@@ -53,6 +54,7 @@ func (s *Overseer) Start() error {
 	s.logger.Info("Start Datastore provider")
 	dataProvider, err := datastore.NewDataProvider(s.conf.GetStoreProviderConfiguration())
 	if err != nil {
+		s.logger.Error(err)
 		return err
 	}
 
@@ -78,9 +80,17 @@ func (s *Overseer) Start() error {
 	s.wrunner.Run()
 
 	s.logger.Info("Start taskpool")
-	s.taskpool = pool.NewTaskPool(evDispatcher, s.conf.GetActivePoolConfiguration())
-	taskManager := pool.NewActiveTaskPoolManager(evDispatcher, s.taskdef, s.taskpool)
-	daily := pool.NewDailyExecutor(evDispatcher, taskManager, s.taskpool)
+	if s.taskpool, err = pool.NewTaskPool(evDispatcher, s.conf.GetActivePoolConfiguration(), dataProvider); err != nil {
+		s.logger.Error(err)
+		return err
+	}
+	s.logger.Info("Start taskpool manager")
+	if s.taskman, err = pool.NewActiveTaskPoolManager(evDispatcher, s.taskdef, s.taskpool, dataProvider); err != nil {
+		s.logger.Error(err)
+		return err
+	}
+
+	daily := pool.NewDailyExecutor(evDispatcher, s.taskman, s.taskpool)
 
 	if s.conf.GetActivePoolConfiguration().ForceNewDayProc {
 		s.logger.Info("Forcing New Day Procedure")
@@ -130,13 +140,13 @@ func (s *Overseer) Start() error {
 
 	rservice := services.NewResourceService(s.resources)
 	dservice := services.NewDefinistionService(s.taskdef)
-	tservice := services.NewTaskService(taskManager, s.taskpool)
+	tservice := services.NewTaskService(s.taskman, s.taskpool)
 	admservice := services.NewAdministrationService(um, rm, am)
 	statservice := services.NewStatusService()
 
-	s.ovsGrpcSrv = services.NewOvsGrpcServer(evDispatcher, rservice, dservice, tservice, aservice, admservice, statservice)
+	s.ovsGrpcSrv = services.NewOvsGrpcServer(evDispatcher, rservice, dservice, tservice, aservice, admservice, statservice, s.conf.GetServerConfiguration())
 
-	err = s.ovsGrpcSrv.Listen(s.conf.Host, s.conf.Port)
+	err = s.ovsGrpcSrv.Start()
 
 	return err
 

@@ -345,10 +345,6 @@ func TestGetTask(t *testing.T) {
 		t.Error("unexpected result, expected :", len(tlist), "got:", len(result))
 	}
 
-	if result[0].Result == false {
-		t.Error("unexpected values expected:", true, false, "got:", result[0].Result, result[1].Result)
-	}
-
 	_, err = manager.GetTasksFromGroup([]string{"test", "no_group_name"})
 	if err == nil {
 		t.Error("unexpected value,group does not exists")
@@ -383,16 +379,16 @@ func TestMarshalTests2(t *testing.T) {
 
 func TestGetTimeSpan(t *testing.T) {
 
-	schdata := SchedulingData{FromTime: "10:30", ToTime: "11:30"}
+	schdata := SchedulingData{FromTime: "10:30", ToTime: "11:30", OrderType: OrderingManual}
 
 	builder := DummyTaskBuilder{}
 	def, err := builder.WithBase("test", "dummy_time_span", "description").
 		WithSchedule(schdata).
 		WithFlags([]FlagData{{Name: "FLAG01", Type: FlagShared}}).
-		WithConfirm().WithRetention(1).WithVariables([]VariableData{{Name: "%%var", Value: "xx"}}).Build()
+		WithConfirm().WithRetention(1).WithVariables([]VariableData{{Name: "%%VAR", Value: "xx"}}).Build()
 
 	if err != nil {
-		t.Error("task builder error")
+		t.Error("task builder error", err)
 	}
 
 	from, to := def.TimeSpan()
@@ -403,13 +399,13 @@ func TestGetTimeSpan(t *testing.T) {
 
 func TestGetAction(t *testing.T) {
 
-	schdata := SchedulingData{FromTime: "10:30", ToTime: "11:30"}
+	schdata := SchedulingData{FromTime: "10:30", ToTime: "11:30", OrderType: OrderingDaily}
 
 	builder := DummyTaskBuilder{}
 	def, err := builder.WithBase("test", "dummy_time_span", "description").
 		WithSchedule(schdata).
 		WithFlags([]FlagData{{Name: "FLAG01", Type: FlagShared}}).
-		WithConfirm().WithRetention(1).WithVariables([]VariableData{{Name: "%%var", Value: "xx"}}).Build()
+		WithConfirm().WithRetention(1).WithVariables([]VariableData{{Name: "%%VAR", Value: "xx"}}).Build()
 
 	if err != nil {
 		t.Error("task builder error")
@@ -435,7 +431,8 @@ func TestBuilder(t *testing.T) {
 	builder := DummyTaskBuilder{}
 	def, err := builder.WithBase("test", "dummy_04", "description").
 		WithFlags([]FlagData{{Name: "FLAG01", Type: FlagShared}}).
-		WithConfirm().WithRetention(1).WithVariables([]VariableData{{Name: "%%var", Value: "xx"}}).Build()
+		WithSchedule(SchedulingData{OrderType: OrderingDaily}).
+		WithConfirm().WithRetention(1).WithVariables([]VariableData{{Name: "%%VAR", Value: "xx"}}).Build()
 
 	if err != nil {
 		t.Error("task builder error")

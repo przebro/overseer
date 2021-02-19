@@ -9,3 +9,4 @@ schedulerprofile.out
 schedulerprofile.prof
 workerprofile.prof
 .DS_Store
+docker/cert/*

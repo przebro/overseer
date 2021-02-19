@@ -59,6 +59,12 @@ func TestNewManager(t *testing.T) {
 	if err != nil {
 		t.Error("unexpected resutlt:", err)
 	}
+
+	cfg := config.SecurityConfiguration{Collection: "invalid_name"}
+	_, err = NewUserManager(cfg, provider)
+	if err == nil {
+		t.Error("unexpected result")
+	}
 }
 
 func TestCreateUser(t *testing.T) {

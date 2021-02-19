@@ -5,6 +5,7 @@ import (
 	"overseer/common/logger"
 	"overseer/common/types"
 	"overseer/common/types/date"
+	"overseer/datastore"
 	"overseer/overseer/internal/events"
 	"sync"
 	"testing"
@@ -12,10 +13,20 @@ import (
 )
 
 var pManager *ActiveTaskPoolManager = &ActiveTaskPoolManager{}
-var daily *DailyExecutor = NewDailyExecutor(mDispatcher, pManager, taskPoolT)
+var daily *DailyExecutor
+
+func init() {
+
+	if taskPoolT == nil {
+		provider, _ = datastore.NewDataProvider(storeConfig)
+		initTaskPool()
+	}
+	daily = NewDailyExecutor(mDispatcher, pManager, taskPoolT)
+}
 
 func TestDailyExecutor(t *testing.T) {
 
+	daily = NewDailyExecutor(mDispatcher, pManager, taskPoolT)
 	if daily == nil {
 		t.Error("Daile executor not initialized")
 	}
@@ -66,7 +77,7 @@ func TestCheckDailyProcedure(t *testing.T) {
 	}
 
 	taskPoolT.config.NewDayProc = types.HourMinTime(fmt.Sprintf("%2d:%2d", h, m-2))
-	taskPoolT.currentOdate = date.AddDays(taskPoolT.currentOdate, -1)
+	daily.lastExecutionDate = date.AddDays(daily.lastExecutionDate, -1)
 
 	result = daily.CheckDailyProcedure(tm)
 	if result != true {
@@ -74,7 +85,7 @@ func TestCheckDailyProcedure(t *testing.T) {
 	}
 
 	taskPoolT.config.NewDayProc = types.HourMinTime(fmt.Sprintf("%2d:%2d", h, m+2))
-	taskPoolT.currentOdate = date.CurrentOdate()
+	daily.lastExecutionDate = date.CurrentOdate()
 
 	result = daily.CheckDailyProcedure(tm)
 	if result == true {

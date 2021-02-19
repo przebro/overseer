@@ -3,7 +3,9 @@ package services
 import (
 	"fmt"
 	"net"
+	"overseer/common/cert"
 	"overseer/common/logger"
+	"overseer/overseer/config"
 	"overseer/overseer/internal/events"
 	"overseer/overseer/internal/resources"
 	"overseer/overseer/internal/taskdef"
@@ -14,6 +16,7 @@ import (
 )
 
 type ovsGrpcServer struct {
+	conf       config.ServerConfiguration
 	grpcServer *grpc.Server
 	log        logger.AppLogger
 	rm         resources.ResourceManager
@@ -25,7 +28,7 @@ type ovsGrpcServer struct {
 
 //OvsGrpcServer - interface for ovsGrpcServer
 type OvsGrpcServer interface {
-	Listen(host string, port int) error
+	Start() error
 }
 
 //NewOvsGrpcServer - Creates new instance of a ovsGrpcServer
@@ -36,13 +39,21 @@ func NewOvsGrpcServer(disp events.Dispatcher,
 	a services.AuthenticateServiceServer,
 	adm services.AdministrationServiceServer,
 	stat services.StatusServiceServer,
+	config config.ServerConfiguration,
+
 ) OvsGrpcServer {
 
-	unaryChain := buildUnaryChain()
-	streamChain := buildStreamChain()
+	var options []grpc.ServerOption
+	var err error
 
 	srv := &ovsGrpcServer{}
-	srv.grpcServer = grpc.NewServer(unaryChain, streamChain)
+	srv.conf = config
+
+	if options, err = buildOptions(config); err != nil {
+		return nil
+	}
+
+	srv.grpcServer = grpc.NewServer(options...)
 	srv.rservice = ovsResourceService{}
 	services.RegisterResourceServiceServer(srv.grpcServer, r)
 	services.RegisterDefinitionServiceServer(srv.grpcServer, d)
@@ -54,12 +65,11 @@ func NewOvsGrpcServer(disp events.Dispatcher,
 	srv.log = logger.Get()
 
 	return srv
-
 }
 
-func (srv *ovsGrpcServer) Listen(host string, port int) error {
+func (srv *ovsGrpcServer) Start() error {
 
-	conn := fmt.Sprintf("%s:%d", host, port)
+	conn := fmt.Sprintf("%s:%d", srv.conf.Host, srv.conf.Port)
 	l, err := net.Listen("tcp", conn)
 	if err != nil {
 		srv.log.Error(err)
@@ -70,10 +80,28 @@ func (srv *ovsGrpcServer) Listen(host string, port int) error {
 
 	err = srv.grpcServer.Serve(l)
 	if err != nil {
-
+		return err
 	}
 
 	return nil
+}
+
+func buildOptions(conf config.ServerConfiguration) ([]grpc.ServerOption, error) {
+
+	var options = []grpc.ServerOption{}
+
+	options = append(options, buildUnaryChain())
+	options = append(options, buildStreamChain())
+
+	if conf.TLS {
+		if creds, err := buildCredentials(conf.ServerCert, conf.ServerKey); err == nil {
+			options = append(options, creds)
+		} else {
+			return nil, err
+		}
+	}
+
+	return options, nil
 }
 
 func buildUnaryChain() grpc.ServerOption {
@@ -84,5 +112,13 @@ func buildUnaryChain() grpc.ServerOption {
 func buildStreamChain() grpc.ServerOption {
 
 	return grpc.ChainStreamInterceptor(middleware.GetStreamHandlers()...)
+}
 
+func buildCredentials(certpath, keypath string) (grpc.ServerOption, error) {
+
+	c, err := cert.GetServerTLS(certpath, keypath)
+	if err != nil {
+		return nil, err
+	}
+	return grpc.Creds(c), nil
 }
