@@ -6,6 +6,7 @@ import (
 	"overseer/overseer/auth"
 	"overseer/overseer/config"
 	"overseer/overseer/internal/events"
+	"overseer/overseer/internal/journal"
 	"overseer/overseer/internal/pool"
 	"overseer/overseer/internal/resources"
 	"overseer/overseer/internal/taskdef"
@@ -79,11 +80,18 @@ func (s *Overseer) Start() error {
 	s.wrunner = work.NewWorkerManager(evDispatcher, s.conf.GetWorkerManagerConfiguration())
 	s.wrunner.Run()
 
+	tJournal, err := journal.NewTaskJournal(s.conf.GetJournalConfiguration(), evDispatcher, dataProvider)
+	if err != nil {
+		s.logger.Error(err)
+		return err
+	}
+
 	s.logger.Info("Start taskpool")
 	if s.taskpool, err = pool.NewTaskPool(evDispatcher, s.conf.GetActivePoolConfiguration(), dataProvider); err != nil {
 		s.logger.Error(err)
 		return err
 	}
+
 	s.logger.Info("Start taskpool manager")
 	if s.taskman, err = pool.NewActiveTaskPoolManager(evDispatcher, s.taskdef, s.taskpool, dataProvider); err != nil {
 		s.logger.Error(err)
@@ -140,11 +148,19 @@ func (s *Overseer) Start() error {
 
 	rservice := services.NewResourceService(s.resources)
 	dservice := services.NewDefinistionService(s.taskdef)
-	tservice := services.NewTaskService(s.taskman, s.taskpool)
+	tservice := services.NewTaskService(s.taskman, s.taskpool, tJournal)
 	admservice := services.NewAdministrationService(um, rm, am)
 	statservice := services.NewStatusService()
 
-	s.ovsGrpcSrv = services.NewOvsGrpcServer(evDispatcher, rservice, dservice, tservice, aservice, admservice, statservice, s.conf.GetServerConfiguration())
+	s.ovsGrpcSrv = services.NewOvsGrpcServer(evDispatcher,
+		rservice,
+		dservice,
+		tservice,
+		aservice,
+		admservice,
+		statservice,
+		s.conf.GetServerConfiguration(),
+	)
 
 	err = s.ovsGrpcSrv.Start()
 

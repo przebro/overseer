@@ -2,6 +2,7 @@ package events
 
 import (
 	"overseer/common/logger"
+	"sync"
 )
 
 //RouteName - possible routes
@@ -17,12 +18,14 @@ const (
 	RouteWorkLaunch      RouteName = "WORK_LAUNCH"
 	RouteWorkCheck       RouteName = "WORK_CHECK"
 	RouteTaskClean       RouteName = "TASK_CLEAN"
+	RoutTaskJournal      RouteName = "TASK_JOURNAL"
 )
 
 //messageRoute - holds participants of route
 type messgeRoute struct {
 	routename    RouteName
 	participants []EventParticipant
+	lock         sync.RWMutex
 }
 
 //MessageRoute - Route definition, performs role of a topics
@@ -35,7 +38,8 @@ type MessageRoute interface {
 
 //AddParticipant - adds a new conversation participant
 func (route *messgeRoute) AddParticipant(p EventParticipant) {
-
+	defer route.lock.Unlock()
+	route.lock.Lock()
 	log := logger.Get()
 	log.Debug("Append new participant to:", route.routename)
 	route.participants = append(route.participants, p)
@@ -45,6 +49,8 @@ func (route *messgeRoute) AddParticipant(p EventParticipant) {
 //PushMessage - sends message to all subscribers
 func (route *messgeRoute) PushMessage(receiver EventReceiver, msg DispatchedMessage) {
 	log := logger.Get()
+	defer route.lock.RUnlock()
+	route.lock.RLock()
 
 	for _, r := range route.participants {
 		log.Debug("Push message route:", route.routename, msg.MsgID(), ",", msg.Created())
@@ -54,6 +60,8 @@ func (route *messgeRoute) PushMessage(receiver EventReceiver, msg DispatchedMess
 func (route *messgeRoute) Remove(p EventParticipant) {
 
 	log := logger.Get()
+	defer route.lock.Unlock()
+	route.lock.Lock()
 
 	for i, e := range route.participants {
 		if e == p {

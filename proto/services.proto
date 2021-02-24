@@ -21,6 +21,9 @@ service ResourceService{
 service TaskService{
     rpc OrderTask(TaskOrderMsg) returns (ActionResultMsg){}
     rpc ForceTask(TaskOrderMsg) returns (ActionResultMsg){}
+    rpc OrderGroup(TaskOrderGroupMsg) returns (ActionResultMsg){}
+    rpc ForceGroup(TaskOrderGroupMsg) returns (ActionResultMsg){}
+    rpc EnforceTask(TaskActionMsg) returns (ActionResultMsg){}
     rpc RerunTask(TaskActionMsg) returns (ActionResultMsg){}
     rpc HoldTask(TaskActionMsg) returns (ActionResultMsg){}
     rpc FreeTask(TaskActionMsg) returns (ActionResultMsg){}
@@ -28,14 +31,16 @@ service TaskService{
     rpc ConfirmTask(TaskActionMsg) returns (ActionResultMsg){}
     rpc ListTasks(TaskFilterMsg) returns (stream TaskListResultMsg){}
     rpc TaskDetail(TaskActionMsg) returns (TaskDetailResultMsg){}
+    rpc TaskOutput(TaskActionMsg) returns (TaskDataMsg){}
+    rpc TaskLog(TaskActionMsg) returns (TaskDataMsg){}
 }
 
 service DefinitionService{
     rpc GetDefinition(DefinitionActionMsg) returns (DefinitionResultMsg){}
     rpc LockDefinition(DefinitionActionMsg) returns (LockResultMsg){}
     rpc UnlockDefinition(DefinitionActionMsg) returns (LockResultMsg){}
-    rpc ListGroups(FilterMsg) returns (stream DefinitionListGroupResultMsg){}
-    rpc ListDefinitionsFromGroup(DefinitionActionMsg) returns (stream DefinitionListResultMsg){}
+    rpc ListGroups(FilterMsg) returns (DefinitionListGroupResultMsg){}
+    rpc ListDefinitionsFromGroup(FilterMsg) returns (DefinitionListResultMsg){}
 }
 
 service AdministrationService{
@@ -94,14 +99,18 @@ message TaskOrderMsg{
     string odate = 3;   
 }
 
+message TaskOrderGroupMsg{
+    string taskGroup = 1;
+    string odate = 2;   
+}
+
 message DefinitionMsg{
     string groupName = 1;
     string taskName = 2;
     uint32 lockID = 3;
 }
 message DefinitionActionMsg{
-    string token = 1;
-    repeated DefinitionMsg definitionMsg = 2;
+    repeated DefinitionMsg definitionMsg = 1;
 }
 
 message LockResult {
@@ -113,12 +122,12 @@ message LockResultMsg{
     repeated LockResult lockResult = 1;
 }
 
-message DefinitionResult{
+message DefinitionDetails{
     bool success = 1;
     string message  = 2;   
 }
 message DefinitionResultMsg{
-    repeated DefinitionResult definitionMsg = 1;
+    repeated DefinitionDetails definitionMsg = 1;
 }
 
 message ActionResultMsg{
@@ -162,15 +171,24 @@ message TaskDetailResultMsg{
     string endTime = 7;
     string worker = 8;
     repeated TaskResourcesMsg resources = 9;
-    repeated string output = 10;
+    
+}
+message TaskDataMsg{
+    bool success = 1;
+    string message  = 2;  
+    repeated string output = 3;
 }
 
 message DefinitionListGroupResultMsg{
-    string groupName = 1;
+    repeated string groupName = 1;
 }
-message DefinitionListResultMsg{
+message DefinitionListMsg{
     string groupName = 1;
     string taskName = 2;
+    string description = 3;
+}
+message DefinitionListResultMsg{
+    repeated DefinitionListMsg definitions = 1;
 }
 
 message UserAccount{

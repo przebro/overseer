@@ -7,7 +7,7 @@ import (
 )
 
 //FragmentFactorytMethod - Creates a framgent
-type FragmentFactorytMethod func(header msgheader.TaskHeader, data []byte) (WorkFragment, error)
+type FragmentFactorytMethod func(header msgheader.TaskHeader, sysoutDir string, data []byte) (WorkFragment, error)
 
 var factories = map[common.TaskType]FragmentFactorytMethod{
 	common.TypeDummy: FactoryDummy,
@@ -15,7 +15,7 @@ var factories = map[common.TaskType]FragmentFactorytMethod{
 }
 
 //CreateWorkFragment - Creates a task on worker that will be executed
-func CreateWorkFragment(header msgheader.TaskHeader, data []byte) (WorkFragment, error) {
+func CreateWorkFragment(header msgheader.TaskHeader, sysoutDir string, data []byte) (WorkFragment, error) {
 
 	var fragment WorkFragment
 	var err error
@@ -25,7 +25,7 @@ func CreateWorkFragment(header msgheader.TaskHeader, data []byte) (WorkFragment,
 		return nil, errors.New("unable to construct fragment")
 	}
 
-	if fragment, err = method(header, data); err != nil {
+	if fragment, err = method(header, sysoutDir, data); err != nil {
 		return nil, err
 	}
 

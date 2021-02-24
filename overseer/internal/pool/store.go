@@ -2,6 +2,7 @@ package pool
 
 import (
 	"context"
+	"fmt"
 	"overseer/common/logger"
 	"overseer/datastore"
 	"overseer/overseer/internal/unique"
@@ -114,16 +115,15 @@ func (s *Store) sync() {
 
 func (s *Store) storeTasks() {
 	tsart := time.Now()
-	list := []activeTaskModel{}
-	s.Over(func(toi unique.TaskOrderID, at *activeTask) {
-		list = append(list, at.getModel())
-	})
+	ilist := []interface{}{}
 
-	data := taskPoolModel{ID: "taskpool", Data: list}
+	s.Over(func(id unique.TaskOrderID, at *activeTask) { ilist = append(ilist, at.getModel()) })
+	err := s.collection.BulkUpdate(context.Background(), ilist)
+	if err != nil {
+		fmt.Println(err)
+	}
 
-	s.collection.Update(context.Background(), &data)
 	s.log.Info("store task complete:", time.Since(tsart))
-
 }
 
 func (s *Store) restoreTasks() {
@@ -139,20 +139,21 @@ func (s *Store) restoreTasks() {
 	if cnt, _ = s.collection.Count(context.Background()); cnt == 0 {
 		model.ID = "taskpool"
 		s.log.Error("TaskPool model does not exist:", err)
-		s.collection.Create(context.Background(), &model)
 		return
-	}
-
-	err = s.collection.Get(context.Background(), "taskpool", &model)
-	if err != nil {
-
-		s.log.Error("TaskPool load from store error:", err)
 	}
 
 	success := 0
 
-	for _, n := range model.Data {
-		task, err := fromModel(n)
+	crsr, err := s.collection.All(context.Background())
+	for crsr.Next(context.Background()) {
+		model := activeTaskModel{}
+		err := crsr.Decode(&model)
+		if err != nil {
+			s.log.Error("error loading task:", err)
+			continue
+		}
+
+		task, err := fromModel(model)
 		if err != nil {
 			s.log.Error("error loading task:", err)
 			continue

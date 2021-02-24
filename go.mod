@@ -13,9 +13,9 @@ require (
 	github.com/lunixbochs/vtclean v1.0.0 // indirect
 	github.com/manifoldco/promptui v0.8.0
 	github.com/mattn/go-colorable v0.1.8 // indirect
-	github.com/przebro/databazaar v0.0.0-20210217230212-db441ae2ba90
-	github.com/przebro/localstore v0.0.0-20210218001555-9cc6fc7931f1
-	github.com/przebro/mongostore v0.0.0-20210217235019-58b9a286c7ae
+	github.com/przebro/databazaar v0.0.0-20210222233636-a6956fda6d41
+	github.com/przebro/localstore v0.0.0-20210223095046-7159d94d8e15
+	github.com/przebro/mongostore v0.0.0-20210223001122-3c2ccdf7a332
 	github.com/spf13/cobra v1.1.1
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	golang.org/x/net v0.0.0-20201224014010-6772e930b67b

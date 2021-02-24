@@ -5,6 +5,7 @@ import (
 	"overseer/common/types/date"
 	task "overseer/overseer/internal/taskdef"
 	"overseer/overseer/internal/unique"
+	"time"
 )
 
 //RouteTimeOutMsgFormat - outgoing message from ticker
@@ -56,17 +57,22 @@ type TaskDetailResultMsg struct {
 	StartTime   string
 	EndTime     string
 	Worker      string
-	Output      []string
 	Description string
+	Tickets     []struct {
+		Name      string
+		Odate     date.Odate
+		Fulfilled bool
+	}
 }
 
 //RouteTaskActionMsgFormat - Request for a task order
 type RouteTaskActionMsgFormat struct {
-	Group  string
-	Name   string
-	TaskID unique.TaskOrderID
-	Force  bool
-	Odate  date.Odate
+	Group    string
+	Name     string
+	TaskID   unique.TaskOrderID
+	Force    bool
+	Odate    date.Odate
+	Username string
 }
 
 //RouteTaskActionResponseFormat - Response message for a task order or force.
@@ -76,42 +82,46 @@ type RouteTaskActionResponseFormat struct {
 
 //WorkRouteCheckStatusMsg - Response with information about the status of a work
 type WorkRouteCheckStatusMsg struct {
-	OrderID    unique.TaskOrderID
-	WorkerName string
+	OrderID     unique.TaskOrderID
+	ExecutionID string
+	WorkerName  string
 }
 
 //RouteTaskStatusResponseMsg - Response for a task status
 type RouteTaskStatusResponseMsg struct {
-	TaskID     string
-	Data       []string
-	Ended      bool
-	ReturnCode int32
+	TaskID      string
+	ExecutionID string
+	Data        []string
+	Ended       bool
+	ReturnCode  int32
 }
 
 //RouteTaskExecutionMsg - Contains informations needed to begin a work on a remoteworker.
 type RouteTaskExecutionMsg struct {
-	OrderID   unique.TaskOrderID
-	Type      string
-	Variables []task.VariableData
-	Command   interface{}
+	OrderID     unique.TaskOrderID
+	ExecutionID string
+	Type        string
+	Variables   []task.VariableData
+	Command     interface{}
 }
 
 //RouteWorkResponseMsg - Contains information about the status of executing work.
 type RouteWorkResponseMsg struct {
-	Status     types.WorkerTaskStatus
-	OrderID    unique.TaskOrderID
-	Output     []string
-	WorkerName string
-	ReturnCode int32
+	Status      types.WorkerTaskStatus
+	OrderID     unique.TaskOrderID
+	ExecutionID string
+	WorkerName  string
+	ReturnCode  int32
 }
 
 //RouteChangeStateMsg - Request for setting a task into a specific state.
 type RouteChangeStateMsg struct {
-	Hold    bool
-	Free    bool
-	Rerun   bool
-	SetOK   bool
-	OrderID unique.TaskOrderID
+	Hold     bool
+	Free     bool
+	Rerun    bool
+	SetOK    bool
+	Username string
+	OrderID  unique.TaskOrderID
 }
 
 //RouteChangeStateResponseMsg - Response for a change state
@@ -120,9 +130,18 @@ type RouteChangeStateResponseMsg struct {
 	Message string
 }
 
-//RoutTaskCleanMMsg -  Message for cleaning or termintating a task on remote worker
+//RouteTaskCleanMsg -  Message for cleaning or termintating a task on remote worker
 type RouteTaskCleanMsg struct {
-	OrderID    unique.TaskOrderID
-	WorkerName string
-	Terminate  bool
+	OrderID     unique.TaskOrderID
+	ExecutionID string
+	WorkerName  string
+	Terminate   bool
+}
+
+//RouteJournalMsg -
+type RouteJournalMsg struct {
+	OrderID     unique.TaskOrderID
+	ExecutionID string
+	Time        time.Time
+	Msg         string
 }

@@ -28,22 +28,25 @@ type taskInTicket struct {
 	odate     string
 	fulfilled bool
 }
-
+type taskExecution struct {
+	ExecutionID string
+	Worker      string
+	Start       time.Time
+	End         time.Time
+	state       TaskState
+}
 type activeTask struct {
 	taskdef.TaskDefinition
-	state     TaskState
-	holded    bool
-	confirmed bool
-	orderID   unique.TaskOrderID
-	orderDate date.Odate
-	tickets   []taskInTicket
-	runNumber int32
-	worker    string
-	waiting   string
-	startTime time.Time
-	endTime   time.Time
-	output    []string
-	lock      sync.RWMutex
+	holded     bool
+	confirmed  bool
+	orderID    unique.TaskOrderID
+	orderDate  date.Odate
+	tickets    []taskInTicket
+	runNumber  int32
+	executions []taskExecution
+	waiting    string
+	lock       sync.RWMutex
+	collected  []taskInTicket
 }
 
 func newActiveTask(orderID unique.TaskOrderID, odate date.Odate, definition taskdef.TaskDefinition) *activeTask {
@@ -67,11 +70,10 @@ func newActiveTask(orderID unique.TaskOrderID, odate date.Odate, definition task
 		TaskDefinition: definition,
 		orderDate:      odate,
 		runNumber:      0,
+		executions:     []taskExecution{{ExecutionID: unique.NewID().Hex(), state: TaskStateWaiting}},
 		tickets:        tickets,
-		state:          TaskStateWaiting,
 		lock:           sync.RWMutex{},
 		confirmed:      isconfirmed,
-		output:         make([]string, 0),
 	}
 
 	return task
@@ -92,36 +94,37 @@ func fromModel(model activeTaskModel) (*activeTask, error) {
 		}
 	}
 
+	execs := []taskExecution{}
+	for _, n := range model.Executions {
+		execs = append(execs, taskExecution{ExecutionID: n.ID, Start: n.StartTime, End: n.EndTime, Worker: n.Worker, state: n.State})
+	}
+
 	task := &activeTask{
 		orderID:        unique.TaskOrderID(model.OrderID),
 		TaskDefinition: def,
 		orderDate:      model.OrderDate,
-		runNumber:      model.RunNumber,
+		executions:     execs,
 		tickets:        tickets,
-		state:          model.State,
-		startTime:      model.StartTime,
-		endTime:        model.EndTime,
 		lock:           sync.RWMutex{},
 		confirmed:      model.Confirmed,
 		holded:         model.Holded,
-		output:         model.Output,
 		waiting:        model.Waiting,
-		worker:         model.Worker,
+		collected:      []taskInTicket{},
 	}
 
 	return task, nil
-
 }
 
 func (task *activeTask) State() TaskState {
 	defer task.lock.RUnlock()
 	task.lock.RLock()
-	return task.state
+	return task.executions[len(task.executions)-1].state
 }
 func (task *activeTask) SetState(state TaskState) {
 	defer task.lock.Unlock()
 	task.lock.Lock()
-	task.state = state
+	task.executions[len(task.executions)-1].state = state
+
 }
 func (task *activeTask) SetRunNumber() {
 	defer task.lock.Unlock()
@@ -129,11 +132,23 @@ func (task *activeTask) SetRunNumber() {
 	task.runNumber++
 
 }
+func (task *activeTask) SetExecutionID() {
+	defer task.lock.Unlock()
+	task.lock.Lock()
+	id := unique.NewID().Hex()
+	task.executions = append(task.executions, taskExecution{ExecutionID: id, state: TaskStateWaiting})
+}
 
 func (task *activeTask) Tickets() []taskInTicket {
 	defer task.lock.RUnlock()
 	task.lock.RLock()
 	return task.tickets
+}
+
+func (task *activeTask) Collected() []taskInTicket {
+	defer task.lock.RUnlock()
+	task.lock.RLock()
+	return task.collected
 }
 
 func (task *activeTask) OrderID() unique.TaskOrderID {
@@ -153,6 +168,12 @@ func (task *activeTask) RunNumber() int32 {
 
 	return task.runNumber
 }
+func (task *activeTask) CurrentExecutionID() string {
+	defer task.lock.RUnlock()
+	task.lock.RLock()
+
+	return task.executions[len(task.executions)-1].ExecutionID
+}
 func (task *activeTask) Confirmed() bool {
 	defer task.lock.RUnlock()
 	task.lock.RLock()
@@ -171,33 +192,37 @@ func (task *activeTask) SetConfirm() bool {
 	return true
 }
 
-func (task *activeTask) SetStartTime() {
+func (task *activeTask) SetStartTime() time.Time {
 	defer task.lock.Unlock()
 	task.lock.Lock()
-	task.startTime = time.Now()
+	stime := time.Now()
+	task.executions[len(task.executions)-1].Start = stime
+	return stime
 }
-func (task *activeTask) SetEndTime() {
+func (task *activeTask) SetEndTime() time.Time {
 	defer task.lock.Unlock()
 	task.lock.Lock()
-	task.endTime = time.Now()
+	etime := time.Now()
+	task.executions[len(task.executions)-1].End = etime
+	return etime
 }
 func (task *activeTask) StartTime() time.Time {
-	return task.startTime
+	return task.executions[len(task.executions)-1].Start
 }
 func (task *activeTask) EndTime() time.Time {
-	return task.endTime
+	return task.executions[len(task.executions)-1].End
 }
 
 func (task *activeTask) SetWorkerName(name string) {
 	defer task.lock.Unlock()
 	task.lock.Lock()
-	task.worker = name
+	task.executions[len(task.executions)-1].Worker = name
 }
 func (task *activeTask) WorkerName() string {
 	defer task.lock.RUnlock()
 	task.lock.RLock()
 
-	return task.worker
+	return task.executions[len(task.executions)-1].Worker
 }
 func (task *activeTask) WaitingInfo() string {
 	defer task.lock.RUnlock()
@@ -212,61 +237,46 @@ func (task *activeTask) SetWaitingInfo(info string) {
 	task.waiting = info
 }
 
-func (task *activeTask) Output() []string {
-	defer task.lock.RUnlock()
-	task.lock.RLock()
-	return task.output
-
-}
-func (task *activeTask) AddOutput(data []string) {
-	defer task.lock.Unlock()
-	task.lock.Lock()
-	task.output = append(task.output, data...)
-}
-
 func (task *activeTask) Hold() {
 	defer task.lock.Unlock()
 	task.lock.Lock()
 	task.holded = true
-	task.state = TaskStateHold
+	task.executions[len(task.executions)-1].state = TaskStateHold
 }
 func (task *activeTask) Free() {
 	defer task.lock.Unlock()
 	task.lock.Lock()
 	task.holded = false
-	task.state = TaskStateWaiting
+	task.executions[len(task.executions)-1].state = TaskStateWaiting
 }
 func (task *activeTask) IsHeld() bool {
 	defer task.lock.RUnlock()
 	task.lock.RLock()
 
 	return task.holded
-
 }
 
 func (task *activeTask) getModel() activeTaskModel {
 	defer task.lock.RUnlock()
 	task.lock.RLock()
-	def, _ := taskdef.WriteDefinitionFile(task.TaskDefinition)
+	def, _ := taskdef.SerializeDefinition(task.TaskDefinition)
 	t := activeTaskModel{
 		Definition: []byte(def),
-		State:      task.state,
 		Holded:     task.holded,
 		Confirmed:  task.confirmed,
 		OrderID:    string(task.orderID),
 		OrderDate:  task.orderDate,
 		Tickets:    []taskInTicketModel{},
 		RunNumber:  task.runNumber,
-		Worker:     task.worker,
 		Waiting:    task.waiting,
-		StartTime:  task.startTime,
-		EndTime:    task.endTime,
-		Output:     make([]string, len(task.output)),
+		Executions: []taskExecutionModel{},
 	}
-
-	copy(t.Output, task.output)
 	for _, n := range task.tickets {
 		t.Tickets = append(t.Tickets, taskInTicketModel{Name: n.name, Odate: n.odate, Fulfilled: n.fulfilled})
+	}
+
+	for _, n := range task.executions {
+		t.Executions = append(t.Executions, taskExecutionModel{ID: n.ExecutionID, Worker: n.Worker, StartTime: n.Start, EndTime: n.End, State: n.state})
 	}
 
 	return t

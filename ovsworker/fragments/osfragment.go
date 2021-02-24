@@ -9,6 +9,7 @@ import (
 	"overseer/common/types"
 	"overseer/ovsworker/msgheader"
 	"overseer/proto/actions"
+	"path/filepath"
 	"strings"
 	"sync"
 
@@ -27,22 +28,24 @@ type OsWorkFragment struct {
 }
 
 //FactoryOS - Creates new os factory
-func FactoryOS(header msgheader.TaskHeader, data []byte) (WorkFragment, error) {
+func FactoryOS(header msgheader.TaskHeader, sysoutDir string, data []byte) (WorkFragment, error) {
 
 	act := actions.OsTaskAction{}
 	if err := proto.Unmarshal(data, &act); err != nil {
 		return nil, errors.New("")
 	}
-	w, err := newOsFragment(header, &act)
+	w, err := newOsFragment(header, sysoutDir, &act)
 
 	return w, err
 }
 
 //newOsFragment - factory method, creates a new os fragment
-func newOsFragment(header msgheader.TaskHeader, action *actions.OsTaskAction) (WorkFragment, error) {
+func newOsFragment(header msgheader.TaskHeader, sysoutDir string, action *actions.OsTaskAction) (WorkFragment, error) {
 
 	frag := &OsWorkFragment{}
 	frag.taskID = header.TaskID
+	frag.executionID = header.ExecutionID
+	frag.sysoutDir = sysoutDir
 	frag.start = make(chan FragmentStatus)
 	cmdarg := strings.Split(action.CommandLine, " ")
 	frag.Command = cmdarg[0]
@@ -70,11 +73,12 @@ func (frag *OsWorkFragment) StartFragment(ctx context.Context, stat chan Fragmen
 
 	frag.stdout, err = cmd.StdoutPipe()
 	if err != nil {
-		stat <- FragmentStatus{TaskID: frag.taskID,
-			State:      types.WorkerTaskStatusFailed,
-			ReturnCode: 999,
-			PID:        0,
-			Output:     []string{err.Error()},
+		stat <- FragmentStatus{
+			TaskID:      frag.taskID,
+			ExecutionID: frag.executionID,
+			State:       types.WorkerTaskStatusFailed,
+			ReturnCode:  999,
+			PID:         0,
 		}
 
 	} else {
@@ -97,37 +101,36 @@ func (frag *OsWorkFragment) run(cmd *exec.Cmd, stat chan FragmentStatus) {
 	err = cmd.Start()
 
 	if err != nil {
-		stat <- FragmentStatus{TaskID: frag.taskID,
-			State:      types.WorkerTaskStatusFailed,
-			ReturnCode: 999,
-			PID:        0,
-			Output:     []string{err.Error()},
+		stat <- FragmentStatus{
+			TaskID:      frag.taskID,
+			ExecutionID: frag.executionID,
+			State:       types.WorkerTaskStatusFailed,
+			ReturnCode:  999,
+			PID:         0,
 		}
 		return
 
 	}
 
 	stat <- FragmentStatus{
-		TaskID:     frag.taskID,
-		State:      types.WorkerTaskStatusExecuting,
-		ReturnCode: 0,
-		PID:        0,
-		Output:     []string{},
+		TaskID:      frag.taskID,
+		ExecutionID: frag.executionID,
+		State:       types.WorkerTaskStatusExecuting,
+		ReturnCode:  0,
+		PID:         0,
 	}
 
-	outs := stdout(frag.stdout)
+	fpath := filepath.Join(frag.sysoutDir, frag.executionID)
+
+	stdout(frag.stdout, fpath)
 	err = cmd.Wait()
 
-	if err != nil {
-		outs = append(outs, err.Error())
-	}
-
 	stat <- FragmentStatus{
-		TaskID:     frag.taskID,
-		State:      types.WorkerTaskStatusEnded,
-		ReturnCode: cmd.ProcessState.ExitCode(),
-		PID:        cmd.ProcessState.Pid(),
-		Output:     outs,
+		TaskID:      frag.taskID,
+		ExecutionID: frag.executionID,
+		State:       types.WorkerTaskStatusEnded,
+		ReturnCode:  cmd.ProcessState.ExitCode(),
+		PID:         cmd.ProcessState.Pid(),
 	}
 }
 
@@ -136,12 +139,19 @@ func (frag *OsWorkFragment) TaskID() string {
 	return frag.taskID
 }
 
-func stdout(out io.ReadCloser) []string {
+//ExecutionID - Returns ID of a current run of a task associated with this fragment.
+func (frag *OsWorkFragment) ExecutionID() string {
+	return frag.executionID
+}
 
-	stdOutput := make([]string, 0)
+func stdout(out io.ReadCloser, path string) struct{} {
+
 	wait := sync.WaitGroup{}
+	fmt.Println(path)
+	file, _ := os.Create(path)
+
 	wait.Add(1)
-	go func() {
+	go func(f *os.File) {
 		for {
 			buff := make([]byte, 1024)
 			bytes, err := out.Read(buff)
@@ -149,16 +159,16 @@ func stdout(out io.ReadCloser) []string {
 				break
 			}
 			if err != nil {
-				stdOutput = append(stdOutput, err.Error())
+				f.WriteString(err.Error())
 				break
 			}
-			stdOutput = append(stdOutput, strings.Split(string(buff[:bytes]), "\n")...)
 
+			f.Write(buff[:bytes])
 		}
 
 		wait.Done()
-	}()
+	}(file)
 
 	wait.Wait()
-	return stdOutput
+	return struct{}{}
 }

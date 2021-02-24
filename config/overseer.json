@@ -17,13 +17,13 @@
         "flags" : { "collectionName" : "resources", "sync" : 2}
     },
     "ActivePoolConfiguration" :{
-        "forceNewDayProc" : true,
-        "newDayProc" : "22:00",
+        "forceNewDayProc" : false,
+        "newDayProc" : "10:00",
         "maxOkReturnCode" : 4,
         "collection":"tasks",
         "syncTime" : 10
     },
-    "timeInterval" : 2,
+    "timeInterval" : 1,
     "WorkerConfiguration":{
         "timeout" : 5,
         "attemps" : 3,
@@ -37,13 +37,15 @@
         "store" : [
             {"id" : "security", "connectionString":"local;/data/security?updatesync=true"},
             {"id" : "resources", "connectionString":"local;/data/resources?updatesync=true"},
-            {"id" : "pool", "connectionString":"local;/data/pool?updatesync=true"}
+            {"id" : "pool", "connectionString":"local;/data/pool?updatesync=true"},
+            {"id" : "journal", "connectionString":"local;/data/journal?updatesync=true"}
         ],
         "collections" : [
             {"storeId" : "resources", "name" : "resources"},
             {"storeId" : "security", "name" : "auth"},
             {"storeId" : "pool", "name" : "tasks"},
-            {"storeId" : "pool", "name" : "sequence"}
+            {"storeId" : "pool", "name" : "sequence"},
+            {"storeId" : "journal", "name" : "logs"}
         ]
     },
 
@@ -56,5 +58,9 @@
         "secret" :"WBdumgVKBK4iTB+CR2Z2meseDrlnrg54QDSAPcFswWU=",
         "authenticationProviders" :[]
 
+    },
+    "journalConfiguration" :{
+        "logs" : "logs",
+        "syncTime" : 10
     }
 }

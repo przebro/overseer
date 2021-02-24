@@ -6,7 +6,10 @@ import (
 	"overseer/common/types"
 	"overseer/common/types/date"
 	"overseer/overseer/internal/events"
+	"overseer/overseer/internal/journal"
+
 	"overseer/overseer/internal/taskdef"
+	"overseer/overseer/internal/unique"
 	"strconv"
 	"strings"
 	"time"
@@ -32,8 +35,9 @@ type TaskExecutionContext struct {
 	time       time.Time
 	state      taskExecutionState
 	dispatcher events.Dispatcher
-	reason     []string
 	log        logger.AppLogger
+	isInTime   bool
+	isEnforced bool
 	maxRc      int32
 }
 
@@ -194,9 +198,17 @@ func (state ostateConfirm) processState(ctx *TaskExecutionContext) bool {
 func (state ostateCheckTime) processState(ctx *TaskExecutionContext) bool {
 
 	var isInTime bool = false
+
+	if ctx.isEnforced {
+		ctx.isInTime = true
+		ctx.state = &ostateCheckConditions{}
+		return true
+	}
+
 	from, to := ctx.task.TimeSpan()
 	ctx.task.SetWaitingInfo(fmt.Sprintf("%s - %s", from, to))
 	if from == "" && to == "" {
+		ctx.isInTime = true
 		ctx.state = &ostateCheckConditions{}
 		return true
 	}
@@ -217,21 +229,21 @@ func (state ostateCheckTime) processState(ctx *TaskExecutionContext) bool {
 			isInTime = false
 		}
 	}
-	ctx.task.SetState(TaskStateWaiting)
 
-	if !isInTime {
-
-		return false
-	}
-
+	ctx.isInTime = isInTime
 	ctx.state = &ostateCheckConditions{}
 
 	return true
 }
 func (state ostateCheckConditions) processState(ctx *TaskExecutionContext) bool {
 
-	ctx.task.SetState(TaskStateWaiting)
+	if ctx.isEnforced {
+		ctx.state = &ostateStarting{}
+		pushJournalMessage(ctx.dispatcher, ctx.task.OrderID(), ctx.task.CurrentExecutionID(), time.Now(), journal.TaskEnforce)
+		return true
+	}
 
+	ctx.task.SetState(TaskStateWaiting)
 	receiver := events.NewTicketCheckReceiver()
 
 	msgData := events.RouteTicketCheckMsgFormat{Tickets: make([]struct {
@@ -259,7 +271,9 @@ func (state ostateCheckConditions) processState(ctx *TaskExecutionContext) bool 
 	}
 
 	wconds := make([]string, 0)
+	ctx.task.collected = make([]taskInTicket, 0)
 	for _, t := range result.Tickets {
+		ctx.task.collected = append(ctx.task.collected, taskInTicket{t.Name, t.Odate, t.Fulfilled})
 		wconds = append(wconds, fmt.Sprintf("%s %s:%t", t.Name, t.Odate, t.Fulfilled))
 		ctx.log.Debug(t.Name, "::", t.Odate, "::", t.Fulfilled)
 	}
@@ -282,11 +296,13 @@ func (state ostateCheckConditions) processState(ctx *TaskExecutionContext) bool 
 			}
 		}
 	}
-	if fulfilled {
+
+	if fulfilled && ctx.isInTime {
 		ctx.state = &ostateStarting{}
+		pushJournalMessage(ctx.dispatcher, ctx.task.OrderID(), ctx.task.CurrentExecutionID(), time.Now(), journal.TaskFulfill)
 	}
 
-	return fulfilled
+	return fulfilled && ctx.isInTime
 }
 
 func (state ostateStarting) processState(ctx *TaskExecutionContext) bool {
@@ -294,22 +310,19 @@ func (state ostateStarting) processState(ctx *TaskExecutionContext) bool {
 	ctx.task.SetState(TaskStateStarting)
 	ctx.task.SetWaitingInfo("")
 	ctx.task.SetRunNumber()
-	n, g, _ := ctx.task.GetInfo()
-	ctx.log.Info("Launching task:", n, " group:", g, " id:", ctx.task.OrderID())
-	//:TODO move to separate function
+	stime := ctx.task.SetStartTime()
 
-	variables := make([]taskdef.VariableData, 0)
-	variables = append(variables, taskdef.VariableData{Name: "%%RN", Value: fmt.Sprintf("%d", ctx.task.RunNumber())})
-	variables = append(variables, taskdef.VariableData{Name: "%%ODATE", Value: fmt.Sprintf("%s", ctx.odate.ODATE())})
-	variables = append(variables, taskdef.VariableData{Name: "%%TASKNAME", Value: fmt.Sprintf("%s", n)})
-	variables = append(variables, ctx.task.Variables()...)
+	variables := prepareVaribles(ctx.task, ctx.odate)
 
 	data := events.RouteTaskExecutionMsg{
-		OrderID:   ctx.task.OrderID(),
-		Type:      string(ctx.task.TypeName()),
-		Variables: variables,
-		Command:   ctx.task.Action(),
+		OrderID:     ctx.task.OrderID(),
+		ExecutionID: ctx.task.CurrentExecutionID(),
+		Type:        string(ctx.task.TypeName()),
+		Variables:   variables,
+		Command:     ctx.task.Action(),
 	}
+
+	pushJournalMessage(ctx.dispatcher, ctx.task.OrderID(), ctx.task.CurrentExecutionID(), stime, fmt.Sprintf(journal.TaskStartingRN, ctx.task.RunNumber()))
 
 	msg := events.NewMsg(data)
 	receiver := events.NewWorkLaunchReceiver()
@@ -319,21 +332,30 @@ func (state ostateStarting) processState(ctx *TaskExecutionContext) bool {
 	result, err := receiver.WaitForResult()
 
 	if err != nil {
-		ctx.log.Error("State executing error:", err)
+
+		pushJournalMessage(ctx.dispatcher, ctx.task.OrderID(), ctx.task.CurrentExecutionID(), time.Now(), journal.TaskStartingFailedErr)
+
 		ctx.state = &ostatePostProcessing{}
 		ctx.task.SetState(TaskStateEndedNotOk)
+		ctx.log.Error("State executing error:", err)
 		return true
 	}
 
 	if result.Status != types.WorkerTaskStatusStarting {
+
+		pushJournalMessage(ctx.dispatcher, ctx.task.OrderID(), ctx.task.CurrentExecutionID(), time.Now(), fmt.Sprintf(journal.TaskStartingFailed, result.Status))
+
 		ctx.state = &ostatePostProcessing{}
 		ctx.task.SetState(TaskStateEndedNotOk)
 		ctx.log.Info("Task not executed:")
 		return true
 	}
+
+	pushJournalMessage(ctx.dispatcher, ctx.task.OrderID(), ctx.task.CurrentExecutionID(), time.Now(), fmt.Sprintf(journal.TaskStarting, result.WorkerName))
+
 	ctx.task.SetState(TaskStateExecuting)
 	ctx.task.SetWorkerName(result.WorkerName)
-	ctx.task.SetStartTime()
+
 	ctx.state = &ostateExecuting{}
 
 	return true
@@ -343,7 +365,12 @@ func (state ostateExecuting) processState(ctx *TaskExecutionContext) bool {
 	ctx.log.Info("Checking task state")
 	ctx.task.SetState(TaskStateExecuting)
 
-	msg := events.NewMsg(events.WorkRouteCheckStatusMsg{OrderID: ctx.task.OrderID(), WorkerName: ctx.task.WorkerName()})
+	msg := events.NewMsg(events.WorkRouteCheckStatusMsg{
+		OrderID:     ctx.task.OrderID(),
+		WorkerName:  ctx.task.WorkerName(),
+		ExecutionID: ctx.task.CurrentExecutionID(),
+	})
+
 	receiver := events.NewWorkLaunchReceiver()
 
 	ctx.dispatcher.PushEvent(receiver, events.RouteWorkCheck, msg)
@@ -355,8 +382,6 @@ func (state ostateExecuting) processState(ctx *TaskExecutionContext) bool {
 		return false
 	}
 
-	ctx.task.AddOutput(result.Output)
-
 	if result.Status == types.WorkerTaskStatusEnded || result.Status == types.WorkerTaskStatusFailed {
 
 		n, g, _ := ctx.task.GetInfo()
@@ -365,17 +390,27 @@ func (state ostateExecuting) processState(ctx *TaskExecutionContext) bool {
 		ctx.task.SetEndTime()
 		ctx.state = &ostatePostProcessing{}
 
+		pushJournalMessage(ctx.dispatcher, ctx.task.OrderID(), ctx.task.CurrentExecutionID(), time.Now(), fmt.Sprintf(journal.TaskComplete, ctx.task.EndTime().Format("2006-01-02 15:04:05.000000")))
+
 		if result.Status == types.WorkerTaskStatusFailed {
+
+			pushJournalMessage(ctx.dispatcher, ctx.task.OrderID(), ctx.task.CurrentExecutionID(), time.Now(), journal.TaskFailed)
 			ctx.task.SetState(TaskStateEndedNotOk)
 		}
 
 		if result.Status == types.WorkerTaskStatusEnded {
 
+			msg := ""
+
 			if result.ReturnCode > ctx.maxRc || result.ReturnCode < 0 {
 				ctx.task.SetState(TaskStateEndedNotOk)
+				msg = fmt.Sprintf(journal.TaskEndedNOK, result.ReturnCode)
 			} else {
 				ctx.task.SetState(TaskStateEndedOk)
+				msg = fmt.Sprintf(journal.TaskEndedOK, result.ReturnCode)
 			}
+
+			pushJournalMessage(ctx.dispatcher, ctx.task.OrderID(), ctx.task.CurrentExecutionID(), time.Now(), msg)
 		}
 
 		return true
@@ -389,6 +424,8 @@ func (state ostatePostProcessing) processState(ctx *TaskExecutionContext) bool {
 	ctx.dispatcher.PushEvent(nil, events.RouteTaskClean, msg)
 
 	if ctx.task.State() == TaskStateEndedNotOk {
+
+		pushJournalMessage(ctx.dispatcher, ctx.task.OrderID(), ctx.task.CurrentExecutionID(), time.Now(), journal.TaskPostProc)
 		ctx.log.Info("Task post processing ends")
 		return false
 	}
@@ -414,7 +451,7 @@ func (state ostatePostProcessing) processState(ctx *TaskExecutionContext) bool {
 	}
 
 	ctx.dispatcher.PushEvent(nil, events.RouteTicketIn, events.NewMsg(ticketMsg))
-
+	pushJournalMessage(ctx.dispatcher, ctx.task.OrderID(), ctx.task.CurrentExecutionID(), time.Now(), journal.TaskPostProc)
 	ctx.log.Info("Task post processing ends")
 	return false
 }
@@ -788,4 +825,33 @@ func getStartOfWeek(current date.Odate, shift int) date.Odate {
 
 	t := time.Date(y, time.Month(m), d, 0, 0, 0, 0, time.Local).AddDate(0, 0, -wday+1).AddDate(0, 0, shift*7)
 	return date.FromTime(t)
+}
+
+func prepareVaribles(task *activeTask, odate date.Odate) []taskdef.VariableData {
+
+	variables := []taskdef.VariableData{}
+	n, _, _ := task.GetInfo()
+	cID := task.CurrentExecutionID()
+
+	variables = append(variables, taskdef.VariableData{Name: "%%ORDERID", Value: fmt.Sprintf("%s", task.orderID)})
+	variables = append(variables, taskdef.VariableData{Name: "%%RN", Value: fmt.Sprintf("%d", task.RunNumber())})
+	variables = append(variables, taskdef.VariableData{Name: "%%EXECID", Value: fmt.Sprintf("%s", cID)})
+	variables = append(variables, taskdef.VariableData{Name: "%%ODATE", Value: fmt.Sprintf("%s", odate.ODATE())})
+	variables = append(variables, taskdef.VariableData{Name: "%%TASKNAME", Value: fmt.Sprintf("%s", n)})
+
+	variables = append(variables, task.Variables()...)
+
+	return variables
+}
+
+func pushJournalMessage(dispatcher events.Dispatcher, ID unique.TaskOrderID, execID string, t time.Time, msg string) {
+
+	jmsg := events.RouteJournalMsg{
+		Time:        t,
+		OrderID:     ID,
+		ExecutionID: execID,
+		Msg:         msg,
+	}
+
+	dispatcher.PushEvent(nil, events.RoutTaskJournal, events.NewMsg(jmsg))
 }

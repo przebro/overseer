@@ -13,7 +13,6 @@ import (
 
 func TestStateCheckTime(t *testing.T) {
 
-	var result bool
 	now := time.Now()
 	nowPlus2 := now.Add(2 * time.Minute)
 	nowPlus4 := now.Add(4 * time.Minute)
@@ -43,10 +42,10 @@ func TestStateCheckTime(t *testing.T) {
 	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition)
 
 	state := ostateCheckTime{}
-	result = state.processState(&ctx)
-	if result != true {
+	state.processState(&ctx)
+	if ctx.isInTime != true {
 
-		t.Error("expected result: ", true, " actual:", result)
+		t.Error("expected result: ", true, " actual:", ctx.isInTime)
 	}
 
 	// now -> from "-" -> to "-"
@@ -59,10 +58,10 @@ func TestStateCheckTime(t *testing.T) {
 
 	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition)
 
-	result = state.processState(&ctx)
-	if result == true {
+	state.processState(&ctx)
+	if ctx.isInTime != false {
 		t.Log(definition)
-		t.Error("expected result: ", false, " actual:", result, " ", strn, ",", strnp10)
+		t.Error("expected result: ", false, " actual:", ctx.isInTime, " ", strn, ",", strnp10)
 	}
 
 	// now -> from "-" -> to "-"
@@ -75,10 +74,10 @@ func TestStateCheckTime(t *testing.T) {
 
 	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition)
 
-	result = state.processState(&ctx)
-	if result != true {
+	state.processState(&ctx)
+	if ctx.isInTime != true {
 		t.Log(definition)
-		t.Error("expected result: ", true, " actual:", result, " ", strn, ",", strnp10)
+		t.Error("expected result: ", true, " actual:", ctx.isInTime, " ", strn, ",", strnp10)
 	}
 
 	//from "-" -> now -> to "-"
@@ -91,10 +90,10 @@ func TestStateCheckTime(t *testing.T) {
 
 	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition)
 
-	result = state.processState(&ctx)
-	if result != true {
+	state.processState(&ctx)
+	if ctx.isInTime != true {
 		t.Log(definition)
-		t.Error("expected result: ", true, " actual:", result, " ", strn, ",", strnm10)
+		t.Error("expected result: ", true, " actual:", ctx.isInTime, " ", strn, ",", strnm10)
 	}
 
 	//from "-" -> to "-" -> now
@@ -107,10 +106,10 @@ func TestStateCheckTime(t *testing.T) {
 
 	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition)
 
-	result = state.processState(&ctx)
-	if result == true {
+	state.processState(&ctx)
+	if ctx.isInTime != false {
 		t.Log(definition)
-		t.Error("expected result: ", false, " actual:", result, " ", strn, ",", strnm10)
+		t.Error("expected result: ", false, " actual:", ctx.isInTime, " ", strn, ",", strnm10)
 	}
 
 	//from "-" -> to "-" -> now
@@ -123,10 +122,10 @@ func TestStateCheckTime(t *testing.T) {
 
 	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition)
 
-	result = state.processState(&ctx)
-	if result == true {
+	state.processState(&ctx)
+	if ctx.isInTime != false {
 		t.Log(definition)
-		t.Error("expected result: ", false, " actual:", result, " ", strn, ",", strnm10)
+		t.Error("expected result: ", false, " actual:", ctx.isInTime, " ", strn, ",", strnm10)
 	}
 
 	//from "-" -> to "-" -> now
@@ -140,10 +139,10 @@ func TestStateCheckTime(t *testing.T) {
 	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition)
 
 	//from now -> to "-"
-	result = state.processState(&ctx)
-	if result != true {
+	state.processState(&ctx)
+	if ctx.isInTime != true {
 		t.Log(definition)
-		t.Error("expected result: ", true, " actual:", result, " ", strn)
+		t.Error("expected result: ", true, " actual:", ctx.isInTime, " ", strn)
 	}
 
 	//from "-" -> to "-" -> now
@@ -157,10 +156,26 @@ func TestStateCheckTime(t *testing.T) {
 	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition)
 
 	//from '-' -> to now
-	result = state.processState(&ctx)
-	if result == true {
+	state.processState(&ctx)
+	if ctx.isInTime != false {
 
-		t.Error("expected result: ", true, " actual:", result, " ", strn)
+		t.Error("expected result: ", false, " actual:", ctx.isInTime, " ", strn)
+	}
+
+	definition, err = builder.FromTemplate(definition).WithSchedule(
+		taskdef.SchedulingData{FromTime: strnp10, ToTime: strnp20, OrderType: taskdef.OrderingDaily}).Build()
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition)
+	ctx.isEnforced = true
+
+	state.processState(&ctx)
+	if ctx.isInTime != true {
+		t.Log(definition)
+		t.Error("expected result: ", true, " actual:", ctx.isInTime, " ", strn, ",", strnp10)
 	}
 
 }
@@ -233,7 +248,7 @@ func TestStateCheckCond(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-
+	ctx.isInTime = true
 	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition)
 
 	result = state.processState(&ctx)
@@ -302,6 +317,23 @@ func TestStateCheckCond(t *testing.T) {
 		t.Log(mDispatcher.Tickets)
 		t.Log(ctx.task.TicketsIn())
 
+	}
+
+	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition)
+	ctx.isEnforced = true
+	result = state.processState(&ctx)
+
+	if result != true {
+		t.Error("expected result: ", true, " actual:", result, " ")
+		t.Log(mDispatcher.Tickets)
+		t.Log(ctx.task.TicketsIn())
+	}
+
+	definition, err = builder.FromTemplate(definition).
+		WithInTicekts([]taskdef.InTicketData{}, "AND").Build()
+
+	if err != nil {
+		t.Error(err)
 	}
 
 }
@@ -1212,7 +1244,6 @@ func TestCalcRealOdateRelative(t *testing.T) {
 			t.Error("unexpected error, expecting odate:", "20201107", "actual:", result)
 		}
 	}
-
 }
 
 func TestGetFirstDay(t *testing.T) {

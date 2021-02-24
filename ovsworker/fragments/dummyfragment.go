@@ -17,22 +17,23 @@ type DummyFragment struct {
 }
 
 //FactoryDummy - Creates a new dummy factory
-func FactoryDummy(header msgheader.TaskHeader, data []byte) (WorkFragment, error) {
+func FactoryDummy(header msgheader.TaskHeader, sysoutDir string, data []byte) (WorkFragment, error) {
 
 	act := actions.DummyTaskAction{}
 	if err := proto.Unmarshal(data, &act); err != nil {
 		return nil, errors.New("")
 	}
-	w, err := newDummyFragment(header, &act)
+	w, err := newDummyFragment(header, sysoutDir, &act)
 
 	return w, err
 }
 
 //newDummyFragment - factory method
-func newDummyFragment(header msgheader.TaskHeader, action *actions.DummyTaskAction) (WorkFragment, error) {
+func newDummyFragment(header msgheader.TaskHeader, sysoutDir string, action *actions.DummyTaskAction) (WorkFragment, error) {
 
 	frag := &DummyFragment{}
 	frag.taskID = header.TaskID
+	frag.executionID = header.ExecutionID
 	frag.start = make(chan FragmentStatus)
 	frag.Variables = make([]string, len(header.Variables))
 	for k, v := range header.Variables {
@@ -46,7 +47,7 @@ func newDummyFragment(header msgheader.TaskHeader, action *actions.DummyTaskActi
 func (frag *DummyFragment) StartFragment(ctx context.Context, stat chan FragmentStatus) {
 
 	go func() {
-		status := FragmentStatus{TaskID: frag.taskID, ReturnCode: 0, PID: 0, State: types.WorkerTaskStatusEnded}
+		status := FragmentStatus{TaskID: frag.taskID, ExecutionID: frag.executionID, ReturnCode: 0, PID: 0, State: types.WorkerTaskStatusEnded}
 		stat <- status
 	}()
 }
@@ -65,4 +66,9 @@ func (frag *DummyFragment) Running() FragmentStatus {
 //TaskID - Returns ID of a task associated with this fragment.
 func (frag *DummyFragment) TaskID() string {
 	return frag.taskID
+}
+
+//ExecutionID - Returns ID of a current run of a task associated with this fragment.
+func (frag *DummyFragment) ExecutionID() string {
+	return frag.executionID
 }

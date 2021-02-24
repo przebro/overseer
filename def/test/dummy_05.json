@@ -1,8 +1,8 @@
 {
     "type" : "dummy",
-    "name" :"dummy_04",
+    "name" :"dummy_05",
     "group" : "test",
-    "confirm" : true,
+    "confirm" : false,
     "description" :"sample dummy task definition",
     "inticket" : [
         {"name" : "IN-DUMMY03","odate" : "ODATE" }
@@ -16,6 +16,7 @@
     ],
     "schedule" :{
         "type" : "manual",
+        "pastsub" : false,
         "from" : "",
         "to" : ""
     }

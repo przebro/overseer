@@ -7,6 +7,7 @@ import (
 	"overseer/common/types/date"
 	"overseer/datastore"
 	"overseer/overseer/internal/events"
+	"overseer/overseer/internal/taskdef"
 	"sync"
 	"testing"
 	"time"
@@ -95,9 +96,9 @@ func TestCheckDailyProcedure(t *testing.T) {
 
 func TestDailyProc(t *testing.T) {
 
-	t.SkipNow()
 	daily.log = logger.NewTestLogger()
 	taskPoolT.log = daily.log
+	daily.manager.tdm, _ = taskdef.NewManager("../../def/test")
 	pManager.log = daily.log
 	del, ord := daily.DailyProcedure()
 	if del != 0 || ord != 0 {

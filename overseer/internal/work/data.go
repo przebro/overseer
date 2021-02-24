@@ -13,16 +13,18 @@ type taskExecuteMsg struct {
 }
 
 type taskCleanMsg struct {
-	receiver   events.EventReceiver
-	orderID    unique.TaskOrderID
-	workername string
-	terminate  bool
+	receiver    events.EventReceiver
+	orderID     unique.TaskOrderID
+	executionID string
+	workername  string
+	terminate   bool
 }
 
 type taskGetStatusMsg struct {
-	receiver   events.EventReceiver
-	orderID    unique.TaskOrderID
-	workername string
+	receiver    events.EventReceiver
+	orderID     unique.TaskOrderID
+	ExecutionID string
+	workername  string
 }
 
 type workerStatus struct {

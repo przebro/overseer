@@ -41,6 +41,7 @@ type TaskDefinitionManager interface {
 	GetTask(task taskdata.GroupNameData) (TaskDefinition, error)
 	GetGroups() []string
 	GetTasksFromGroup(groups []string) ([]taskdata.GroupNameData, error)
+	GetTaskModelList(filter string) ([]taskdata.TaskNameModel, error)
 	Lock(task taskdata.GroupNameData) (uint32, error)
 	Unlock(lockID uint32) error
 	Create(task TaskDefinition) error
@@ -104,8 +105,34 @@ func (m *taskManager) GetTasksFromGroup(groups []string) ([]taskdata.GroupNameDa
 			if nfo.IsDir() == false {
 
 				nameExt := strings.Split(nfo.Name(), ".")
-				result = append(result, taskdata.GroupNameData{Group: grp, Name: nameExt[0]})
+				result = append(result, taskdata.GroupNameData{GroupData: taskdata.GroupData{Group: grp}, Name: nameExt[0]})
 			}
+		}
+	}
+
+	return result, nil
+}
+func (m *taskManager) GetTaskModelList(filter string) ([]taskdata.TaskNameModel, error) {
+
+	var info []os.FileInfo
+	var err error
+	var definition TaskDefinition
+	result := []taskdata.TaskNameModel{}
+
+	pth := filepath.Join(m.dirPath, filter)
+	if info, err = ioutil.ReadDir(pth); err != nil {
+		return nil, err
+	}
+
+	for _, nfo := range info {
+
+		if nfo.IsDir() == false {
+			fpath := filepath.Join(pth, nfo.Name())
+			if definition, err = FromDefinitionFile(fpath); err != nil {
+				continue
+			}
+			n, g, d := definition.GetInfo()
+			result = append(result, taskdata.TaskNameModel{Group: g, Name: n, Description: d})
 		}
 	}
 
@@ -115,7 +142,6 @@ func (m *taskManager) GetTasksFromGroup(groups []string) ([]taskdata.GroupNameDa
 func (m *taskManager) GetGroups() []string {
 
 	groups := make([]string, 0)
-	groups = append(groups, "")
 
 	info, err := ioutil.ReadDir(m.dirPath)
 	if err != nil {
@@ -233,7 +259,7 @@ func (m *taskManager) Update(lockID uint32, task TaskDefinition) error {
 
 	var result string
 	var err error
-	result, err = WriteDefinitionFile(task)
+	result, err = SerializeDefinition(task)
 	if err != nil {
 		return err
 	}

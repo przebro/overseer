@@ -73,8 +73,6 @@ func getUniqueBytes() MsgID {
 	rbytes := make([]byte, 4)
 	binary.BigEndian.PutUint32(rbytes, rpart)
 
-	rand.Shuffle(8, func(i, j int) {})
-
 	bytes := append(lbytes, rbytes...)
 	copy(nbytes, bytes)
 

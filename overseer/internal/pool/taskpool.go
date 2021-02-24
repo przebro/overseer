@@ -17,12 +17,14 @@ import (
 
 //ActiveTaskPool - Holds tasks that are currently processed.
 type ActiveTaskPool struct {
-	config       config.ActivePoolConfiguration
-	dispatcher   events.Dispatcher
-	tasks        *Store
-	log          logger.AppLogger
-	isProcActive bool
-	processing   chan *activeTask
+	config        config.ActivePoolConfiguration
+	dispatcher    events.Dispatcher
+	tasks         *Store
+	log           logger.AppLogger
+	isProcActive  bool
+	processing    chan *activeTask
+	enforcedTasks map[unique.TaskOrderID]bool
+	lock          sync.RWMutex
 }
 
 //TaskViewer - Provides a view for an active tasks in pool
@@ -43,12 +45,14 @@ func NewTaskPool(dispatcher events.Dispatcher, cfg config.ActivePoolConfiguratio
 	}
 
 	pool := &ActiveTaskPool{
-		tasks:        store,
-		dispatcher:   dispatcher,
-		config:       cfg,
-		isProcActive: true,
-		log:          log,
-		processing:   make(chan *activeTask, 8),
+		tasks:         store,
+		dispatcher:    dispatcher,
+		config:        cfg,
+		isProcActive:  true,
+		log:           log,
+		processing:    make(chan *activeTask, 8),
+		enforcedTasks: map[unique.TaskOrderID]bool{},
+		lock:          sync.RWMutex{},
 	}
 
 	if dispatcher != nil {
@@ -75,12 +79,29 @@ func (pool *ActiveTaskPool) cleanupCompletedTasks() int {
 	pool.log.Info(fmt.Sprintf("cleanup comlpete. %d tasks deleted.", numDeleted))
 	return numDeleted
 }
+
+func (pool *ActiveTaskPool) enforceTask(taskID unique.TaskOrderID) {
+	defer pool.lock.Unlock()
+	pool.lock.Lock()
+	pool.enforcedTasks[taskID] = true
+}
+
+func (pool *ActiveTaskPool) isEnforced(taskID unique.TaskOrderID) bool {
+	defer pool.lock.Unlock()
+	pool.lock.Lock()
+
+	enforced := pool.enforcedTasks[taskID]
+	delete(pool.enforcedTasks, taskID)
+
+	return enforced
+}
+
 func (pool *ActiveTaskPool) addTask(orderID unique.TaskOrderID, t *activeTask) {
 
 	pool.tasks.add(orderID, t)
 }
 
-//Task - Returns an active task with given id or error if the task was not found.
+//task - Returns an active task with given id or error if the task was not found.
 func (pool *ActiveTaskPool) task(orderID unique.TaskOrderID) (*activeTask, error) {
 
 	var err error = nil
@@ -124,7 +145,6 @@ func (pool *ActiveTaskPool) processTaskState(ch <-chan *activeTask, wg *sync.Wai
 		}
 
 		exCtx := &TaskExecutionContext{
-			//odate:      pool.currentOdate,
 			odate:      date.CurrentOdate(),
 			task:       task,
 			time:       t,
@@ -132,14 +152,14 @@ func (pool *ActiveTaskPool) processTaskState(ch <-chan *activeTask, wg *sync.Wai
 			state:      executionState,
 			dispatcher: pool.dispatcher,
 			log:        pool.log,
+			isEnforced: pool.isEnforced(task.OrderID()),
+			isInTime:   false,
 		}
 		for exCtx.state.processState(exCtx) {
 		}
 
 		n, g, _ := task.GetInfo()
 		pool.log.Debug(n, ":", g, " Task state:", task.State(), task.OrderID())
-		pool.log.Debug(exCtx.reason)
-
 	}
 	wg.Done()
 
@@ -180,7 +200,20 @@ func (pool *ActiveTaskPool) Detail(orderID unique.TaskOrderID) (events.TaskDetai
 	result.WaitingInfo = t.WaitingInfo()
 	result.Worker = t.WorkerName()
 	result.From, result.To = func(f, t types.HourMinTime) (string, string) { return string(f), string(t) }(t.TimeSpan())
-	result.Output = t.Output()
+
+	result.Tickets = make([]struct {
+		Name      string
+		Odate     date.Odate
+		Fulfilled bool
+	}, 0)
+
+	for _, ticket := range t.Collected() {
+		result.Tickets = append(result.Tickets, struct {
+			Name      string
+			Odate     date.Odate
+			Fulfilled bool
+		}{Name: ticket.name, Odate: date.Odate(ticket.odate), Fulfilled: ticket.fulfilled})
+	}
 
 	return result, nil
 

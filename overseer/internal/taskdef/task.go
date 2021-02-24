@@ -2,10 +2,12 @@ package taskdef
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"overseer/common/types"
 	"overseer/common/types/date"
 	"overseer/common/validator"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -160,6 +162,7 @@ func (task *baseTaskDefinition) Days() []int {
 
 //BaseInfo - returns base informations
 type BaseInfo interface {
+	//GetInfo - gets base informations about task: Name,group and description
 	GetInfo() (string, string, string)
 }
 
@@ -251,7 +254,22 @@ func FromDefinitionFile(path string) (TaskDefinition, error) {
 		return nil, err
 	}
 
-	return FromString(string(data))
+	pth := strings.TrimSuffix(path, filepath.Ext(path))
+	taskname := filepath.Base(pth)
+	group := filepath.Base(filepath.Dir(pth))
+
+	def, err := FromString(string(data))
+	if err != nil {
+		return nil, err
+	}
+
+	n, g, _ := def.GetInfo()
+
+	if n != taskname && group != g {
+		return nil, errors.New("task name and group name does not match filepath")
+	}
+
+	return def, nil
 }
 
 //FromString - loads a task definition from input string. Performs validations for enum types.
@@ -280,8 +298,8 @@ func FromString(data string) (TaskDefinition, error) {
 	return result, nil
 }
 
-//WriteDefinitionFile - Writes task definition to file.
-func WriteDefinitionFile(definition TaskDefinition) (string, error) {
+//SerializeDefinition - Writes task definition to string.
+func SerializeDefinition(definition TaskDefinition) (string, error) {
 
 	var result string
 

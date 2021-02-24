@@ -38,7 +38,11 @@ func NewWorkerService(config *config.Config) OvsWorkerService {
 		return nil
 	}
 
-	srvc := services.NewWorkerExecutionService()
+	srvc, err := services.NewWorkerExecutionService(config.Worker.SysoutDirectory)
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
 	wservices.RegisterTaskExecutionServiceServer(wsrvc.grpcServer, srvc)
 	wsrvc.log = log
 

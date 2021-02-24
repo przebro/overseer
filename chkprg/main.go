@@ -5,6 +5,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func main() {
@@ -32,18 +33,29 @@ func main() {
 		fmt.Println(x, ":", e)
 
 	}
-	runNumber := 0
+
+	timeOut := 0
 
 	abend := os.Getenv("OVS_ABEND")
+	timeout := os.Getenv("OVS_TIMEOUT")
 	rn := os.Getenv("OVS_RN")
-	if rn != "" {
-		runNumber, _ = strconv.Atoi(rn)
+
+	if timeout != "" {
+		timeOut, _ = strconv.Atoi(timeout)
 
 	}
 
-	if abend == "Y" && runNumber == 1 {
+	if timeOut > 0 {
+		for i := 0; i < timeOut; i++ {
+			fmt.Println("doing sleep until timeout...")
+			time.Sleep(1 * time.Second)
+		}
+	}
+
+	if abend == "Y" && rn == "1" {
 		os.Exit(5)
 	}
+
 	os.Exit(0)
 
 }

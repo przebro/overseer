@@ -6,7 +6,8 @@ import (
 
 //TaskHeader - Common data for all tasks
 type TaskHeader struct {
-	TaskID    string
-	Type      common.TaskType
-	Variables map[string]string
+	TaskID      string
+	ExecutionID string
+	Type        common.TaskType
+	Variables   map[string]string
 }

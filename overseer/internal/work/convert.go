@@ -71,7 +71,6 @@ func (c *OsTaskActionConverter) Convert(data interface{}, variables []taskdef.Va
 		reg := regexp.MustCompile(`\%\%[A-Z0-9_]+`)
 		cmdLine := result.CommandLine
 		for _, n := range variables {
-
 			if reg.MatchString(n.Name) {
 				cmdLine = strings.Replace(cmdLine, n.Name, n.Value, -1)
 			}

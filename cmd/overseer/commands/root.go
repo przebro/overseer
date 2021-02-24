@@ -5,6 +5,8 @@ import (
 	"os"
 	"overseer/common/helpers"
 	"overseer/common/logger"
+	_ "overseer/common/types"
+	"overseer/common/validator"
 	"overseer/overseer"
 	"overseer/overseer/config"
 	"path/filepath"
@@ -96,6 +98,9 @@ func getConfiguration(root, prog string) error {
 	} else {
 		//Use a built-in default configuration
 		if conf, err = config.Load(filepath.Join(root, "config", "overseer.json")); err != nil {
+			return err
+		}
+		if err = validator.Valid.Validate(*conf); err != nil {
 			return err
 		}
 	}

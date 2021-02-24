@@ -11,15 +11,17 @@ service TaskExecutionService{
 	rpc TerminateTask(TaskIdMsg) returns (WorkerActionMsg){}
 	rpc CompleteTask(TaskIdMsg) returns (WorkerActionMsg){}
 	rpc TaskStatus(TaskIdMsg) returns (TaskExecutionResponseMsg) {}
+	rpc TaskOutput(TaskIdMsg) returns (stream TaskOutputMsg) {}
 	rpc WorkerStatus(google.protobuf.Empty) returns(WorkerStatusResponseMsg){}
 }
 
 message TaskIdMsg{
-	string taskID =1;
+	string taskID = 1;
+	string ExecutionID = 2;
 }
 
 message StartTaskMsg{
-    TaskIdMsg taskID  =1;
+    TaskIdMsg taskID  = 1;
     string type = 2;
     map<string,string> variables = 4;
 	google.protobuf.Any Command = 5;
@@ -40,12 +42,14 @@ message TaskExecutionResponseMsg{
 	int32 returnCode  = 2;
 	int32 statusCode  = 3;
 	int32 pid         = 4;
-	repeated string output = 6;
 }
 
 message WorkerActionMsg{
 	bool success = 1;
 	string message = 2;
+}
+message TaskOutputMsg{
+	string data  = 1;
 }
 
 message WorkerStatusResponseMsg{

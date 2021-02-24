@@ -5,6 +5,7 @@ import (
 	"overseer/overseer/internal/events"
 	"overseer/overseer/internal/taskdef"
 	"overseer/overseer/internal/unique"
+	"overseer/overseer/taskdata"
 	"sync"
 	"testing"
 	"time"
@@ -28,10 +29,15 @@ func TestTaskAddGetDetailList(t *testing.T) {
 	builder := taskdef.DummyTaskBuilder{}
 
 	odate := date.AddDays(date.CurrentOdate(), -2)
-	def, _ := builder.WithBase("test", "task", "testdescription").WithSchedule(taskdef.SchedulingData{OrderType: taskdef.OrderingManual}).WithRetention(0).Build()
-	atask := &activeTask{TaskDefinition: def, orderID: orderID, orderDate: odate}
-	atask.state = TaskStateEndedOk
+	def, _ := builder.WithBase("test", "task", "testdescription").WithSchedule(taskdef.SchedulingData{OrderType: taskdef.OrderingManual}).
+		WithRetention(0).Build()
+	atask := &activeTask{TaskDefinition: def,
+		orderID: orderID, orderDate: odate,
+		executions: []taskExecution{{ExecutionID: "ABCD"}},
+		collected:  []taskInTicket{{name: "ABCDEF", odate: "20201115"}},
+	}
 
+	atask.SetState(TaskStateEndedOk)
 	taskPoolT.addTask(orderID, atask)
 
 	if taskPoolT.tasks.len() != 1 {
@@ -57,6 +63,11 @@ func TestTaskAddGetDetailList(t *testing.T) {
 		t.Error("Unexpected values, expected:", "task", "test", "actual", resultmsg.Name, resultmsg.Group)
 	}
 
+	if len(resultmsg.Tickets) != 1 {
+		t.Error("Unexpected tickets len:", len(resultmsg.Tickets))
+
+	}
+
 	_, err = taskPoolT.Detail(unique.TaskOrderID("22222"))
 	if err == nil {
 		t.Error("Unexpected result")
@@ -65,7 +76,6 @@ func TestTaskAddGetDetailList(t *testing.T) {
 	lresult := taskPoolT.List("")
 	if len(lresult) != 1 {
 		t.Error("Unexpected len")
-
 	}
 
 	taskPoolT.tasks.remove(orderID)
@@ -90,8 +100,8 @@ func TestCleanUp(t *testing.T) {
 
 	odate := date.AddDays(date.CurrentOdate(), -2)
 	def, _ := builder.WithBase("test", "task", "testdescription").WithSchedule(taskdef.SchedulingData{OrderType: taskdef.OrderingManual}).WithRetention(0).Build()
-	atask := &activeTask{TaskDefinition: def, orderID: orderID, orderDate: odate}
-	atask.state = TaskStateEndedOk
+	atask := &activeTask{TaskDefinition: def, orderID: orderID, orderDate: odate, executions: []taskExecution{{}}}
+	atask.SetState(TaskStateEndedOk)
 	taskPoolT.addTask(orderID, atask)
 
 	if taskPoolT.tasks.len() != 1 {
@@ -104,6 +114,26 @@ func TestCleanUp(t *testing.T) {
 		t.Error("unexpected result")
 	}
 
+}
+
+func TestCycleTasks(t *testing.T) {
+
+	_, err := activeTaskManagerT.Force(taskdata.GroupNameData{GroupData: taskdata.GroupData{Group: "test"}, Name: "dummy_05"}, date.CurrentOdate(), "user")
+
+	if err != nil {
+		t.Error("unepected result")
+	}
+
+	id, err := activeTaskManagerT.Force(taskdata.GroupNameData{GroupData: taskdata.GroupData{Group: "test"}, Name: "dummy_05"}, date.CurrentOdate(), "user")
+
+	if err != nil {
+		t.Error("unepected result")
+	}
+
+	taskPoolT.tasks.store[unique.TaskOrderID(id)].SetState(TaskStateEndedNotOk)
+
+	taskPoolT.cycleTasks(time.Now())
+	time.Sleep(1 * time.Second)
 }
 
 func TestProcess(t *testing.T) {

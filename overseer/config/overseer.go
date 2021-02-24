@@ -32,10 +32,10 @@ type LogConfiguration struct {
 //ActivePoolConfiguration - Active Pool Configuration section
 type ActivePoolConfiguration struct {
 	MaxOkReturnCode int32             `json:"maxOkReturnCode"`
-	NewDayProc      types.HourMinTime `json:"newDayProc"`
+	NewDayProc      types.HourMinTime `json:"newDayProc" validate:"hmtime,required"`
 	ForceNewDayProc bool              `json:"forceNewDayProc"`
 	Collection      string            `json:"collection"`
-	SyncTime        int               `json:"syncTime"`
+	SyncTime        int               `json:"syncTime" validate:"min=0,max=60"`
 }
 type ResourceEntry struct {
 	Collection string `json:"collectionName"`
@@ -72,6 +72,7 @@ type OverseerConfiguration struct {
 	StoreProvider       StoreProviderConfiguration `json:"StoreProvider"`
 	Security            SecurityConfiguration      `json:"security"`
 	WorkerManager       WorkerManagerConfiguration `json:"WorkerConfiguration"`
+	Journal             JournalConfiguration       `json:"journalConfiguration"`
 }
 
 type StoreProviderConfiguration struct {
@@ -96,6 +97,11 @@ type SecurityConfiguration struct {
 	Secret         string        `json:"secret"`
 	Collection     string        `json:"collectionName"`
 	Providers      []interface{} `json:"providers"`
+}
+
+type JournalConfiguration struct {
+	LogCollection string `json:"logs"`
+	SyncTime      int    `json:"syncTime" validate:"min=0,max=60"`
 }
 
 //Load - Loads configuration from a file
@@ -145,4 +151,8 @@ func (cfg *OverseerConfiguration) GetSecurityConfiguration() SecurityConfigurati
 
 func (cfg *OverseerConfiguration) GetWorkerManagerConfiguration() WorkerManagerConfiguration {
 	return cfg.WorkerManager
+}
+
+func (cfg *OverseerConfiguration) GetJournalConfiguration() JournalConfiguration {
+	return cfg.Journal
 }

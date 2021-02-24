@@ -35,10 +35,10 @@ func (srv *ovsDefinitionService) GetDefinition(ctx context.Context, msg *service
 
 	for _, e := range msg.DefinitionMsg {
 
-		data := taskdata.GroupNameData{Group: e.GroupName, Name: e.TaskName}
+		data := taskdata.GroupNameData{GroupData: taskdata.GroupData{Group: e.GroupName}, Name: e.TaskName}
 		err := validator.Valid.Validate(data)
 		if err != nil {
-			result.DefinitionMsg = append(result.DefinitionMsg, &services.DefinitionResult{Success: false, Message: err.Error()})
+			result.DefinitionMsg = append(result.DefinitionMsg, &services.DefinitionDetails{Success: false, Message: err.Error()})
 		} else {
 			tdata = append(tdata, data)
 		}
@@ -59,7 +59,7 @@ func (srv *ovsDefinitionService) GetDefinition(ctx context.Context, msg *service
 			resultMsg = string(data)
 		}
 
-		result.DefinitionMsg = append(result.DefinitionMsg, &services.DefinitionResult{Success: success, Message: resultMsg})
+		result.DefinitionMsg = append(result.DefinitionMsg, &services.DefinitionDetails{Success: success, Message: resultMsg})
 	}
 
 	return result, nil
@@ -74,7 +74,7 @@ func (srv *ovsDefinitionService) LockDefinition(ctx context.Context, msg *servic
 	result := &services.LockResultMsg{}
 	for _, e := range msg.DefinitionMsg {
 
-		data := taskdata.GroupNameData{Group: e.GroupName, Name: e.TaskName}
+		data := taskdata.GroupNameData{GroupData: taskdata.GroupData{Group: e.GroupName}, Name: e.TaskName}
 		err := validator.Valid.Validate(data)
 
 		if err != nil {
@@ -121,40 +121,45 @@ func (srv *ovsDefinitionService) UnlockDefinition(ctx context.Context, msg *serv
 }
 
 //ListGroups - List definition groups
-func (srv *ovsDefinitionService) ListGroups(filter *services.FilterMsg, ldef services.DefinitionService_ListGroupsServer) error {
+func (srv *ovsDefinitionService) ListGroups(ctx context.Context, filter *services.FilterMsg) (*services.DefinitionListGroupResultMsg, error) {
+
+	result := &services.DefinitionListGroupResultMsg{GroupName: []string{}}
+
+	if err := validator.Valid.ValidateTag(filter.Filter, "resname"); filter.Filter != "" && err != nil {
+		return nil, err
+	}
 
 	srv.log.Info("Request for group")
-	result := srv.defManager.GetGroups()
+	groups := srv.defManager.GetGroups()
 
-	for _, e := range result {
-
-		msg := &services.DefinitionListGroupResultMsg{GroupName: e}
-		ldef.Send(msg)
+	for _, grp := range groups {
+		result.GroupName = append(result.GroupName, grp)
 	}
 
-	return nil
+	return result, nil
 }
-func (srv *ovsDefinitionService) ListDefinitionsFromGroup(msg *services.DefinitionActionMsg, ldef services.DefinitionService_ListDefinitionsFromGroupServer) error {
+func (srv *ovsDefinitionService) ListDefinitionsFromGroup(ctx context.Context, filter *services.FilterMsg) (*services.DefinitionListResultMsg, error) {
 
-	groups := make([]string, 0)
-	for _, e := range msg.DefinitionMsg {
+	result := &services.DefinitionListResultMsg{Definitions: []*services.DefinitionListMsg{}}
 
-		groups = append(groups, e.GroupName)
+	if err := validator.Valid.ValidateTag(filter.Filter, "resname"); err != nil {
+		return nil, err
 	}
-	result, err := srv.defManager.GetTasksFromGroup(groups)
+
+	tasks, err := srv.defManager.GetTaskModelList(filter.Filter)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	for _, r := range result {
+	for _, r := range tasks {
 
-		msg := &services.DefinitionListResultMsg{}
+		msg := &services.DefinitionListMsg{}
 		msg.GroupName = r.Group
 		msg.TaskName = r.Name
-
-		ldef.Send(msg)
+		msg.Description = r.Description
+		result.Definitions = append(result.Definitions, msg)
 	}
 
-	return nil
+	return result, nil
 }
 
 //GetAllowedAction - returns allowed action for given method. Implementation of handlers.AccessRestricter

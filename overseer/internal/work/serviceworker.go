@@ -59,9 +59,9 @@ type WorkerMediator interface {
 	Active() bool
 	Name() string
 	StartTask(msg events.RouteTaskExecutionMsg)
-	RequestTaskStatusFromWorker(taskID unique.TaskOrderID)
-	TerminateTask(taskID unique.TaskOrderID)
-	CompleteTask(taskID unique.TaskOrderID)
+	RequestTaskStatusFromWorker(taskID unique.TaskOrderID, executionID string)
+	TerminateTask(taskID unique.TaskOrderID, executionID string)
+	CompleteTask(taskID unique.TaskOrderID, executionID string)
 }
 
 //Name - Returns name of a worker
@@ -132,29 +132,34 @@ func (worker *workerMediator) Active() bool {
 func (worker *workerMediator) StartTask(msg events.RouteTaskExecutionMsg) {
 
 	status := events.RouteWorkResponseMsg{
-		Output:     make([]string, 0),
-		OrderID:    msg.OrderID,
-		WorkerName: worker.config.WorkerName,
+		ExecutionID: msg.ExecutionID,
+		OrderID:     msg.OrderID,
+		WorkerName:  worker.config.WorkerName,
 	}
 
 	smsg := &wservices.StartTaskMsg{}
-	smsg.TaskID = &wservices.TaskIdMsg{}
-	smsg.TaskID.TaskID = string(msg.OrderID)
+	smsg.TaskID = &wservices.TaskIdMsg{TaskID: string(msg.OrderID), ExecutionID: msg.ExecutionID}
 	smsg.Type = msg.Type
+
+	smsg.Variables = map[string]string{}
+
+	for _, n := range msg.Variables {
+		smsg.Variables[n.Expand()] = n.Value
+
+	}
 
 	if smsg.Command = worker.converter.Convert(msg.Command, msg.Variables); smsg.Command == nil {
 
 		status.Status = types.WorkerTaskStatusFailed
 		worker.taskStatus <- status
 		return
-
 	}
 
 	go func() {
 		s := events.RouteWorkResponseMsg{
-			Output:     make([]string, 0),
-			OrderID:    msg.OrderID,
-			WorkerName: worker.config.WorkerName,
+			OrderID:     msg.OrderID,
+			ExecutionID: msg.ExecutionID,
+			WorkerName:  worker.config.WorkerName,
 		}
 		resp, err := worker.client.StartTask(context.Background(), smsg)
 		if err != nil {
@@ -163,25 +168,24 @@ func (worker *workerMediator) StartTask(msg events.RouteTaskExecutionMsg) {
 		} else {
 			s.ReturnCode = resp.ReturnCode
 			s.WorkerName = worker.config.WorkerName
-			s.Output = append(s.Output, resp.Output...)
 			s.Status = reverseStatusMap[resp.Status]
-
 		}
 
 		worker.taskStatus <- s
 
 	}()
+
 	status.Status = types.WorkerTaskStatusStarting
 	worker.taskStatus <- status
 
 }
 
 //RequestTaskStatusFromWorker - sends a request for a new status of a work
-func (worker *workerMediator) RequestTaskStatusFromWorker(taskID unique.TaskOrderID) {
+func (worker *workerMediator) RequestTaskStatusFromWorker(taskID unique.TaskOrderID, executionID string) {
 
-	result := events.RouteWorkResponseMsg{Output: make([]string, 0)}
+	result := events.RouteWorkResponseMsg{OrderID: taskID, ExecutionID: executionID}
 
-	resp, err := worker.client.TaskStatus(context.Background(), &wservices.TaskIdMsg{TaskID: string(taskID)})
+	resp, err := worker.client.TaskStatus(context.Background(), &wservices.TaskIdMsg{TaskID: string(taskID), ExecutionID: executionID})
 	if err != nil {
 		if s, ok := status.FromError(err); ok {
 			//something really bad happen with worker and task is lost
@@ -189,8 +193,6 @@ func (worker *workerMediator) RequestTaskStatusFromWorker(taskID unique.TaskOrde
 
 				result.Status = types.WorkerTaskStatusFailed
 				result.WorkerName = worker.config.WorkerName
-				result.OrderID = taskID
-				result.Output = append(result.Output, s.Message())
 				worker.taskStatus <- result
 			}
 		}
@@ -199,25 +201,23 @@ func (worker *workerMediator) RequestTaskStatusFromWorker(taskID unique.TaskOrde
 		result.Status = reverseStatusMap[resp.Status]
 		result.ReturnCode = resp.ReturnCode
 		result.WorkerName = worker.config.WorkerName
-		result.OrderID = taskID
-		result.Output = append(result.Output, resp.Output...)
 
 		worker.taskStatus <- result
 	}
 }
 
 //TerminateTask - terminates a task on a remote worker
-func (worker *workerMediator) TerminateTask(taskID unique.TaskOrderID) {
+func (worker *workerMediator) TerminateTask(taskID unique.TaskOrderID, executionID string) {
 
 	go func() {
-		worker.client.TerminateTask(context.Background(), &wservices.TaskIdMsg{TaskID: string(taskID)})
+		worker.client.TerminateTask(context.Background(), &wservices.TaskIdMsg{TaskID: string(taskID), ExecutionID: executionID})
 	}()
 }
 
 //CompleteTask - sends information that the task is complete and all resources can be released
-func (worker *workerMediator) CompleteTask(taskID unique.TaskOrderID) {
+func (worker *workerMediator) CompleteTask(taskID unique.TaskOrderID, executionID string) {
 
 	go func() {
-		worker.client.CompleteTask(context.Background(), &wservices.TaskIdMsg{TaskID: string(taskID)})
+		worker.client.CompleteTask(context.Background(), &wservices.TaskIdMsg{TaskID: string(taskID), ExecutionID: executionID})
 	}()
 }

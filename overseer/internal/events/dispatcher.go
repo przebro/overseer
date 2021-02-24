@@ -52,7 +52,7 @@ func (m *eventDipspatcher) Subscribe(routename RouteName, participant EventParti
 	route, exists := m.msgRoutes[routename]
 	if !exists {
 		m.log.Debug("Creating route:", routename)
-		route = &messgeRoute{participants: make([]EventParticipant, 0), routename: routename}
+		route = &messgeRoute{participants: make([]EventParticipant, 0), routename: routename, lock: sync.RWMutex{}}
 		m.msgRoutes[routename] = route
 	}
 
