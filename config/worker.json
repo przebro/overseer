@@ -3,7 +3,7 @@
         "name":"worker_01",
         "host" : "127.0.0.1",
         "port" : 7055,
-        "sysoutDirectory" : "../data/sysout"
+        "sysoutDirectory" : "data/sysout"
     },
     "logConfiguration" :{
         "logLevel" : 3,

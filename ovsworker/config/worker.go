@@ -8,10 +8,12 @@ import (
 
 //WorkerConfiguration - Holds a worker configuration
 type WorkerConfiguration struct {
-	Name            string `json:"name"`
-	Host            string `json:"host"`
-	Port            int    `json:"port"`
-	SysoutDirectory string `json:"sysoutDirectory"`
+	Name             string `json:"name"`
+	Host             string `json:"host"`
+	Port             int    `json:"port"`
+	SysoutDirectory  string `json:"sysoutDirectory"`
+	RootDirectory    string
+	ProcessDirectory string
 }
 
 //LogConfiguration - Holds a log configuration

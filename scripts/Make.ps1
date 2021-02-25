@@ -14,6 +14,10 @@ if ((Test-Path -Path ".\bin" -PathType Container) -eq $False){
     mkdir "bin"
     mkdir "bin/tools"
 }
+if ((Test-Path -Path ".\data" -PathType Container) -eq $False){
+    mkdir "data"
+    mkdir "data/sysout"
+}
 
 if ($targetname -eq "build"){
     go build -race -o bin/ cmd/overseer/ovs.go

@@ -43,6 +43,10 @@ func (srv *ovsActiveTaskService) OrderGroup(ctx context.Context, in *services.Ta
 		return response, nil
 	}
 
+	if odate == date.OdateNone {
+		odate = date.CurrentOdate()
+	}
+
 	data := taskdata.GroupData{Group: in.TaskGroup}
 
 	if err := validator.Valid.Validate(data); err != nil {
@@ -82,6 +86,10 @@ func (srv *ovsActiveTaskService) ForceGroup(ctx context.Context, in *services.Ta
 		response.Success = false
 		response.Message = err.Error()
 		return response, nil
+	}
+
+	if odate == date.OdateNone {
+		odate = date.CurrentOdate()
 	}
 
 	data := taskdata.GroupData{Group: in.TaskGroup}
@@ -125,6 +133,10 @@ func (srv *ovsActiveTaskService) OrderTask(ctx context.Context, in *services.Tas
 		return response, nil
 	}
 
+	if odate == date.OdateNone {
+		odate = date.CurrentOdate()
+	}
+
 	data := taskdata.GroupNameData{GroupData: taskdata.GroupData{Group: in.TaskGroup}, Name: in.TaskName}
 
 	if err := validator.Valid.Validate(data); err != nil {
@@ -163,6 +175,10 @@ func (srv *ovsActiveTaskService) ForceTask(ctx context.Context, in *services.Tas
 		response.Success = false
 		response.Message = err.Error()
 		return response, nil
+	}
+
+	if odate == date.OdateNone {
+		odate = date.CurrentOdate()
 	}
 
 	data := taskdata.GroupNameData{GroupData: taskdata.GroupData{Group: in.TaskGroup}, Name: in.TaskName}

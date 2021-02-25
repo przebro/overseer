@@ -7,6 +7,7 @@ import (
 	"overseer/ovsworker/config"
 	"overseer/ovsworker/services"
 	"overseer/proto/wservices"
+	"path/filepath"
 
 	"google.golang.org/grpc"
 )
@@ -37,10 +38,19 @@ func NewWorkerService(config *config.Config) OvsWorkerService {
 		log.Error(err)
 		return nil
 	}
+	defPath := config.Worker.SysoutDirectory
 
-	srvc, err := services.NewWorkerExecutionService(config.Worker.SysoutDirectory)
+	if !filepath.IsAbs(config.Worker.SysoutDirectory) {
+		defPath = filepath.Join(config.Worker.RootDirectory, config.Worker.SysoutDirectory)
+	} else {
+		defPath = config.Worker.SysoutDirectory
+	}
+
+	fmt.Println(defPath)
+
+	srvc, err := services.NewWorkerExecutionService(defPath)
 	if err != nil {
-		log.Error(err)
+		fmt.Println(err)
 		return nil
 	}
 	wservices.RegisterTaskExecutionServiceServer(wsrvc.grpcServer, srvc)

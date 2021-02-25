@@ -23,9 +23,10 @@ func init() {
 
 func main() {
 
-	root, _, err := helpers.GetDirectories(os.Args[0])
-
-	if err != nil {
+	var rootPath string
+	var progPath string
+	var err error
+	if rootPath, progPath, err = helpers.GetDirectories(os.Args[0]); err != nil {
 		fmt.Println(err)
 		os.Exit(8)
 	}
@@ -37,7 +38,7 @@ func main() {
 		os.Exit(8)
 	}
 
-	conf, err := config.Load(filepath.Join(root, "config", "worker.json"))
+	conf, err := config.Load(filepath.Join(rootPath, "config", "worker.json"))
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(8)
@@ -46,7 +47,14 @@ func main() {
 	logcfg := conf.GetLogConfiguration()
 	log := logger.NewLogger(logcfg.Directory, logcfg.Level)
 
+	conf.Worker.ProcessDirectory = progPath
+	conf.Worker.RootDirectory = rootPath
+
 	worker := ovsworker.NewWorkerService(conf)
+
+	if worker == nil {
+		os.Exit(8)
+	}
 
 	if wprofile == true {
 		helpers.StartProfiler(log, "workerprofile.prof")
@@ -54,7 +62,7 @@ func main() {
 
 	err = worker.Start()
 	if err != nil {
-		log.Error(err)
+		fmt.Println(err)
 		os.Exit(8)
 	}
 	os.Exit(0)

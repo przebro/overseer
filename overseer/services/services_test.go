@@ -9,7 +9,11 @@ import (
 	"overseer/overseer/auth"
 	"overseer/overseer/config"
 	"overseer/overseer/internal/events"
+	"overseer/overseer/internal/pool"
 	"overseer/overseer/internal/resources"
+	"overseer/overseer/internal/taskdef"
+	"overseer/overseer/internal/unique"
+	"path/filepath"
 
 	"google.golang.org/grpc"
 )
@@ -25,6 +29,16 @@ func (m *mockDispacher) Subscribe(route events.RouteName, participant events.Eve
 }
 func (m *mockDispacher) Unsubscribe(route events.RouteName, participant events.EventParticipant) {
 
+}
+
+type mockSequence struct {
+	val int
+}
+
+func (m *mockSequence) Next() unique.TaskOrderID {
+
+	m.val++
+	return unique.TaskOrderID(fmt.Sprintf("%05d", m.val))
 }
 
 type mockBuffconnServer struct {
@@ -131,6 +145,8 @@ var provcfg = config.StoreProviderConfiguration{
 
 		{Name: "serviceusers", StoreID: "servicestore"},
 		{Name: "resources", StoreID: "servicestore"},
+		{Name: "tasks", StoreID: "servicestore"},
+		{Name: "sequence", StoreID: "servicestore"},
 	},
 }
 
@@ -138,11 +154,22 @@ var rescfg = config.ResourcesConfigurartion{
 	TicketSource: config.ResourceEntry{Sync: 1, Collection: "resources"},
 	FlagSource:   config.ResourceEntry{Sync: 1, Collection: "resources"},
 }
+var seq = &mockSequence{val: 1}
+var testCollectionName = "tasks"
+var taskPoolConfig config.ActivePoolConfiguration = config.ActivePoolConfiguration{
+	ForceNewDayProc: true, MaxOkReturnCode: 4,
+	NewDayProc: "00:30",
+	SyncTime:   5,
+	Collection: testCollectionName,
+}
 
 var provider *datastore.Provider
 var resmanager resources.ResourceManager
-
 var dispatcher mockDispacher = mockDispacher{}
+
+var taskPoolT *pool.ActiveTaskPool
+var activeTaskManagerT *pool.ActiveTaskPoolManager
+var definitionManagerT taskdef.TaskDefinitionManager
 
 func init() {
 
@@ -169,4 +196,25 @@ func init() {
 		panic("")
 	}
 
+	f2, _ := os.Create("../../../data/tests/tasks.json")
+	f2.Write([]byte("{}"))
+	f2.Close()
+
+	f3, _ := os.Create("../../../data/tests/sequence.json")
+	f3.Write([]byte(`{}`))
+	f3.Close()
+
+	initTaskPool()
+
+	path, _ := filepath.Abs("../../def")
+	definitionManagerT, err = taskdef.NewManager(path)
+	if err != nil {
+		fmt.Println(err)
+	}
+	activeTaskManagerT, _ = pool.NewActiveTaskPoolManager(&dispatcher, definitionManagerT, taskPoolT, provider)
+
+}
+
+func initTaskPool() {
+	taskPoolT, _ = pool.NewTaskPool(&dispatcher, taskPoolConfig, provider)
 }
