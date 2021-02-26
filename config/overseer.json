@@ -2,10 +2,7 @@
     "serverConfiguration":{
         "ovshost" : "127.0.0.1",
         "ovsport" : 7053,
-        "tls" : false,
-        "cert" : "docker/cert/overseer_srv.crt",
-        "key" : "docker/cert/overseer_srv.key"
-
+        "tls" : false
     },
     "definitionDirectory" : "./def",
     "LogConfiguration" :{

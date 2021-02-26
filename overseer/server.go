@@ -1,6 +1,7 @@
 package overseer
 
 import (
+	"errors"
 	"overseer/common/logger"
 	"overseer/datastore"
 	"overseer/overseer/auth"
@@ -161,6 +162,10 @@ func (s *Overseer) Start() error {
 		statservice,
 		s.conf.GetServerConfiguration(),
 	)
+
+	if s.ovsGrpcSrv == nil {
+		return errors.New("fatal error, unable to start grpc server")
+	}
 
 	err = s.ovsGrpcSrv.Start()
 

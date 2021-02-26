@@ -59,7 +59,7 @@ func (cli *OverseerClient) Connect(addr string, certpath string) string {
 		opt = append(opt, grpc.WithInsecure())
 	} else {
 		if creds, err := cert.GetClientTLS(certpath, false); err != nil {
-			return fmt.Sprintf("failed to initalize connection:%v\n", err)
+			return fmt.Sprintf("failed to initialize connection:%v\n", err)
 		} else {
 			opt = append(opt, grpc.WithTransportCredentials(creds))
 		}
@@ -71,7 +71,7 @@ func (cli *OverseerClient) Connect(addr string, certpath string) string {
 
 	cli.conn, err = grpc.Dial(addr, opt...)
 	if err != nil {
-		return fmt.Sprintf("failed to initalize connection:%v\n", err)
+		return fmt.Sprintf("failed to initialize connection:%v\n", err)
 	}
 
 	return fmt.Sprintf("connected to:%s", addr)

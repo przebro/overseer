@@ -113,7 +113,7 @@ func (worker *workerMediator) Available() {
 			result, err := worker.client.WorkerStatus(ctx, &empty.Empty{})
 
 			if err != nil {
-				fmt.Println("worker conection lost")
+				fmt.Println("worker connection lost")
 				worker.lock.Lock()
 				worker.wdata = workerStatus{connected: false}
 			} else {

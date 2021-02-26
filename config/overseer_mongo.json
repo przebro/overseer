@@ -39,7 +39,7 @@
             {"storeId" : "datastore", "name" : "resources"},
             {"storeId" : "datastore", "name" : "auth"},
             {"storeId" : "datastore", "name" : "tasks"},
-            {"storeId" : "datastore", "name" : "sequence"}
+            {"storeId" : "datastore", "name" : "sequence"},
             {"storeId" : "datastore", "name" : "journal"}
         ]
     },
@@ -53,5 +53,9 @@
         "secret" :"WBdumgVKBK4iTB+CR2Z2meseDrlnrg54QDSAPcFswWU=",
         "authenticationProviders" :[]
 
+    },
+    "journalConfiguration" :{
+        "logs" : "journal",
+        "syncTime" : 10
     }
 }
