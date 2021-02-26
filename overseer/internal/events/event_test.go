@@ -238,7 +238,7 @@ func TestWorkLaunchReceiver(t *testing.T) {
 		ResponseToReceiver(wlr, "invalid value")
 	}()
 
-	data, err = wlr.WaitForResult()
+	_, err = wlr.WaitForResult()
 
 	if err == nil {
 		t.Error("Unexpected result")
@@ -254,7 +254,7 @@ func TestWorkLaunchReceiver(t *testing.T) {
 		ResponseToReceiver(wlr, customError)
 	}()
 
-	data, err = wlr.WaitForResult()
+	_, err = wlr.WaitForResult()
 
 	if err == nil {
 		t.Error("Unexpected result")

@@ -33,7 +33,6 @@ type workerMediator struct {
 //NewWorkerMediator - Creates a new WorkerMediator.
 func NewWorkerMediator(conf config.WorkerConfiguration, timeout int, status chan events.RouteWorkResponseMsg) WorkerMediator {
 
-	var err error
 	worker := &workerMediator{
 		config:     conf,
 		timeout:    timeout,
@@ -44,9 +43,10 @@ func NewWorkerMediator(conf config.WorkerConfiguration, timeout int, status chan
 		lock:       sync.Mutex{},
 	}
 
-	if err = worker.connect(conf.WorkerHost, conf.WorkerPort, worker.timeout); err != nil {
+	if client := worker.connect(conf.WorkerHost, conf.WorkerPort, worker.timeout); client == nil {
 		worker.wdata.connected = false
 	} else {
+		worker.client = client
 		worker.wdata.connected = true
 	}
 
@@ -69,10 +69,8 @@ func (worker *workerMediator) Name() string {
 	return worker.config.WorkerName
 }
 
-func (worker *workerMediator) connect(host string, port int, timeout int) error {
+func (worker *workerMediator) connect(host string, port int, timeout int) wservices.TaskExecutionServiceClient {
 
-	defer worker.lock.Unlock()
-	worker.lock.Lock()
 	opt := []grpc.DialOption{
 		grpc.WithInsecure(),
 		grpc.WithBlock(),
@@ -82,41 +80,57 @@ func (worker *workerMediator) connect(host string, port int, timeout int) error 
 	conn, err := grpc.Dial(targetAddr, opt...)
 	if err != nil {
 		worker.wdata = workerStatus{connected: false}
-		return err
+		return nil
 	}
 
-	worker.client = wservices.NewTaskExecutionServiceClient(conn)
-
-	return nil
-
+	return wservices.NewTaskExecutionServiceClient(conn)
 }
 
-//Avaliable - Gets a status of a worker
+//Available - Gets a status of a worker
 func (worker *workerMediator) Available() {
 
 	go func() {
+		var client wservices.TaskExecutionServiceClient
 
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		defer worker.lock.Unlock()
-		result, err := worker.client.WorkerStatus(ctx, &empty.Empty{})
-		if err != nil {
-			worker.lock.Lock()
-			worker.wdata = workerStatus{connected: false}
+		worker.lock.Lock()
+		client = worker.client
+		worker.lock.Unlock()
+
+		if client == nil {
+			if client := worker.connect(worker.config.WorkerHost, worker.config.WorkerPort, worker.timeout); client == nil {
+				fmt.Println("connect with worker failed")
+			} else {
+				worker.lock.Lock()
+				worker.client = client
+				worker.lock.Unlock()
+			}
+
 		} else {
-			worker.lock.Lock()
-			if !worker.wdata.connected {
-				worker.wdata = workerStatus{
-					connected: true,
-					cpu:       int(result.Cpuload),
-					memused:   int(result.Memused),
-					memtotal:  int(result.Memtotal),
-					tasks:     int(result.Tasks),
+
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer worker.lock.Unlock()
+			defer cancel()
+			result, err := worker.client.WorkerStatus(ctx, &empty.Empty{})
+
+			if err != nil {
+				fmt.Println("worker conection lost")
+				worker.lock.Lock()
+				worker.wdata = workerStatus{connected: false}
+			} else {
+				worker.lock.Lock()
+				if !worker.wdata.connected {
+					worker.wdata = workerStatus{
+						connected: true,
+						cpu:       int(result.Cpuload),
+						memused:   int(result.Memused),
+						memtotal:  int(result.Memtotal),
+						tasks:     int(result.Tasks),
+					}
+
 				}
-				// if connection was broken, reconnect with worker
-				worker.connect(worker.config.WorkerHost, worker.config.WorkerPort, worker.timeout)
 			}
 		}
+
 	}()
 
 }

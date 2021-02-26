@@ -509,8 +509,9 @@ func calcRealOdate(current date.Odate, expect date.OdateValue, schedule taskdef.
 		days := 1
 		if expect == date.OdateValuePrev {
 			days = -1
-			return date.AddDays(current, days)
 		}
+
+		return date.AddDays(current, days)
 	}
 
 	var result date.Odate
@@ -548,7 +549,7 @@ func calcRealOdate(current date.Odate, expect date.OdateValue, schedule taskdef.
 
 	}
 
-	//day of month. Task is ordered on specfic day
+	//day of month. Task is ordered on specific day
 	// if the task is ordered on the day of the month [31] when the date is 2020-03-31 NEXT means 2020-05-31 and PREV means 2020-01-30
 	//because there is no such date like 2020-02-30 and 2020-04-31
 

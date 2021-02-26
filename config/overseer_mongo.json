@@ -23,8 +23,8 @@
     },
     "timeInterval" : 2,
     "WorkerConfiguration":{
-        "timeout" : 5,
-        "attemps" : 3,
+        "timeout"  : 5,
+        "attempts" : 3,
         "interval" : 5,
         "workers" : [
             {"name":"worker_01","workerHost" : "127.0.0.1","workerPort" : 7055}
@@ -40,6 +40,7 @@
             {"storeId" : "datastore", "name" : "auth"},
             {"storeId" : "datastore", "name" : "tasks"},
             {"storeId" : "datastore", "name" : "sequence"}
+            {"storeId" : "datastore", "name" : "journal"}
         ]
     },
 

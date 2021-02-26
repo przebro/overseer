@@ -187,7 +187,6 @@ func (w *workerManager) updateWorkers(interval int) {
 	for {
 		time.Sleep(time.Duration(interval) * time.Second)
 		for _, worker := range w.workers {
-
 			worker.Available()
 		}
 	}

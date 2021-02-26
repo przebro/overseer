@@ -126,7 +126,7 @@ func (journal *taskLogJournal) WriteLog(id unique.TaskOrderID, entry LogEntry) {
 
 	if logs, ok = journal.store[id]; !ok {
 
-		if err = journal.col.Get(context.Background(), string(id), &logs); err != nil && err != collection.ErrNoDocuments {
+		if err = journal.col.Get(context.Background(), string(id), &logs); err != nil {
 			logs.TaskID = string(id)
 		}
 	}

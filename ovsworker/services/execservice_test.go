@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"overseer/common/logger"
 	"overseer/ovsworker/task"
@@ -36,7 +35,7 @@ func TestCreateInstance(t *testing.T) {
 	}
 
 	_, err := NewWorkerExecutionService("../../data/tests/tasks.json")
-	if inst == nil {
+	if err == nil {
 		t.Error("create instance")
 	}
 
@@ -47,9 +46,9 @@ func TestCreateInstance(t *testing.T) {
 
 	s, _ := os.Getwd()
 
-	_, err = NewWorkerExecutionService(s)
+	inst, _ = NewWorkerExecutionService(s)
 	if inst == nil {
-		t.Error("create instance")
+		t.Error("create instance:", err)
 	}
 
 }
@@ -95,18 +94,16 @@ func TestStartTaskOS(t *testing.T) {
 		Variables: map[string]string{},
 		Command:   cmd,
 	}
-	response, err := exservice.StartTask(context.Background(), msg)
+	_, err := exservice.StartTask(context.Background(), msg)
 	if err != nil {
 		t.Error(err)
 	}
 
 	time.Sleep(1 * time.Second)
-	response, err = exservice.TaskStatus(context.Background(), &wservices.TaskIdMsg{TaskID: "00010", ExecutionID: "1234555"})
+	_, err = exservice.TaskStatus(context.Background(), &wservices.TaskIdMsg{TaskID: "00010", ExecutionID: "1234555"})
 	if err != nil {
 		t.Error(err)
 	}
-
-	fmt.Println(response)
 
 	exservice.te.CleanupTask("1234555")
 }

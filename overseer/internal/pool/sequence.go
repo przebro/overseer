@@ -77,7 +77,7 @@ func (seq *sequenceGenerator) watch() {
 //NewSequenceGenerator - creates a new sequence generator
 func NewSequenceGenerator(colname string, provider *datastore.Provider) (SequenceGenerator, error) {
 
-	var value uint16 = 0
+	var value uint16
 	var model = sequenceModel{}
 	var col collection.DataCollection
 	var err error

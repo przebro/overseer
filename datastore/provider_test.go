@@ -37,7 +37,7 @@ func TestProvider(t *testing.T) {
 	conf.Store[0] = config.StoreConfiguration{ID: "test1", ConnectionString: "local;/../data/tests?synctime=1"}
 	conf.Store = append(conf.Store, config.StoreConfiguration{ID: "test1", ConnectionString: "local;/../data/tests?synctime=1"})
 
-	provider, err := NewDataProvider(conf)
+	_, err = NewDataProvider(conf)
 
 	if err == nil || !errors.Is(err, ErrStoreConfiguration) {
 		t.Error("unexpected result:", err)
@@ -53,13 +53,11 @@ func TestProvider(t *testing.T) {
 
 	conf.Store = []config.StoreConfiguration{{ID: "test1", ConnectionString: "local;/../data/tests?synctime=1"}}
 
-	provider, err = NewDataProvider(conf)
+	_, err = NewDataProvider(conf)
 
 	if err == nil {
 		t.Error("unexpected result", err)
 	}
-
-	t.Log(provider)
 
 }
 

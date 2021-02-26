@@ -329,7 +329,7 @@ func TestStateCheckCond(t *testing.T) {
 		t.Log(ctx.task.TicketsIn())
 	}
 
-	definition, err = builder.FromTemplate(definition).
+	_, err = builder.FromTemplate(definition).
 		WithInTicekts([]taskdef.InTicketData{}, "AND").Build()
 
 	if err != nil {
@@ -847,7 +847,7 @@ func TestCalcRealOdate(t *testing.T) {
 	}
 
 	result = calcRealOdate(current, date.OdateValueNext, schedule)
-	if result != "" {
+	if result != "20201102" {
 		t.Error("unexpected result:", result, "expected 20201102")
 	}
 
@@ -946,13 +946,13 @@ func TestCalcRealOdateFromEnd(t *testing.T) {
 
 	current := date.Odate("20201231")
 
-	//from end in simple scenario it simply nth day of a next and previous month if they are avaliable
+	//from end in simple scenario it simply nth day of a next and previous month if they are available
 	result := calcRealOdate(current, date.OdateValueNext, schedule)
 	if result != date.Odate("20210131") {
 		t.Error("unexpected result:", result, "expected empty odate")
 	}
 
-	//from end in simple scenario it simply nth day of a next and previous month if they are avaliable
+	//from end in simple scenario it simply nth day of a next and previous month if they are available
 	result = calcRealOdate(current, date.OdateValuePrev, schedule)
 	if result != date.Odate("20201130") {
 		t.Error("unexpected result:", result, "expected empty odate")
@@ -964,13 +964,13 @@ func TestCalcRealOdateFromEnd(t *testing.T) {
 
 	current = date.Odate("20200430")
 
-	//from end in simple scenario it simply nth day of a next and previous month if they are avaliable
+	//from end in simple scenario it simply nth day of a next and previous month if they are available
 	result = calcRealOdate(current, date.OdateValueNext, schedule)
 	if result != date.Odate("20200731") {
 		t.Error("unexpected result:", result, "expected 20200731")
 	}
 
-	//from end in simple scenario it simply nth day of a next and previous month if they are avaliable
+	//from end in simple scenario it simply nth day of a next and previous month if they are available
 	//test leap year
 	result = calcRealOdate(current, date.OdateValuePrev, schedule)
 	if result != date.Odate("20200229") {
@@ -979,13 +979,13 @@ func TestCalcRealOdateFromEnd(t *testing.T) {
 
 	current = date.Odate("20210430")
 
-	//from end in simple scenario it simply nth day of a next and previous month if they are avaliable
+	//from end in simple scenario it simply nth day of a next and previous month if they are available
 	result = calcRealOdate(current, date.OdateValueNext, schedule)
 	if result != date.Odate("20210731") {
 		t.Error("unexpected result:", result, "expected 20210731")
 	}
 
-	//from end in simple scenario it simply nth day of a next and previous month if they are avaliable
+	//from end in simple scenario it simply nth day of a next and previous month if they are available
 	//test leap year
 	result = calcRealOdate(current, date.OdateValuePrev, schedule)
 	if result != date.Odate("20210228") {
@@ -997,13 +997,13 @@ func TestCalcRealOdateFromEnd(t *testing.T) {
 	schedule.Months = []time.Month{2, 4, 7}
 	current = date.Odate("20210228")
 
-	//from end in simple scenario it simply nth day of a next and previous month if they are avaliable
+	//from end in simple scenario it simply nth day of a next and previous month if they are available
 	result = calcRealOdate(current, date.OdateValueNext, schedule)
 	if result != date.Odate("20210429") {
 		t.Error("unexpected result:", result, "expected 20210731")
 	}
 
-	//from end in simple scenario it simply nth day of a next and previous month if they are avaliable
+	//from end in simple scenario it simply nth day of a next and previous month if they are available
 	//test leap year
 	result = calcRealOdate(current, date.OdateValuePrev, schedule)
 	if result != date.Odate("20200730") {

@@ -78,7 +78,7 @@ func (manager *ActiveTaskPoolManager) OrderGroup(groupdata taskdata.GroupData, o
 
 	var err error
 	var result = []string{}
-	var grps []taskdata.GroupNameData = []taskdata.GroupNameData{}
+	var grps []taskdata.GroupNameData
 	var definition taskdef.TaskDefinition
 
 	if grps, err = manager.tdm.GetTasksFromGroup([]string{groupdata.Group}); err != nil {
@@ -87,7 +87,7 @@ func (manager *ActiveTaskPoolManager) OrderGroup(groupdata taskdata.GroupData, o
 
 	for _, d := range grps {
 
-		definition, err = manager.tdm.GetTask(d)
+		definition, _ = manager.tdm.GetTask(d)
 
 		orderID, descr := manager.orderDefinition(definition, odate, username)
 		if descr != "" {
@@ -105,7 +105,7 @@ func (manager *ActiveTaskPoolManager) ForceGroup(groupdata taskdata.GroupData, o
 
 	var err error
 	var result = []string{}
-	var grps []taskdata.GroupNameData = []taskdata.GroupNameData{}
+	var grps []taskdata.GroupNameData
 	var definition taskdef.TaskDefinition
 
 	if grps, err = manager.tdm.GetTasksFromGroup([]string{groupdata.Group}); err != nil {
@@ -114,7 +114,7 @@ func (manager *ActiveTaskPoolManager) ForceGroup(groupdata taskdata.GroupData, o
 
 	for _, d := range grps {
 
-		definition, err = manager.tdm.GetTask(d)
+		definition, _ = manager.tdm.GetTask(d)
 
 		orderID, descr := manager.forceDefinition(definition, odate, username)
 		if descr != "" {

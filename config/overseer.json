@@ -26,7 +26,7 @@
     "timeInterval" : 1,
     "WorkerConfiguration":{
         "timeout" : 5,
-        "attemps" : 3,
+        "attempts" : 3,
         "interval" : 5,
         "workers" : [
             {"name":"worker_01","workerHost" : "127.0.0.1","workerPort" : 7055}

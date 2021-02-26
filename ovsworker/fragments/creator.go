@@ -6,7 +6,7 @@ import (
 	"overseer/ovsworker/msgheader"
 )
 
-//FragmentFactorytMethod - Creates a framgent
+//FragmentFactorytMethod - Creates a fragment
 type FragmentFactorytMethod func(header msgheader.TaskHeader, sysoutDir string, data []byte) (WorkFragment, error)
 
 var factories = map[common.TaskType]FragmentFactorytMethod{

@@ -1,6 +1,7 @@
 # overseer
 [![Build Status](https://travis-ci.com/przebro/overseer.svg?token=BuDzHpxjhcjeKFWW17aH&branch=develop)](https://travis-ci.com/przebro/overseer)
 [![codecov](https://codecov.io/gh/przebro/overseer/branch/develop/graph/badge.svg?token=GGT2W1ARNU)](https://codecov.io/gh/przebro/overseer)
+[![Go Report Card](https://goreportcard.com/badge/github.com/przebro/overseer)](https://goreportcard.com/report/github.com/przebro/overseer)
 ## About
 Goscheduler is a workflow manager and a task scheduler. Unlike cron-like schedulers,running tasks in overseer are controlled by resources: tickets and flags. this feature makes it easy to create robust and flexible workflows. Gosheduler is inspired by Control-M from BMC.
 

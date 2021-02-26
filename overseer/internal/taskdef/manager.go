@@ -249,8 +249,8 @@ func (m *taskManager) Update(lockID uint32, task TaskDefinition) error {
 		}
 
 		d.file.Close()
-		err = os.Rename(oldpath, path)
-		nfile, err := os.OpenFile(path, os.O_TRUNC|os.O_RDWR, 0640)
+		os.Rename(oldpath, path)
+		nfile, _ := os.OpenFile(path, os.O_TRUNC|os.O_RDWR, 0640)
 
 		m.lockTab[lockID] = lockData{file: nfile, name: name, group: grp}
 		d, _ = m.lockTab[lockID]

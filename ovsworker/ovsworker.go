@@ -38,15 +38,14 @@ func NewWorkerService(config *config.Config) OvsWorkerService {
 		log.Error(err)
 		return nil
 	}
-	defPath := config.Worker.SysoutDirectory
+
+	var defPath string
 
 	if !filepath.IsAbs(config.Worker.SysoutDirectory) {
 		defPath = filepath.Join(config.Worker.RootDirectory, config.Worker.SysoutDirectory)
 	} else {
 		defPath = config.Worker.SysoutDirectory
 	}
-
-	fmt.Println(defPath)
 
 	srvc, err := services.NewWorkerExecutionService(defPath)
 	if err != nil {

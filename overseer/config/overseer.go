@@ -17,10 +17,10 @@ type WorkerConfiguration struct {
 
 //WorkerManagerConfiguration - setting for worker manager
 type WorkerManagerConfiguration struct {
-	Timeout          int                   `json:"timeout"`
-	WorkerInterval   int                   `json:"interval"`
-	WorkerMaxAttemps int                   `json:"attemps"`
-	Workers          []WorkerConfiguration `json:"workers"`
+	Timeout           int                   `json:"timeout"`
+	WorkerInterval    int                   `json:"interval"`
+	WorkerMaxAttempts int                   `json:"attempts"`
+	Workers           []WorkerConfiguration `json:"workers"`
 }
 
 //LogConfiguration - configuration for logger

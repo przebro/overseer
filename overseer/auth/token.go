@@ -7,7 +7,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 )
 
-//TokenSigningMethod - avaliable token signing method
+//TokenSigningMethod - available token signing method
 type TokenSigningMethod string
 
 const (

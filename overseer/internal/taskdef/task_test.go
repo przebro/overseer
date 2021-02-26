@@ -454,8 +454,8 @@ func TestGetAction(t *testing.T) {
 
 func TestExpandVariable(t *testing.T) {
 
-	expect := "OVS_VARIBALE"
-	variable := VariableData{Name: "%%VARIBALE", Value: ""}
+	expect := "OVS_VARIABLE"
+	variable := VariableData{Name: "%%VARIABLE", Value: ""}
 	if variable.Expand() != expect {
 		t.Error("Unexpected value expected:", expect, "actual", variable.Expand())
 	}

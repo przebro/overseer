@@ -109,6 +109,17 @@ func TestOrderTask(t *testing.T) {
 	if r.Success != true || !strings.Contains(r.Message, "TaskID:") {
 		t.Error("unexpected result:", r.Success, ";", r.Message)
 	}
+
+	// call method directly to skip setting the name of the user in a middleware handler
+	r, err = tsrvs.OrderTask(ctx, &services.TaskOrderMsg{TaskGroup: "test", Odate: string(date.CurrentOdate()), TaskName: "dummy_04"})
+
+	if err != nil {
+		t.Error("unexpected result")
+	}
+
+	if r.Success != false || !strings.Contains(r.Message, "undefined user") {
+		t.Error("unexpected result:", r.Success, ";", r.Message)
+	}
 }
 
 func TestForceTask(t *testing.T) {
@@ -149,6 +160,17 @@ func TestForceTask(t *testing.T) {
 	}
 
 	if r.Success != true || !strings.Contains(r.Message, "TaskID:") {
+		t.Error("unexpected result:", r.Success, ";", r.Message)
+	}
+
+	// call method directly to omit set of the name of the user in middleware handler
+	r, err = tsrvs.ForceTask(ctx, &services.TaskOrderMsg{TaskGroup: "test", Odate: string(date.CurrentOdate()), TaskName: "dummy_04"})
+
+	if err != nil {
+		t.Error("unexpected result")
+	}
+
+	if r.Success != false || !strings.Contains(r.Message, "undefined user") {
 		t.Error("unexpected result:", r.Success, ";", r.Message)
 	}
 }
@@ -225,6 +247,17 @@ func TestOrderGroup(t *testing.T) {
 	if r.Success != true {
 		t.Error("unexpected result:", r.Success, "expected:", true)
 	}
+
+	// call method directly to skip setting the name of the user in a middleware handler
+	r, err = tsrvs.OrderGroup(ctx, &services.TaskOrderGroupMsg{TaskGroup: "test", Odate: ""})
+
+	if err != nil {
+		t.Error("unexpected result")
+	}
+
+	if r.Success != false || !strings.Contains(r.Message, "undefined user") {
+		t.Error("unexpected result:", r.Success, ";", r.Message)
+	}
 }
 
 func TestForceGroup(t *testing.T) {
@@ -272,6 +305,17 @@ func TestForceGroup(t *testing.T) {
 		t.Error("unexpected result:", r.Success, "expected:", true)
 	}
 
+	// call method directly to skip setting the name of the user in a middleware handler
+	r, err = tsrvs.ForceGroup(ctx, &services.TaskOrderGroupMsg{TaskGroup: "test", Odate: ""})
+
+	if err != nil {
+		t.Error("unexpected result")
+	}
+
+	if r.Success != false || !strings.Contains(r.Message, "undefined user") {
+		t.Error("unexpected result:", r.Success, ";", r.Message)
+	}
+
 }
 
 func TestConfirmTask(t *testing.T) {
@@ -301,6 +345,17 @@ func TestConfirmTask(t *testing.T) {
 	}
 	if r.Success != true {
 		t.Error("unexpected result:", r.Success, "expected:", true)
+	}
+
+	// call method directly to skip setting the name of the user in a middleware handler
+	r, err = tsrvs.ConfirmTask(ctx, &services.TaskActionMsg{TaskID: msg[1]})
+
+	if err != nil {
+		t.Error("unexpected result")
+	}
+
+	if r.Success != false || !strings.Contains(r.Message, "undefined user") {
+		t.Error("unexpected result:", r.Success, ";", r.Message)
 	}
 }
 
@@ -355,6 +410,7 @@ func TestHoldFree(t *testing.T) {
 	if err != nil {
 		t.Error("unexpected result:", err)
 	}
+
 	if r.Success != true {
 		t.Error("unexpected result:", r.Success, "expected:", true)
 	}
@@ -366,6 +422,17 @@ func TestHoldFree(t *testing.T) {
 	}
 	if r.Success != false {
 		t.Error("unexpected result:", r.Success, "expected:", false)
+	}
+
+	// call method directly to skip setting the name of the user in a middleware handler
+	r, err = tsrvs.FreeTask(ctx, &services.TaskActionMsg{TaskID: msg[1]})
+
+	if err != nil {
+		t.Error("unexpected result")
+	}
+
+	if r.Success != false || !strings.Contains(r.Message, "undefined user") {
+		t.Error("unexpected result:", r.Success, ";", r.Message)
 	}
 }
 
