@@ -10,7 +10,7 @@
 - [Getting Started](#getting-started)
 
 ### About
-Overseer is a workflow manager and a task scheduler. In overseer tasks are controlled by resources: tickets and flags. this feature makes it easy to create robust and flexible workflows. Overseer is inspired by Control-M from BMC.
+Overseer is a workflow manager and a task scheduler. In overseer tasks are controlled by resources: tickets and flags. This feature makes it easy to create robust and flexible workflows. Overseer is inspired by Control-M from BMC.
 
 Note that currently, overseer is in a demo stage; therefore, some parts of a project will change.
 
@@ -54,18 +54,19 @@ The basic task definition is:
     "schedule" :{"type" : "manual"}
 }
 ```
-**type**:defines a kind of a task. Right now, there are two kinds of the task 
-- dummy - an empty task that does not call any specific program or service but can have scheduling criteria and can add/remove tickets for other tasks.
-- os - executes scripts or programs on a worker.
-**name** and **group** are unique identifiers of a task. Group represents a subfolde of a root of the definition catalog and name represents the name of a json file.
-**schedule**
-Basically, there are two kinds of a task scheduling: manual and time-based. Manual means that task will be not taken into account by daily ordering process, any other type will be checked against specific, time-based criteria.
-**daily**: The task will be ordered everday.
-**weekday**: The task will be ordered on a specific day of a week where 1 means Monday and 7 means Sunday.
-**dayofmonth**: The task will be ordered on a specific day of a month.
-**fromend**: The task will be ordered on a specific day from the end of a month, where 1 means the end of the month, 2 a day before the end, and so on.
-It is relative value so, fromend=2 in July will be resolved to 30 of July and in February it will be resolved to 27 of February or 28 if it is a leap year.
-**exact**: The task will be ordered exactly on a spcefic day: '2020-05-11','2021-04-07'...
+**type**:Defines a kind of a task. Right now, there are two kinds of the task:\
+- **dummy** - an empty task that does not call any specific program or service but can have scheduling criteria and can add/remove tickets for other tasks.
+- **os** - executes scripts or programs on a worker.
+**name** and **group** are unique identifiers of a task. Group represents a subfolde of a root of the definition catalog and name represents the name of a json file.\
+
+**schedule**:Basically, there are two kinds of a task scheduling, manual and time-based. Manual means that task will be not taken into account by daily ordering process, any other type will be checked against specific, time-based criteria:\
+- **daily**: The task will be ordered everday.\
+- **weekday**: The task will be ordered on a specific day of a week where 1 means Monday and 7 means Sunday.\
+- **dayofmonth**: The task will be ordered on a specific day of a month.\
+- **fromend**: The task will be ordered on a specific day from the end of a month, where 1 means the end of the month, 2 a day before the end, and so on.
+It is relative value so, fromend=2 in July will be resolved to 30 of July and in February it will be resolved to 27 of February or 28 if it is a leap year.\
+- **exact**: The task will be ordered exactly on a spcefic day: '2020-05-11','2021-04-07'...\
+
 Each of those values can also be restricted by specifying months, in which the task can be ordered.The above example definition can be changed to:
 ```
 {
@@ -79,7 +80,18 @@ Each of those values can also be restricted by specifying months, in which the t
     }
 }
 ```
-This task will be ordered every day of January, March, July and December.
+This task will be ordered every day of January, March, July, and December.\
+Despite calendar-based criteria, every task can be restricted to run in a specific period. this can be achieved by setting two properties of schedule:
+from and to. For instance:
+```
+    "schedule" :{
+    "type" : "daily",
+    "from" : "11:15",
+    "to" : "13:00",
+    "months" :[1,3,7,12]
+    }
+```
+These values restrict the time window when the task can run to hours between 11:15 and 13:00. A task can be capped at the bottom or the end so, setting only one of the mentioned values will make the time window half-open or half-closed.
 
 
 
