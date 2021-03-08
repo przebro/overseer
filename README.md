@@ -15,8 +15,8 @@ Overseer is a workflow manager and a task scheduler. In overseer tasks are contr
 Note that currently, overseer is in a demo stage; therefore, some parts of a project will change.
 
 ### Features
-* Scheduling options: Manual, Daily, Day of a Week, Selected months, Specific Date
-* Time criteria: Active from time, Active to Time
+* Scheduling options: Manual, Daily, Day of a week, Selected months, Specific date
+* Time criteria: Active from time, Active to time
 * Hold / Free task
 * Confirm task
 * Task types: Dummy, OS
@@ -40,7 +40,7 @@ After successful build binaries can be found inside the bin catalog.
 * ovs - scheduler, by default it starts listening on 127.0.0.1:7053
 * ovswork - worker, by default it starts listening on 127.0.0.1:7055
 * chkprg - sample program
-* tools/ovscli - tool, helps manage resources and tasks. There is also an Electron-based client:(https://github.com/przebro/overseergui)
+* tools/ovscli - tool, helps manage resources and tasks. There is also an Electron-based client:(https://github.com/przebro/overseergui). It is recommended to use although it is also in a phase of a high development
 
 
 **Task definition**
