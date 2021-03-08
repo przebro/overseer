@@ -2582,7 +2582,7 @@ var file_services_proto_rawDesc = []byte{
 	0x6f, 0x74, 0x6f, 0x2e, 0x46, 0x69, 0x6c, 0x74, 0x65, 0x72, 0x4d, 0x73, 0x67, 0x1a, 0x1e, 0x2e,
 	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x44, 0x65, 0x66, 0x69, 0x6e, 0x69, 0x74, 0x69, 0x6f, 0x6e,
 	0x4c, 0x69, 0x73, 0x74, 0x52, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x4d, 0x73, 0x67, 0x22, 0x00, 0x32,
-	0xe7, 0x04, 0x0a, 0x15, 0x41, 0x64, 0x6d, 0x69, 0x6e, 0x69, 0x73, 0x74, 0x72, 0x61, 0x74, 0x69,
+	0xe0, 0x05, 0x0a, 0x15, 0x41, 0x64, 0x6d, 0x69, 0x6e, 0x69, 0x73, 0x74, 0x72, 0x61, 0x74, 0x69,
 	0x6f, 0x6e, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x12, 0x3c, 0x0a, 0x0a, 0x43, 0x72, 0x65,
 	0x61, 0x74, 0x65, 0x55, 0x73, 0x65, 0x72, 0x12, 0x14, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e,
 	0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x55, 0x73, 0x65, 0x72, 0x4d, 0x73, 0x67, 0x1a, 0x16, 0x2e,
@@ -2620,14 +2620,22 @@ var file_services_proto_rawDesc = []byte{
 	0x74, 0x4d, 0x73, 0x67, 0x22, 0x00, 0x12, 0x31, 0x0a, 0x07, 0x47, 0x65, 0x74, 0x52, 0x6f, 0x6c,
 	0x65, 0x12, 0x0e, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x52, 0x6f, 0x6c, 0x65, 0x4d, 0x73,
 	0x67, 0x1a, 0x14, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x52, 0x6f, 0x6c, 0x65, 0x52, 0x65,
-	0x73, 0x75, 0x6c, 0x74, 0x4d, 0x73, 0x67, 0x22, 0x00, 0x32, 0x53, 0x0a, 0x0d, 0x53, 0x74, 0x61,
-	0x74, 0x75, 0x73, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x12, 0x42, 0x0a, 0x0e, 0x4f, 0x76,
-	0x65, 0x72, 0x73, 0x65, 0x65, 0x72, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x12, 0x16, 0x2e, 0x67,
-	0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x45,
-	0x6d, 0x70, 0x74, 0x79, 0x1a, 0x16, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x41, 0x63, 0x74,
-	0x69, 0x6f, 0x6e, 0x52, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x4d, 0x73, 0x67, 0x22, 0x00, 0x42, 0x10,
-	0x5a, 0x0e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x73, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x73,
-	0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x73, 0x75, 0x6c, 0x74, 0x4d, 0x73, 0x67, 0x22, 0x00, 0x12, 0x3b, 0x0a, 0x07, 0x51, 0x75, 0x69,
+	0x65, 0x73, 0x63, 0x65, 0x12, 0x16, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72,
+	0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x1a, 0x16, 0x2e, 0x70,
+	0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x41, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x73, 0x75, 0x6c,
+	0x74, 0x4d, 0x73, 0x67, 0x22, 0x00, 0x12, 0x3a, 0x0a, 0x06, 0x52, 0x65, 0x73, 0x75, 0x6d, 0x65,
+	0x12, 0x16, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62,
+	0x75, 0x66, 0x2e, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x1a, 0x16, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f,
+	0x2e, 0x41, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x4d, 0x73, 0x67,
+	0x22, 0x00, 0x32, 0x53, 0x0a, 0x0d, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x53, 0x65, 0x72, 0x76,
+	0x69, 0x63, 0x65, 0x12, 0x42, 0x0a, 0x0e, 0x4f, 0x76, 0x65, 0x72, 0x73, 0x65, 0x65, 0x72, 0x53,
+	0x74, 0x61, 0x74, 0x75, 0x73, 0x12, 0x16, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70,
+	0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x1a, 0x16, 0x2e,
+	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x41, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x73, 0x75,
+	0x6c, 0x74, 0x4d, 0x73, 0x67, 0x22, 0x00, 0x42, 0x10, 0x5a, 0x0e, 0x70, 0x72, 0x6f, 0x74, 0x6f,
+	0x2f, 0x73, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x73, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f,
+	0x33,
 }
 
 var (
@@ -2735,47 +2743,51 @@ var file_services_proto_depIdxs = []int32{
 	33, // 49: proto.AdministrationService.DeleteRole:input_type -> proto.RoleMsg
 	0,  // 50: proto.AdministrationService.ListRoles:input_type -> proto.FilterMsg
 	33, // 51: proto.AdministrationService.GetRole:input_type -> proto.RoleMsg
-	36, // 52: proto.StatusService.OverseerStatus:input_type -> google.protobuf.Empty
-	14, // 53: proto.AuthenticateService.Authenticate:output_type -> proto.ActionResultMsg
-	14, // 54: proto.ResourceService.AddTicket:output_type -> proto.ActionResultMsg
-	14, // 55: proto.ResourceService.DeleteTicket:output_type -> proto.ActionResultMsg
-	14, // 56: proto.ResourceService.CheckTicket:output_type -> proto.ActionResultMsg
-	16, // 57: proto.ResourceService.ListTickets:output_type -> proto.TicketListResultMsg
-	14, // 58: proto.ResourceService.SetFlag:output_type -> proto.ActionResultMsg
-	14, // 59: proto.ResourceService.DestroyFlag:output_type -> proto.ActionResultMsg
-	15, // 60: proto.ResourceService.ListFlags:output_type -> proto.FlagListResultMsg
-	14, // 61: proto.TaskService.OrderTask:output_type -> proto.ActionResultMsg
-	14, // 62: proto.TaskService.ForceTask:output_type -> proto.ActionResultMsg
-	14, // 63: proto.TaskService.OrderGroup:output_type -> proto.ActionResultMsg
-	14, // 64: proto.TaskService.ForceGroup:output_type -> proto.ActionResultMsg
-	14, // 65: proto.TaskService.EnforceTask:output_type -> proto.ActionResultMsg
-	14, // 66: proto.TaskService.RerunTask:output_type -> proto.ActionResultMsg
-	14, // 67: proto.TaskService.HoldTask:output_type -> proto.ActionResultMsg
-	14, // 68: proto.TaskService.FreeTask:output_type -> proto.ActionResultMsg
-	14, // 69: proto.TaskService.SetToOk:output_type -> proto.ActionResultMsg
-	14, // 70: proto.TaskService.ConfirmTask:output_type -> proto.ActionResultMsg
-	17, // 71: proto.TaskService.ListTasks:output_type -> proto.TaskListResultMsg
-	19, // 72: proto.TaskService.TaskDetail:output_type -> proto.TaskDetailResultMsg
-	20, // 73: proto.TaskService.TaskOutput:output_type -> proto.TaskDataMsg
-	20, // 74: proto.TaskService.TaskLog:output_type -> proto.TaskDataMsg
-	13, // 75: proto.DefinitionService.GetDefinition:output_type -> proto.DefinitionResultMsg
-	11, // 76: proto.DefinitionService.LockDefinition:output_type -> proto.LockResultMsg
-	11, // 77: proto.DefinitionService.UnlockDefinition:output_type -> proto.LockResultMsg
-	21, // 78: proto.DefinitionService.ListGroups:output_type -> proto.DefinitionListGroupResultMsg
-	23, // 79: proto.DefinitionService.ListDefinitionsFromGroup:output_type -> proto.DefinitionListResultMsg
-	14, // 80: proto.AdministrationService.CreateUser:output_type -> proto.ActionResultMsg
-	14, // 81: proto.AdministrationService.ModifyUser:output_type -> proto.ActionResultMsg
-	14, // 82: proto.AdministrationService.DeleteUser:output_type -> proto.ActionResultMsg
-	32, // 83: proto.AdministrationService.ListUsers:output_type -> proto.ListEntityResultMsg
-	28, // 84: proto.AdministrationService.GetUser:output_type -> proto.UserResultMsg
-	14, // 85: proto.AdministrationService.CreateRole:output_type -> proto.ActionResultMsg
-	14, // 86: proto.AdministrationService.ModifyRole:output_type -> proto.ActionResultMsg
-	14, // 87: proto.AdministrationService.DeleteRole:output_type -> proto.ActionResultMsg
-	32, // 88: proto.AdministrationService.ListRoles:output_type -> proto.ListEntityResultMsg
-	35, // 89: proto.AdministrationService.GetRole:output_type -> proto.RoleResultMsg
-	14, // 90: proto.StatusService.OverseerStatus:output_type -> proto.ActionResultMsg
-	53, // [53:91] is the sub-list for method output_type
-	15, // [15:53] is the sub-list for method input_type
+	36, // 52: proto.AdministrationService.Quiesce:input_type -> google.protobuf.Empty
+	36, // 53: proto.AdministrationService.Resume:input_type -> google.protobuf.Empty
+	36, // 54: proto.StatusService.OverseerStatus:input_type -> google.protobuf.Empty
+	14, // 55: proto.AuthenticateService.Authenticate:output_type -> proto.ActionResultMsg
+	14, // 56: proto.ResourceService.AddTicket:output_type -> proto.ActionResultMsg
+	14, // 57: proto.ResourceService.DeleteTicket:output_type -> proto.ActionResultMsg
+	14, // 58: proto.ResourceService.CheckTicket:output_type -> proto.ActionResultMsg
+	16, // 59: proto.ResourceService.ListTickets:output_type -> proto.TicketListResultMsg
+	14, // 60: proto.ResourceService.SetFlag:output_type -> proto.ActionResultMsg
+	14, // 61: proto.ResourceService.DestroyFlag:output_type -> proto.ActionResultMsg
+	15, // 62: proto.ResourceService.ListFlags:output_type -> proto.FlagListResultMsg
+	14, // 63: proto.TaskService.OrderTask:output_type -> proto.ActionResultMsg
+	14, // 64: proto.TaskService.ForceTask:output_type -> proto.ActionResultMsg
+	14, // 65: proto.TaskService.OrderGroup:output_type -> proto.ActionResultMsg
+	14, // 66: proto.TaskService.ForceGroup:output_type -> proto.ActionResultMsg
+	14, // 67: proto.TaskService.EnforceTask:output_type -> proto.ActionResultMsg
+	14, // 68: proto.TaskService.RerunTask:output_type -> proto.ActionResultMsg
+	14, // 69: proto.TaskService.HoldTask:output_type -> proto.ActionResultMsg
+	14, // 70: proto.TaskService.FreeTask:output_type -> proto.ActionResultMsg
+	14, // 71: proto.TaskService.SetToOk:output_type -> proto.ActionResultMsg
+	14, // 72: proto.TaskService.ConfirmTask:output_type -> proto.ActionResultMsg
+	17, // 73: proto.TaskService.ListTasks:output_type -> proto.TaskListResultMsg
+	19, // 74: proto.TaskService.TaskDetail:output_type -> proto.TaskDetailResultMsg
+	20, // 75: proto.TaskService.TaskOutput:output_type -> proto.TaskDataMsg
+	20, // 76: proto.TaskService.TaskLog:output_type -> proto.TaskDataMsg
+	13, // 77: proto.DefinitionService.GetDefinition:output_type -> proto.DefinitionResultMsg
+	11, // 78: proto.DefinitionService.LockDefinition:output_type -> proto.LockResultMsg
+	11, // 79: proto.DefinitionService.UnlockDefinition:output_type -> proto.LockResultMsg
+	21, // 80: proto.DefinitionService.ListGroups:output_type -> proto.DefinitionListGroupResultMsg
+	23, // 81: proto.DefinitionService.ListDefinitionsFromGroup:output_type -> proto.DefinitionListResultMsg
+	14, // 82: proto.AdministrationService.CreateUser:output_type -> proto.ActionResultMsg
+	14, // 83: proto.AdministrationService.ModifyUser:output_type -> proto.ActionResultMsg
+	14, // 84: proto.AdministrationService.DeleteUser:output_type -> proto.ActionResultMsg
+	32, // 85: proto.AdministrationService.ListUsers:output_type -> proto.ListEntityResultMsg
+	28, // 86: proto.AdministrationService.GetUser:output_type -> proto.UserResultMsg
+	14, // 87: proto.AdministrationService.CreateRole:output_type -> proto.ActionResultMsg
+	14, // 88: proto.AdministrationService.ModifyRole:output_type -> proto.ActionResultMsg
+	14, // 89: proto.AdministrationService.DeleteRole:output_type -> proto.ActionResultMsg
+	32, // 90: proto.AdministrationService.ListRoles:output_type -> proto.ListEntityResultMsg
+	35, // 91: proto.AdministrationService.GetRole:output_type -> proto.RoleResultMsg
+	14, // 92: proto.AdministrationService.Quiesce:output_type -> proto.ActionResultMsg
+	14, // 93: proto.AdministrationService.Resume:output_type -> proto.ActionResultMsg
+	14, // 94: proto.StatusService.OverseerStatus:output_type -> proto.ActionResultMsg
+	55, // [55:95] is the sub-list for method output_type
+	15, // [15:55] is the sub-list for method input_type
 	15, // [15:15] is the sub-list for extension type_name
 	15, // [15:15] is the sub-list for extension extendee
 	0,  // [0:15] is the sub-list for field type_name
@@ -4461,6 +4473,8 @@ type AdministrationServiceClient interface {
 	DeleteRole(ctx context.Context, in *RoleMsg, opts ...grpc.CallOption) (*ActionResultMsg, error)
 	ListRoles(ctx context.Context, in *FilterMsg, opts ...grpc.CallOption) (*ListEntityResultMsg, error)
 	GetRole(ctx context.Context, in *RoleMsg, opts ...grpc.CallOption) (*RoleResultMsg, error)
+	Quiesce(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*ActionResultMsg, error)
+	Resume(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*ActionResultMsg, error)
 }
 
 type administrationServiceClient struct {
@@ -4561,6 +4575,24 @@ func (c *administrationServiceClient) GetRole(ctx context.Context, in *RoleMsg, 
 	return out, nil
 }
 
+func (c *administrationServiceClient) Quiesce(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*ActionResultMsg, error) {
+	out := new(ActionResultMsg)
+	err := c.cc.Invoke(ctx, "/proto.AdministrationService/Quiesce", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *administrationServiceClient) Resume(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*ActionResultMsg, error) {
+	out := new(ActionResultMsg)
+	err := c.cc.Invoke(ctx, "/proto.AdministrationService/Resume", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AdministrationServiceServer is the server API for AdministrationService service.
 type AdministrationServiceServer interface {
 	CreateUser(context.Context, *CreateUserMsg) (*ActionResultMsg, error)
@@ -4573,6 +4605,8 @@ type AdministrationServiceServer interface {
 	DeleteRole(context.Context, *RoleMsg) (*ActionResultMsg, error)
 	ListRoles(context.Context, *FilterMsg) (*ListEntityResultMsg, error)
 	GetRole(context.Context, *RoleMsg) (*RoleResultMsg, error)
+	Quiesce(context.Context, *empty.Empty) (*ActionResultMsg, error)
+	Resume(context.Context, *empty.Empty) (*ActionResultMsg, error)
 }
 
 // UnimplementedAdministrationServiceServer can be embedded to have forward compatible implementations.
@@ -4608,6 +4642,12 @@ func (*UnimplementedAdministrationServiceServer) ListRoles(context.Context, *Fil
 }
 func (*UnimplementedAdministrationServiceServer) GetRole(context.Context, *RoleMsg) (*RoleResultMsg, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetRole not implemented")
+}
+func (*UnimplementedAdministrationServiceServer) Quiesce(context.Context, *empty.Empty) (*ActionResultMsg, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Quiesce not implemented")
+}
+func (*UnimplementedAdministrationServiceServer) Resume(context.Context, *empty.Empty) (*ActionResultMsg, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Resume not implemented")
 }
 
 func RegisterAdministrationServiceServer(s *grpc.Server, srv AdministrationServiceServer) {
@@ -4794,6 +4834,42 @@ func _AdministrationService_GetRole_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AdministrationService_Quiesce_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(empty.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AdministrationServiceServer).Quiesce(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.AdministrationService/Quiesce",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AdministrationServiceServer).Quiesce(ctx, req.(*empty.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AdministrationService_Resume_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(empty.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AdministrationServiceServer).Resume(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.AdministrationService/Resume",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AdministrationServiceServer).Resume(ctx, req.(*empty.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _AdministrationService_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "proto.AdministrationService",
 	HandlerType: (*AdministrationServiceServer)(nil),
@@ -4837,6 +4913,14 @@ var _AdministrationService_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetRole",
 			Handler:    _AdministrationService_GetRole_Handler,
+		},
+		{
+			MethodName: "Quiesce",
+			Handler:    _AdministrationService_Quiesce_Handler,
+		},
+		{
+			MethodName: "Resume",
+			Handler:    _AdministrationService_Resume_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

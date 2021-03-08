@@ -27,7 +27,7 @@ func GetDirectories(base string) (string, string, error) {
 //StartProfiler - starts profiler
 func StartProfiler(log logger.AppLogger, profile string) {
 	log.Info("Start profiler")
-	f, _ := os.Create(fmt.Sprintf("%sprofile.pprof", profile))
+	f, _ := os.Create(fmt.Sprintf("%s", profile))
 	pprof.StartCPUProfile(f)
 
 	go func() {

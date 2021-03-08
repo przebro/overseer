@@ -17,7 +17,7 @@ func TestNewTaskPool(t *testing.T) {
 	}
 
 	taskPoolConfig.Collection = "invalid_collection"
-	_, err := NewTaskPool(mDispatcher, taskPoolConfig, provider)
+	_, err := NewTaskPool(mDispatcher, taskPoolConfig, provider, true)
 	if err == nil {
 		t.Error("unexpected result")
 	}
@@ -80,18 +80,6 @@ func TestTaskAddGetDetailList(t *testing.T) {
 
 	taskPoolT.tasks.remove(orderID)
 
-}
-func TestProcessingFlag(t *testing.T) {
-
-	taskPoolT.PauseProcessing()
-	if taskPoolT.isProcActive != false {
-		t.Error("Unexpected value")
-	}
-
-	taskPoolT.ResumeProcessing()
-	if taskPoolT.isProcActive != true {
-		t.Error("Unexpected value")
-	}
 }
 func TestCleanUp(t *testing.T) {
 

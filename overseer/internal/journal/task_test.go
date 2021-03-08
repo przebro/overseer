@@ -23,7 +23,7 @@ var storeConfig config.StoreProviderConfiguration = config.StoreProviderConfigur
 	},
 }
 
-var conf = config.JournalConfiguration{LogCollection: "journal", SyncTime: 0}
+var conf = config.JournalConfiguration{LogCollection: "journal", SyncTime: 3600}
 var provider *datastore.Provider
 var jrnal TaskJournal
 
@@ -39,7 +39,7 @@ func init() {
 
 func TestNewTaskJournal(t *testing.T) {
 	var err error
-	cfg := config.JournalConfiguration{LogCollection: "_invalid_collection", SyncTime: 0}
+	cfg := config.JournalConfiguration{LogCollection: "_invalid_collection", SyncTime: 3600}
 
 	_, err = NewTaskJournal(cfg, nil, provider)
 	if err == nil {

@@ -15,20 +15,15 @@ import (
 	"google.golang.org/grpc"
 )
 
-type ovsGrpcServer struct {
+//OvsGrpcServer - represents core grpc component
+type OvsGrpcServer struct {
 	conf       config.ServerConfiguration
 	grpcServer *grpc.Server
 	log        logger.AppLogger
 	rm         resources.ResourceManager
 	dm         taskdef.TaskDefinitionManager
-	rservice   ovsResourceService
 	dservice   ovsDefinitionService
 	dispatcher events.Dispatcher
-}
-
-//OvsGrpcServer - interface for ovsGrpcServer
-type OvsGrpcServer interface {
-	Start() error
 }
 
 //NewOvsGrpcServer - Creates new instance of a ovsGrpcServer
@@ -41,12 +36,12 @@ func NewOvsGrpcServer(disp events.Dispatcher,
 	stat services.StatusServiceServer,
 	config config.ServerConfiguration,
 
-) OvsGrpcServer {
+) *OvsGrpcServer {
 
 	var options []grpc.ServerOption
 	var err error
 
-	srv := &ovsGrpcServer{}
+	srv := &OvsGrpcServer{}
 	srv.conf = config
 
 	if options, err = buildOptions(config); err != nil {
@@ -54,7 +49,6 @@ func NewOvsGrpcServer(disp events.Dispatcher,
 	}
 
 	srv.grpcServer = grpc.NewServer(options...)
-	srv.rservice = ovsResourceService{}
 	services.RegisterResourceServiceServer(srv.grpcServer, r)
 	services.RegisterDefinitionServiceServer(srv.grpcServer, d)
 	services.RegisterTaskServiceServer(srv.grpcServer, t)
@@ -67,7 +61,7 @@ func NewOvsGrpcServer(disp events.Dispatcher,
 	return srv
 }
 
-func (srv *ovsGrpcServer) Start() error {
+func (srv *OvsGrpcServer) Start() error {
 
 	conn := fmt.Sprintf("%s:%d", srv.conf.Host, srv.conf.Port)
 	l, err := net.Listen("tcp", conn)
@@ -82,6 +76,13 @@ func (srv *ovsGrpcServer) Start() error {
 	if err != nil {
 		return err
 	}
+
+	return nil
+}
+
+func (srv *OvsGrpcServer) Shutdown() error {
+
+	srv.grpcServer.GracefulStop()
 
 	return nil
 }

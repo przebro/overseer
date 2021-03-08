@@ -6,19 +6,18 @@ import (
 	"overseer/common/core"
 	"overseer/common/helpers"
 	"overseer/common/logger"
-	_ "overseer/common/types"
 	"overseer/common/validator"
-	"overseer/overseer"
-	"overseer/overseer/config"
+	"overseer/ovsworker"
+	"overseer/ovsworker/config"
 	"path/filepath"
 
 	"github.com/spf13/cobra"
 )
 
 const (
-	configFileName = "overseer.json"
+	configFileName = "worker.json"
 	configDirName  = "config"
-	profFileName   = "schedulerprofile.prof"
+	profFileName   = "workerprofile.prof"
 )
 
 var (
@@ -26,14 +25,13 @@ var (
 	hostAddr   string
 	hostPort   int
 	profile    bool
-	quiesce    bool
 )
 
 var rootCmd = &cobra.Command{
 	Use:   "ovs",
 	Short: "overseer scheduler",
 	Run: func(c *cobra.Command, args []string) {
-		startOverseer()
+		startWorker()
 	},
 }
 
@@ -43,7 +41,6 @@ func Setup() {
 	rootCmd.Flags().StringVar(&hostAddr, "host", "", "overseer address")
 	rootCmd.Flags().IntVar(&hostPort, "port", 0, "overseer port")
 	rootCmd.Flags().BoolVar(&profile, "profile", false, "starts profiling")
-	rootCmd.Flags().BoolVar(&quiesce, "quiesce", false, "starts overseer as service")
 }
 
 //Execute - executes commands
@@ -53,13 +50,13 @@ func Execute(args []string) error {
 	return rootCmd.Execute()
 }
 
-func startOverseer() {
+func startWorker() {
 
 	var rootPath string
 	var progPath string
 	var err error
-	var ovs core.RunnableComponent
-	var conf config.OverseerConfiguration
+	var worker core.RunnableComponent
+	var conf config.OverseerWorkerConfiguration
 
 	if rootPath, progPath, err = helpers.GetDirectories(os.Args[0]); err != nil {
 		fmt.Println(err)
@@ -71,21 +68,22 @@ func startOverseer() {
 		os.Exit(16)
 	}
 
-	//Get log section from configuration
 	logcfg := conf.GetLogConfiguration()
-	log := logger.NewLogger(logcfg.LogDirectory, logcfg.LogLevel)
+	log := logger.NewLogger(logcfg.Directory, logcfg.Level)
 
-	if ovs, err = overseer.New(conf, quiesce); err != nil {
+	if worker, err = ovsworker.NewWorkerService(conf); err != nil {
 		log.Error(err)
-		os.Exit(16)
+		os.Exit(8)
 	}
+
+	log.Info("starting runner")
 
 	if profile == true {
 		helpers.StartProfiler(log, profFileName)
 	}
 
-	runner := core.NewRunner(ovs)
-	err = runner.Run()
+	runner := core.NewRunner(worker)
+	runner.Run()
 
 	if err != nil {
 		log.Error(err)
@@ -96,10 +94,10 @@ func startOverseer() {
 
 }
 
-func getConfiguration(root, prog string) (config.OverseerConfiguration, error) {
+func getConfiguration(root, prog string) (config.OverseerWorkerConfiguration, error) {
 
 	var err error
-	var conf config.OverseerConfiguration
+	var conf config.OverseerWorkerConfiguration
 	//If flag is specified, check the custom configuration file.
 	if configFile != "" {
 
@@ -112,18 +110,21 @@ func getConfiguration(root, prog string) (config.OverseerConfiguration, error) {
 		if conf, err = config.Load(filepath.Join(root, configDirName, configFileName)); err != nil {
 			return conf, err
 		}
+		if err = validator.Valid.Validate(conf); err != nil {
+			return conf, err
+		}
 	}
 
 	if hostAddr != "" {
-		conf.Server.Host = hostAddr
+		conf.Worker.Host = hostAddr
 	}
 
 	if hostPort != 0 {
-		conf.Server.Port = hostPort
+		conf.Worker.Port = hostPort
 	}
 
-	conf.Server.ProcessDirectory = prog
-	conf.Server.RootDirectory = root
+	conf.Worker.ProcessDirectory = prog
+	conf.Worker.RootDirectory = root
 
 	if err = validator.Valid.Validate(conf); err != nil {
 		return conf, err

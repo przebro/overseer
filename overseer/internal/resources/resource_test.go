@@ -213,7 +213,7 @@ func TestFlags(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	testman.tstore, err = newStore(trw, 0)
+	testman.tstore, err = newStore(trw, 3600)
 
 	if err != nil {
 		t.Fatal(err)
@@ -224,7 +224,7 @@ func TestFlags(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	testman.fstore, err = newStore(frw, 0)
+	testman.fstore, err = newStore(frw, 3600)
 
 	if err != nil {
 		t.Fatal(err)
@@ -252,9 +252,9 @@ func TestFlags(t *testing.T) {
 		t.Error("Set flag failed#5")
 	}
 
-	list := testman.ListFlags("FLAG")
+	list := testman.ListFlags("FLAG*")
 	if len(list) != 1 {
-		t.Error("List flag failed#1")
+		t.Error("List flag failed#1, expected len:1, result", len(list))
 	}
 
 	result, err = testman.Unset("FLAG_01")
@@ -267,7 +267,7 @@ func TestFlags(t *testing.T) {
 		t.Error("Unset flag failed#1")
 	}
 
-	list = testman.ListFlags("FLAG")
+	list = testman.ListFlags("FLAG*")
 	if len(list) != 0 {
 		t.Error("List flag failed#2")
 	}
@@ -323,7 +323,7 @@ func TestFlags(t *testing.T) {
 		t.Error("Unset flag failed#3", err)
 	}
 
-	list = testman.ListFlags("FLAG")
+	list = testman.ListFlags("FLAG*")
 
 	lflag, _ = testman.fstore.Get("FLAG_02")
 	lresource = lflag.(FlagResource)
@@ -381,7 +381,7 @@ func TestDispatch(t *testing.T) {
 		t.Fatal(e)
 	}
 
-	testman.tstore, e = newStore(trw, 0)
+	testman.tstore, e = newStore(trw, 3600)
 
 	if e != nil {
 		t.Fatal(e)
@@ -392,7 +392,7 @@ func TestDispatch(t *testing.T) {
 		t.Fatal(e)
 	}
 
-	testman.fstore, e = newStore(frw, 0)
+	testman.fstore, e = newStore(frw, 3600)
 
 	if e != nil {
 		t.Fatal(e)

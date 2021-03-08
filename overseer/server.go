@@ -1,7 +1,7 @@
 package overseer
 
 import (
-	"errors"
+	"overseer/common/core"
 	"overseer/common/logger"
 	"overseer/datastore"
 	"overseer/overseer/auth"
@@ -20,168 +20,191 @@ import (
 
 //Overseer - main  component
 type Overseer struct {
-	conf       config.OverseerConfiguration
-	resources  resources.ResourceManager
-	taskdef    taskdef.TaskDefinitionManager
-	taskpool   *pool.ActiveTaskPool
-	taskman    *pool.ActiveTaskPoolManager
-	wrunner    work.WorkerManager
-	logger     logger.AppLogger
-	ovsGrpcSrv services.OvsGrpcServer
+	conf             config.OverseerConfiguration
+	logger           logger.AppLogger
+	srvComponent     core.OverseerComponent
+	poolComponent    core.ComponentQuiescer
+	journalComponent core.OverseerComponent
+	resComponent     core.OverseerComponent
+	wmanager         work.WorkerManager
+	dispatcher       events.Dispatcher
 }
 
-//ServerAction - wrapper for a Overseer
-type ServerAction interface {
-	Start() error
-}
-
-//Start - starts server
-func (s *Overseer) Start() error {
+//New - creates a new instance of Overseer
+func New(config config.OverseerConfiguration, quiesce bool) (core.RunnableComponent, error) {
 
 	var defPath string
 	var err error
+	var lg logger.AppLogger
+	var pl *pool.ActiveTaskPool
+	var pm *pool.ActiveTaskPoolManager
+	var dm taskdef.TaskDefinitionManager
+	var rm resources.ResourceManager
+	var jn journal.TaskJournal
+	var gs *services.OvsGrpcServer
+	var ds events.Dispatcher
 
-	s.logger.Info("Starting events dispatcher")
-	evDispatcher := events.NewDispatcher()
-	s.logger.Info("Starting resources manager")
+	lg = logger.NewLogger(config.GetLogConfiguration().LogDirectory, config.GetLogConfiguration().LogLevel)
 
-	if !filepath.IsAbs(s.conf.DefinitionDirectory) {
-		defPath = filepath.Join(s.conf.Server.RootDirectory, s.conf.DefinitionDirectory)
+	ds = events.NewDispatcher()
+
+	dataProvider, err := datastore.NewDataProvider(config.GetStoreProviderConfiguration())
+	if err != nil {
+		lg.Error(err)
+		return nil, err
+	}
+
+	if !filepath.IsAbs(config.DefinitionDirectory) {
+		defPath = filepath.Join(config.Server.RootDirectory, config.DefinitionDirectory)
 	} else {
-		defPath = s.conf.DefinitionDirectory
+		defPath = config.DefinitionDirectory
 	}
 
-	s.logger.Info("definitions:", defPath)
-
-	s.logger.Info("Start Datastore provider")
-	dataProvider, err := datastore.NewDataProvider(s.conf.GetStoreProviderConfiguration())
-	if err != nil {
-		s.logger.Error(err)
-		return err
+	if rm, err = resources.NewManager(ds, lg, config.GetResourceConfiguration(), dataProvider); err != nil {
+		return nil, err
 	}
 
-	s.resources, err = resources.NewManager(evDispatcher, s.logger, s.conf.GetResourceConfiguration(), dataProvider)
-	if err != nil {
-		s.logger.Error(err)
-		return err
-	}
-	s.logger.Info("Starting definition manager")
-	s.taskdef, err = taskdef.NewManager(defPath)
-
-	if err != nil {
-		s.logger.Error(err)
-		return err
+	if dm, err = taskdef.NewManager(defPath); err != nil {
+		return nil, err
 	}
 
-	s.logger.Info("Start timer")
-	timer := overseerTimer{}
-	timer.tickerFunc(evDispatcher, s.conf.TimeInterval)
-
-	s.logger.Info("Start work runner")
-	s.wrunner = work.NewWorkerManager(evDispatcher, s.conf.GetWorkerManagerConfiguration())
-	s.wrunner.Run()
-
-	tJournal, err := journal.NewTaskJournal(s.conf.GetJournalConfiguration(), evDispatcher, dataProvider)
-	if err != nil {
-		s.logger.Error(err)
-		return err
+	if pl, err = pool.NewTaskPool(ds, config.PoolConfiguration, dataProvider, !quiesce); err != nil {
+		return nil, err
 	}
 
-	s.logger.Info("Start taskpool")
-	if s.taskpool, err = pool.NewTaskPool(evDispatcher, s.conf.GetActivePoolConfiguration(), dataProvider); err != nil {
-		s.logger.Error(err)
-		return err
+	if pm, err = pool.NewActiveTaskPoolManager(ds, dm, pl, dataProvider); err != nil {
+		return nil, err
 	}
 
-	s.logger.Info("Start taskpool manager")
-	if s.taskman, err = pool.NewActiveTaskPoolManager(evDispatcher, s.taskdef, s.taskpool, dataProvider); err != nil {
-		s.logger.Error(err)
-		return err
+	if jn, err = journal.NewTaskJournal(config.GetJournalConfiguration(), ds, dataProvider); err != nil {
+		return nil, err
 	}
 
-	daily := pool.NewDailyExecutor(evDispatcher, s.taskman, s.taskpool)
+	daily := pool.NewDailyExecutor(ds, pm, pl)
 
-	if s.conf.GetActivePoolConfiguration().ForceNewDayProc {
-		s.logger.Info("Forcing New Day Procedure")
+	if config.GetActivePoolConfiguration().ForceNewDayProc {
 		daily.DailyProcedure()
 	}
 
-	s.logger.Info("Start grpc")
+	wrunner := work.NewWorkerManager(ds, config.GetWorkerManagerConfiguration())
 
-	tcv, err := services.NewTokenCreatorVerifier(s.conf.GetSecurityConfiguration())
-	if err != nil {
-		s.logger.Error(err)
-		return err
+	if gs, err = createServiceServer(config.GetServerConfiguration(), ds, rm, dm, pm, pl, jn, dataProvider, config.GetSecurityConfiguration()); err != nil {
+		return nil, err
 	}
 
-	aservice, err := services.NewAuthenticateService(s.conf.GetSecurityConfiguration(), tcv, dataProvider)
+	ovs := &Overseer{
+		logger:           lg,
+		srvComponent:     gs,
+		poolComponent:    pl,
+		journalComponent: jn,
+		resComponent:     rm,
+		dispatcher:       ds,
+		conf:             config,
+		wmanager:         wrunner,
+	}
+	return ovs, nil
+}
+
+func createServiceServer(config config.ServerConfiguration,
+	disp events.Dispatcher,
+	rm resources.ResourceManager,
+	dm taskdef.TaskDefinitionManager,
+	tm *pool.ActiveTaskPoolManager,
+	pv *pool.ActiveTaskPool,
+	jrnl journal.TaskJournal,
+	provider *datastore.Provider,
+	sec config.SecurityConfiguration,
+) (*services.OvsGrpcServer, error) {
+
+	tcv, err := services.NewTokenCreatorVerifier(sec)
 	if err != nil {
-		s.logger.Error(err)
-		return err
+		return nil, err
 	}
 
-	authhandler, err := handlers.NewServiceAuthorizeHandler(s.conf.GetSecurityConfiguration(), tcv, dataProvider)
+	aservice, err := services.NewAuthenticateService(sec, tcv, provider)
+	if err != nil {
+		return nil, err
+	}
+
+	authhandler, err := handlers.NewServiceAuthorizeHandler(sec, tcv, provider)
 
 	if err != nil {
-		s.logger.Error(err)
-		return err
+		return nil, err
 	}
 
 	middleware.RegisterHandler(authhandler)
 
-	um, err := auth.NewUserManager(s.conf.GetSecurityConfiguration(), dataProvider)
+	um, err := auth.NewUserManager(sec, provider)
 	if err != nil {
-		s.logger.Error(err)
-		return err
+		return nil, err
 	}
 
-	rm, err := auth.NewRoleManager(s.conf.GetSecurityConfiguration(), dataProvider)
+	rmn, err := auth.NewRoleManager(sec, provider)
 	if err != nil {
-		s.logger.Error(err)
-		return err
+		return nil, err
 	}
 
-	am, err := auth.NewRoleAssociationManager(s.conf.GetSecurityConfiguration(), dataProvider)
+	am, err := auth.NewRoleAssociationManager(sec, provider)
 	if err != nil {
-		s.logger.Error(err)
-		return err
+		return nil, err
 	}
 
-	rservice := services.NewResourceService(s.resources)
-	dservice := services.NewDefinistionService(s.taskdef)
-	tservice := services.NewTaskService(s.taskman, s.taskpool, tJournal)
-	admservice := services.NewAdministrationService(um, rm, am)
+	rservice := services.NewResourceService(rm)
+	dservice := services.NewDefinistionService(dm)
+	tservice := services.NewTaskService(tm, pv, jrnl)
+	admservice := services.NewAdministrationService(um, rmn, am, pv)
 	statservice := services.NewStatusService()
 
-	s.ovsGrpcSrv = services.NewOvsGrpcServer(evDispatcher,
+	grpcsrv := services.NewOvsGrpcServer(disp,
 		rservice,
 		dservice,
 		tservice,
 		aservice,
 		admservice,
 		statservice,
-		s.conf.GetServerConfiguration(),
+		config,
 	)
 
-	if s.ovsGrpcSrv == nil {
-		return errors.New("fatal error, unable to start grpc server")
-	}
-
-	err = s.ovsGrpcSrv.Start()
-
-	return err
-
+	return grpcsrv, nil
 }
 
-//NewInstance - creates new instance of a Overseer
-func NewInstance(config config.OverseerConfiguration) (*Overseer, error) {
+//Start - starts service
+func (s *Overseer) Start() error {
 
-	ov := new(Overseer)
-	ov.conf = config
-	logDirectory := config.GetLogConfiguration().LogDirectory
-	level := config.GetLogConfiguration().LogLevel
-	ov.logger = logger.NewLogger(logDirectory, level)
+	s.logger.Info("starting worker manager")
+	s.wmanager.Run()
 
-	return ov, nil
+	timer := overseerTimer{}
+	timer.tickerFunc(s.dispatcher, s.conf.TimeInterval)
 
+	s.logger.Info("starting task journal")
+	s.journalComponent.Start()
+	s.logger.Info("starting pool")
+	s.poolComponent.Start()
+	s.logger.Info("starting resource manager")
+	s.resComponent.Start()
+	s.logger.Info("starting grpc server")
+	s.srvComponent.Start()
+
+	return nil
+}
+
+//Shutdown - stops service
+func (s *Overseer) Shutdown() error {
+
+	s.logger.Info("Shutdown grpc")
+	s.srvComponent.Shutdown()
+	s.logger.Info("Shutdown pool")
+	s.poolComponent.Shutdown()
+	s.logger.Info("Shutdown journal")
+	s.journalComponent.Shutdown()
+	s.logger.Info("Shutdown resource")
+	s.resComponent.Shutdown()
+
+	return nil
+}
+
+//ServiceName - returns the name of a service
+func (s *Overseer) ServiceName() string {
+	return s.conf.Server.ServiceName
 }

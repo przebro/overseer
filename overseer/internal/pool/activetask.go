@@ -79,7 +79,7 @@ func newActiveTask(orderID unique.TaskOrderID, odate date.Odate, definition task
 	return task
 }
 
-//FromModel - creates an active task from model
+//fromModel - creates an active task from model
 func fromModel(model activeTaskModel) (*activeTask, error) {
 
 	def, err := taskdef.FromString(string(model.Definition))
@@ -109,6 +109,7 @@ func fromModel(model activeTaskModel) (*activeTask, error) {
 		confirmed:      model.Confirmed,
 		holded:         model.Holded,
 		waiting:        model.Waiting,
+		runNumber:      model.RunNumber,
 		collected:      []taskInTicket{},
 	}
 
@@ -241,13 +242,11 @@ func (task *activeTask) Hold() {
 	defer task.lock.Unlock()
 	task.lock.Lock()
 	task.holded = true
-	task.executions[len(task.executions)-1].state = TaskStateHold
 }
 func (task *activeTask) Free() {
 	defer task.lock.Unlock()
 	task.lock.Lock()
 	task.holded = false
-	task.executions[len(task.executions)-1].state = TaskStateWaiting
 }
 func (task *activeTask) IsHeld() bool {
 	defer task.lock.RUnlock()

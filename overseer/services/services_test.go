@@ -151,8 +151,8 @@ var provcfg = config.StoreProviderConfiguration{
 }
 
 var rescfg = config.ResourcesConfigurartion{
-	TicketSource: config.ResourceEntry{Sync: 1, Collection: "resources"},
-	FlagSource:   config.ResourceEntry{Sync: 1, Collection: "resources"},
+	TicketSource: config.ResourceEntry{Sync: 3600, Collection: "resources"},
+	FlagSource:   config.ResourceEntry{Sync: 3600, Collection: "resources"},
 }
 var seq = &mockSequence{val: 1}
 var testCollectionName = "tasks"
@@ -188,7 +188,6 @@ func init() {
 
 	if provider, err = datastore.NewDataProvider(provcfg); err != nil {
 		panic("")
-
 	}
 
 	if resmanager, err = resources.NewManager(&dispatcher, log, rescfg, provider); err != nil {
@@ -216,5 +215,5 @@ func init() {
 }
 
 func initTaskPool() {
-	taskPoolT, _ = pool.NewTaskPool(&dispatcher, taskPoolConfig, provider)
+	taskPoolT, _ = pool.NewTaskPool(&dispatcher, taskPoolConfig, provider, true)
 }

@@ -1,5 +1,6 @@
 {
     "serverConfiguration":{
+        "serviceName" : "overseersrv",
         "ovshost" : "127.0.0.1",
         "ovsport" : 7053,
         "tls" : false

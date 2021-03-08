@@ -1,65 +1,77 @@
 package ovsworker
 
 import (
-	"fmt"
-	"net"
+	"overseer/common/core"
 	"overseer/common/logger"
 	"overseer/ovsworker/config"
 	"overseer/ovsworker/services"
-	"overseer/proto/wservices"
 	"path/filepath"
 
-	"google.golang.org/grpc"
+	"github.com/pkg/errors"
 )
 
-type ovsWorkerService struct {
-	config     *config.Config
-	grpcServer *grpc.Server
-	listener   net.Listener
-	log        logger.AppLogger
+type ovsWorker struct {
+	conf          config.OverseerWorkerConfiguration
+	grpcComponent core.OverseerComponent
+	logger        logger.AppLogger
 }
 
-type OvsWorkerService interface {
-	Start() error
-}
-
-func NewWorkerService(config *config.Config) OvsWorkerService {
-
-	log := logger.Get()
-	wsrvc := &ovsWorkerService{}
-	wsrvc.config = config
-	wsrvc.grpcServer = grpc.NewServer()
+//NewWorkerService - creates a new Worker
+func NewWorkerService(config config.OverseerWorkerConfiguration) (core.RunnableComponent, error) {
 
 	var err error
-	conn := fmt.Sprintf("%s:%d", config.Worker.Host, config.Worker.Port)
-	log.Info("Starting worker:", conn)
-	wsrvc.listener, err = net.Listen("tcp", conn)
-	if err != nil {
-		log.Error(err)
-		return nil
+	var lg logger.AppLogger
+	var gs *services.OvsWorkerServer
+
+	lg = logger.Get()
+
+	if gs, err = createServiceServer(config); err != nil {
+		return nil, err
 	}
 
-	var defPath string
-
-	if !filepath.IsAbs(config.Worker.SysoutDirectory) {
-		defPath = filepath.Join(config.Worker.RootDirectory, config.Worker.SysoutDirectory)
-	} else {
-		defPath = config.Worker.SysoutDirectory
+	wserver := &ovsWorker{
+		logger:        lg,
+		grpcComponent: gs,
+		conf:          config,
 	}
 
-	srvc, err := services.NewWorkerExecutionService(defPath)
-	if err != nil {
-		fmt.Println(err)
-		return nil
-	}
-	wservices.RegisterTaskExecutionServiceServer(wsrvc.grpcServer, srvc)
-	wsrvc.log = log
-
-	return wsrvc
+	return wserver, nil
 }
 
-func (wsrvc *ovsWorkerService) Start() error {
+func createServiceServer(conf config.OverseerWorkerConfiguration) (*services.OvsWorkerServer, error) {
 
-	return wsrvc.grpcServer.Serve(wsrvc.listener)
+	var sysPath string
 
+	if !filepath.IsAbs(conf.Worker.SysoutDirectory) {
+		sysPath = filepath.Join(conf.Worker.RootDirectory, conf.Worker.SysoutDirectory)
+	} else {
+		sysPath = conf.Worker.SysoutDirectory
+	}
+
+	srvc, err := services.NewWorkerExecutionService(sysPath)
+	if err != nil {
+		return nil, err
+	}
+
+	grpcsrv := services.New(conf.Worker, srvc)
+	if grpcsrv == nil {
+		return nil, errors.New("unable to initialize grpc server")
+	}
+
+	return grpcsrv, nil
+}
+
+func (wsrvc *ovsWorker) Start() error {
+
+	return wsrvc.grpcComponent.Start()
+}
+
+func (wsrvc *ovsWorker) Shutdown() error {
+
+	return wsrvc.grpcComponent.Shutdown()
+}
+
+func (wsrvc *ovsWorker) ServiceName() string {
+
+	return wsrvc.conf.Worker.ServiceName
 }

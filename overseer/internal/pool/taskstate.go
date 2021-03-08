@@ -59,8 +59,6 @@ type ostateCheckTime struct {
 }
 type ostateCheckConditions struct {
 }
-type ostateHold struct {
-}
 type ostateStarting struct {
 }
 type ostateExecuting struct {
@@ -172,17 +170,6 @@ func (state ostateNotSubmitted) processState(ctx *TaskOrderContext) bool {
 	return false
 }
 
-func (state ostateHold) processState(ctx *TaskExecutionContext) bool {
-
-	if ctx.task.IsHeld() {
-		ctx.task.SetWaitingInfo("task is held")
-		return false
-	}
-
-	ctx.state = &ostateConfirm{}
-	return true
-}
-
 func (state ostateConfirm) processState(ctx *TaskExecutionContext) bool {
 
 	if !ctx.task.Confirmed() {
@@ -239,7 +226,6 @@ func (state ostateCheckConditions) processState(ctx *TaskExecutionContext) bool 
 
 	if ctx.isEnforced {
 		ctx.state = &ostateStarting{}
-		pushJournalMessage(ctx.dispatcher, ctx.task.OrderID(), ctx.task.CurrentExecutionID(), time.Now(), journal.TaskEnforce)
 		return true
 	}
 
@@ -386,15 +372,15 @@ func (state ostateExecuting) processState(ctx *TaskExecutionContext) bool {
 
 		n, g, _ := ctx.task.GetInfo()
 		ctx.log.Info("Task ended:", n, " group:", g, " id:", ctx.task.OrderID(), " rc:", result.ReturnCode)
+		tm := time.Now()
 
-		ctx.task.SetEndTime()
 		ctx.state = &ostatePostProcessing{}
 
-		pushJournalMessage(ctx.dispatcher, ctx.task.OrderID(), ctx.task.CurrentExecutionID(), time.Now(), fmt.Sprintf(journal.TaskComplete, ctx.task.EndTime().Format("2006-01-02 15:04:05.000000")))
+		pushJournalMessage(ctx.dispatcher, ctx.task.OrderID(), ctx.task.CurrentExecutionID(), tm, fmt.Sprintf(journal.TaskComplete, tm.Format("2006-01-02 15:04:05.000000")))
 
 		if result.Status == types.WorkerTaskStatusFailed {
 
-			pushJournalMessage(ctx.dispatcher, ctx.task.OrderID(), ctx.task.CurrentExecutionID(), time.Now(), journal.TaskFailed)
+			pushJournalMessage(ctx.dispatcher, ctx.task.OrderID(), ctx.task.CurrentExecutionID(), tm, journal.TaskFailed)
 			ctx.task.SetState(TaskStateEndedNotOk)
 		}
 
@@ -422,6 +408,8 @@ func (state ostatePostProcessing) processState(ctx *TaskExecutionContext) bool {
 
 	msg := events.NewMsg(events.RouteTaskCleanMsg{OrderID: ctx.task.OrderID(), WorkerName: ctx.task.WorkerName(), Terminate: false})
 	ctx.dispatcher.PushEvent(nil, events.RouteTaskClean, msg)
+
+	ctx.task.SetEndTime()
 
 	if ctx.task.State() == TaskStateEndedNotOk {
 
@@ -456,7 +444,12 @@ func (state ostatePostProcessing) processState(ctx *TaskExecutionContext) bool {
 	return false
 }
 
-func getProcessState(state TaskState) taskExecutionState {
+func getProcessState(state TaskState, isHeld bool) taskExecutionState {
+
+	if isHeld == true {
+		return nil
+	}
+
 	if state == TaskStateWaiting {
 		return &ostateConfirm{}
 	}

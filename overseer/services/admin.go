@@ -3,21 +3,27 @@ package services
 import (
 	"context"
 	"fmt"
+	"overseer/common/core"
 	"overseer/common/logger"
 	"overseer/common/validator"
 	"overseer/overseer/auth"
 	"overseer/proto/services"
+
+	"github.com/golang/protobuf/ptypes/empty"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type ovsAdministrationService struct {
-	log      logger.AppLogger
-	umanager *auth.UserManager
-	rmanager *auth.RoleManager
-	amanager *auth.RoleAssociationManager
+	log         logger.AppLogger
+	umanager    *auth.UserManager
+	rmanager    *auth.RoleManager
+	amanager    *auth.RoleAssociationManager
+	qcomponents []core.ComponentQuiescer
 }
 
 //NewAdministrationService - returns a new instance of ovsAdministrationService
-func NewAdministrationService(u *auth.UserManager, r *auth.RoleManager, a *auth.RoleAssociationManager) services.AdministrationServiceServer {
+func NewAdministrationService(u *auth.UserManager, r *auth.RoleManager, a *auth.RoleAssociationManager, q ...core.ComponentQuiescer) services.AdministrationServiceServer {
 
 	return &ovsAdministrationService{umanager: u, rmanager: r, amanager: a, log: logger.Get()}
 }
@@ -399,6 +405,24 @@ func (srv *ovsAdministrationService) GetRole(ctx context.Context, msg *services.
 	result := &services.RoleResultMsg{Role: role}
 
 	return result, nil
+}
+
+func (srv *ovsAdministrationService) Quiesce(ctx context.Context, msg *empty.Empty) (*services.ActionResultMsg, error) {
+
+	for _, q := range srv.qcomponents {
+		q.Quiesce()
+	}
+
+	return nil, status.Error(codes.Unimplemented, "not implemented")
+}
+
+func (srv *ovsAdministrationService) Resume(ctx context.Context, msg *empty.Empty) (*services.ActionResultMsg, error) {
+
+	for _, q := range srv.qcomponents {
+		q.Resume()
+	}
+
+	return nil, status.Error(codes.Unimplemented, "not implemented")
 }
 
 //GetAllowedAction - returns allowed action for given method. Implementation of handlers.AccessRestricter

@@ -17,12 +17,12 @@ type Store struct {
 	store      map[unique.TaskOrderID]*activeTask
 	collection collection.DataCollection
 	lock       sync.RWMutex
-	syncTime   int
 	log        logger.AppLogger
+	synctime   int
 }
 
 //NewStore - Creates a new store
-func NewStore(collectionName string, log logger.AppLogger, provider *datastore.Provider, syncTime int) (*Store, error) {
+func NewStore(collectionName string, log logger.AppLogger, synctime int, provider *datastore.Provider) (*Store, error) {
 
 	var err error
 	var col collection.DataCollection
@@ -36,15 +36,11 @@ func NewStore(collectionName string, log logger.AppLogger, provider *datastore.P
 		store:      make(map[unique.TaskOrderID]*activeTask),
 		lock:       sync.RWMutex{},
 		collection: col,
-		syncTime:   syncTime,
 		log:        log,
+		synctime:   synctime,
 	}
 
 	store.restoreTasks()
-
-	if store.syncTime > 0 {
-		store.sync()
-	}
 
 	return store, nil
 }
@@ -100,17 +96,40 @@ func (s *Store) Over(f func(unique.TaskOrderID, *activeTask)) {
 	}
 }
 
-func (s *Store) sync() {
-	go func() {
+func (s *Store) watch(quiesce <-chan bool, shutdown <-chan struct{}) <-chan struct{} {
+
+	inform := make(chan struct{})
+	tm := s.synctime
+
+	go func(qch <-chan bool, sch <-chan struct{}, inf chan<- struct{}) {
+
+		var isActive bool
+
 		for {
 			select {
-			case <-time.After(time.Duration(s.syncTime) * time.Second):
+			case <-time.After(time.Duration(tm) * time.Second):
+				{
+					if isActive == false {
+						continue
+					}
+					s.storeTasks()
+				}
+			case v := <-qch:
+				{
+					isActive = v
+					s.storeTasks()
+					inf <- struct{}{}
+				}
+			case <-sch:
 				{
 					s.storeTasks()
+					close(inform)
+					return
 				}
 			}
 		}
-	}()
+	}(quiesce, shutdown, inform)
+	return inform
 }
 
 func (s *Store) storeTasks() {

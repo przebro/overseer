@@ -79,7 +79,9 @@ func (worker *workerMediator) connect(host string, port int, timeout int) wservi
 	targetAddr := fmt.Sprintf("%s:%d", host, port)
 	conn, err := grpc.Dial(targetAddr, opt...)
 	if err != nil {
+		worker.lock.Lock()
 		worker.wdata = workerStatus{connected: false}
+		worker.lock.Unlock()
 		return nil
 	}
 

@@ -8,10 +8,11 @@ import (
 
 //WorkerConfiguration - Holds a worker configuration
 type WorkerConfiguration struct {
-	Name             string `json:"name"`
-	Host             string `json:"host"`
-	Port             int    `json:"port"`
-	SysoutDirectory  string `json:"sysoutDirectory"`
+	ServiceName      string `json:"serviceName" validate:"required"`
+	Name             string `json:"name" validate:"required"`
+	Host             string `json:"host" validate:"ipv4,required"`
+	Port             int    `json:"port" validate:"min=1024,max=65535,required"`
+	SysoutDirectory  string `json:"sysoutDirectory" validate:"required"`
 	RootDirectory    string
 	ProcessDirectory string
 }
@@ -22,31 +23,31 @@ type LogConfiguration struct {
 	Level     int    `json:"logLevel"`
 }
 
-//Config - configuration structure
-type Config struct {
+//OverseerWorkerConfiguration - configuration
+type OverseerWorkerConfiguration struct {
 	Worker    WorkerConfiguration `json:"worker"`
 	LogConfig LogConfiguration    `json:"logConfiguration"`
 }
 
 //Load - loads a configuration from file
-func Load(path string) (*Config, error) {
+func Load(path string) (OverseerWorkerConfiguration, error) {
 
-	config := &Config{}
+	config := OverseerWorkerConfiguration{}
 
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
-		return nil, errors.New("Unable to loadConfiguration from file")
+		return config, errors.New("Unable to load Configuration from file")
 	}
 	err = json.Unmarshal(data, &config)
 	if err != nil {
-		return nil, err
+		return config, err
 	}
 
 	return config, nil
 }
 
 //GetLogConfiguration - Gets the log section
-func (cfg *Config) GetLogConfiguration() LogConfiguration {
+func (cfg OverseerWorkerConfiguration) GetLogConfiguration() LogConfiguration {
 	return cfg.LogConfig
 
 }

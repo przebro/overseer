@@ -55,6 +55,8 @@ service AdministrationService{
     rpc DeleteRole(RoleMsg) returns (ActionResultMsg){}
     rpc ListRoles(FilterMsg)  returns (ListEntityResultMsg){}
     rpc GetRole(RoleMsg) returns (RoleResultMsg){}
+    rpc Quiesce(google.protobuf.Empty) returns (ActionResultMsg){}
+    rpc Resume(google.protobuf.Empty) returns (ActionResultMsg){}
 }
 
 service StatusService {

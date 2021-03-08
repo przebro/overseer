@@ -2,6 +2,7 @@ package resources
 
 import (
 	"errors"
+	"overseer/common/core"
 	"overseer/common/logger"
 	"overseer/common/types/date"
 	"overseer/datastore"
@@ -17,6 +18,8 @@ type resourceManager struct {
 	log        logger.AppLogger
 	tstore     *resourceStore
 	fstore     *resourceStore
+	fsdch      chan struct{}
+	tsdch      chan struct{}
 }
 
 //TicketManager - base resources required by task to run
@@ -39,6 +42,7 @@ type FlagManager interface {
 type ResourceManager interface {
 	TicketManager
 	FlagManager
+	core.OverseerComponent
 }
 
 //NewManager - crates new resources manager
@@ -221,6 +225,23 @@ func (rm *resourceManager) ListFlags(name string) []FlagResource {
 	return result
 }
 
+//Start - starts the task pool
+func (rm *resourceManager) Start() error {
+
+	rm.tstore.start()
+	rm.fstore.start()
+	return nil
+}
+
+//Shutdown - shutdowns task pool
+func (rm *resourceManager) Shutdown() error {
+
+	rm.tstore.shutdown()
+	rm.fstore.shutdown()
+
+	return nil
+}
+
 func (rm *resourceManager) Process(receiver events.EventReceiver, route events.RouteName, msg events.DispatchedMessage) {
 
 	switch route {
@@ -292,6 +313,9 @@ func buildExpr(value string) string {
 	if value == "" {
 		return `[\w\-]*|^$`
 	}
+
+	expr += "^"
+
 	for _, c := range value {
 
 		if c == '*' {
@@ -305,6 +329,8 @@ func buildExpr(value string) string {
 
 		expr += string(c)
 	}
+
+	expr += "$"
 
 	return expr
 }

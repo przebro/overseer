@@ -15,39 +15,54 @@ var (
 
 //resourceStore - inmemmory structure with sync and backup
 type resourceStore struct {
-	rw    readWriter
-	items map[string]interface{}
-	lock  sync.RWMutex
-	stime int
-	col   collection.DataCollection
+	rw     readWriter
+	items  map[string]interface{}
+	lock   sync.RWMutex
+	stime  int
+	col    collection.DataCollection
+	done   <-chan struct{}
+	shtdwn chan struct{}
 }
 
 func newStore(rw readWriter, stime int) (*resourceStore, error) {
 
+	if stime <= 0 {
+		return nil, errors.New("sync time must be greater than 0")
+	}
 	items, err := rw.Load()
 	if err != nil {
 		return nil, err
 	}
 
-	store := &resourceStore{items: items, lock: sync.RWMutex{}, rw: rw}
-
-	if stime > 0 {
-		go watch(store, stime)
-	}
+	store := &resourceStore{items: items, lock: sync.RWMutex{}, rw: rw, shtdwn: make(chan struct{}), stime: stime}
 
 	return store, nil
 }
 
-func watch(s *resourceStore, tm int) {
-	t := time.NewTicker(time.Duration(tm) * time.Second)
-	for {
-		select {
-		case <-t.C:
-			{
-				s.Sync()
+func (s *resourceStore) watch(tm int, shutdown <-chan struct{}) <-chan struct{} {
+
+	inform := make(chan struct{})
+
+	go func(sc <-chan struct{}, inf chan<- struct{}) {
+
+		for {
+			select {
+			case <-time.After(time.Duration(tm) * time.Second):
+				{
+					s.sync()
+				}
+			case <-sc:
+				{
+					s.sync()
+					close(inf)
+					return
+				}
 			}
 		}
-	}
+
+	}(shutdown, inform)
+
+	return inform
 }
 
 func (s *resourceStore) Insert(key string, item interface{}) error {
@@ -101,7 +116,18 @@ func (s *resourceStore) All() []interface{} {
 	return col
 }
 
-func (s *resourceStore) Sync() {
+func (s *resourceStore) start() {
+	s.done = s.watch(s.stime, s.shtdwn)
+}
+
+func (s *resourceStore) shutdown() {
+
+	s.shtdwn <- struct{}{}
+	close(s.shtdwn)
+	<-s.done
+}
+
+func (s *resourceStore) sync() {
 
 	tmp := map[string]interface{}{}
 	s.lock.Lock()

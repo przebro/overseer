@@ -71,7 +71,6 @@ func (w *workerManager) Run() error {
 					//Task request to process a work on remote worker
 					result := w.startTask(msg.data)
 					events.ResponseToReceiver(msg.receiver, result)
-
 				}
 			case msg := <-w.askChannel:
 				{
@@ -176,6 +175,10 @@ func (w *workerManager) cleanupTask(worker string, orderID unique.TaskOrderID, e
 
 	delete(w.status, executionID)
 
+	if worker == "" {
+		return
+	}
+
 	if terminate {
 		w.workers[worker].TerminateTask(orderID, executionID)
 	} else {
@@ -234,5 +237,4 @@ func (w *workerManager) Process(receiver events.EventReceiver, routename events.
 			events.ResponseToReceiver(receiver, "")
 		}
 	}
-
 }

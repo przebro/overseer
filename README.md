@@ -92,6 +92,46 @@ from and to. For instance:
     }
 ```
 These values restrict the time window when the task can run to hours between 11:15 and 13:00. A task can be capped at the bottom or the end so, setting only one of the mentioned values will make the time window half-open or half-closed.
-
-
-
+**tickets**
+Tickets are an essential element of tasks processing. They allow to define dependencies between tasks, use of tickets gives a posibility to build compound 
+workflows. A task can require a ticket to run and, after complete their work, it can create a ticket for another task. More than one ticket can be expected by the task before starting the job. In that situation, a relation between input tickets can be defined. If relation is set to 'OR' then one of tickets is required
+and if relation is set to 'AND' then all of tickets are requiered.\
+Here is an example:\
+```
+"inticket" : [
+        {"name" : "IN-SAMPLE01A","odate" : "ODATE" },
+        {"name" : "IN-SAMPLE02A","odate" : "ODATE" },
+],
+"relation" :"AND"
+```
+A task with the above declaration can run only if these two tickets exist: IN-SAMPLE01A and IN-SAMPLE02A. Additionally, there is an order date parameter therefore tickets must have the same order date as a task. The "odate" parameter is resolved during the ordering process of a task and it is related to the task's calendar. This field can contain values like: "ODATE", "", "PREV", "NEXT","+nnn", "-nnn" where "nnn" is a number between 001 and 999. As mentioned, the calculated value depends on the task's schedule:\
+```
+    "schedule" :{
+    "type" : "daily",
+    }
+...
+    "schedule" :{
+    "type" : "weekday",
+    "values" :[3,5,7]
+    }
+```
+If these definitions are ordered on the Friday 8 January 2021, the "ODATE" value will always resolve to the current date for both definitions but, "PREV" and "NEXT" will be different. For the first definition, "NEXT" and "PREV" will be resolved to Thursday and Saturday, but for the second definition "PREV" will resolve to Wednesday(3), and "NEXT" will resolve to Sunday(7).\
+For this definition:
+```
+    "schedule" :{
+    "type" : "fromend",
+    "values" :[1]
+    }
+```
+The task is ordered on the last day of a month, If the order date is 31 March, the "NEXT" will resolve to 30 April, and "PREV" will resolve to 28 February or,
+29 February if it is a leap year.
+**Issuing tickets**
+There are two ways how the ticket can be added. Manually or, each task definition can contain a section that defines tickets that will be issued after successful completion of a task.
+```
+"outticket" :[
+        {"name" : "IN-SAMPLE01A","odate" : "ODATE" ,"action":"REM"},
+        {"name" : "IN-SAMPLE02A","odate" : "ODATE" ,"action":"ADD"},
+        {"name" : "IN-SAMPLE02B","odate" : "ODATE" ,"action":"ADD"},
+    ]
+```
+If a task with that definition ends, the ticket "IN-SAMPLE01A" will be removed and, the ticket "IN-SAMPLE02A" and "IN-SAMPLE02B" will be added with order date as a "ODATE". The Same rules as for an "inticket" definition applies to "odate" field in an "outticket" definition so, "NEXT", "PREV" and, +nnn will resolve accordingly to the task's schedule definition.

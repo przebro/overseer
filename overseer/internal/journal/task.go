@@ -2,7 +2,8 @@ package journal
 
 import (
 	"context"
-
+	"errors"
+	"overseer/common/core"
 	"overseer/common/logger"
 	"overseer/datastore"
 	"overseer/overseer/config"
@@ -60,14 +61,17 @@ type TaskLogWriter interface {
 type TaskJournal interface {
 	TaskLogReader
 	TaskLogWriter
+	core.OverseerComponent
 }
 
 type taskLogJournal struct {
-	conf  config.JournalConfiguration
-	col   collection.DataCollection
-	store map[unique.TaskOrderID]mLogModel
-	lock  sync.Mutex
-	log   logger.AppLogger
+	conf     config.JournalConfiguration
+	col      collection.DataCollection
+	store    map[unique.TaskOrderID]mLogModel
+	lock     sync.Mutex
+	log      logger.AppLogger
+	shutdown chan struct{}
+	done     <-chan struct{}
 }
 
 //NewTaskJournal - creates a new instance of a TaskJournal
@@ -76,16 +80,27 @@ func NewTaskJournal(conf config.JournalConfiguration, dispatcher events.Dispatch
 	var err error
 	var col collection.DataCollection
 
+	if conf.SyncTime <= 0 {
+		return nil, errors.New("sync time must be greater than 0")
+	}
+
 	if col, err = provider.GetCollection(conf.LogCollection); err != nil {
 		return nil, err
 	}
 
-	journal := &taskLogJournal{col: col, store: map[unique.TaskOrderID]mLogModel{}, lock: sync.Mutex{}, log: logger.Get(), conf: conf}
+	sch := make(chan struct{})
+
+	journal := &taskLogJournal{col: col,
+		store:    map[unique.TaskOrderID]mLogModel{},
+		lock:     sync.Mutex{},
+		log:      logger.Get(),
+		conf:     conf,
+		shutdown: sch,
+	}
 
 	if dispatcher != nil {
 		dispatcher.Subscribe(events.RoutTaskJournal, journal)
 	}
-	journal.watch(journal.conf.SyncTime)
 
 	return journal, nil
 }
@@ -136,32 +151,46 @@ func (journal *taskLogJournal) WriteLog(id unique.TaskOrderID, entry LogEntry) {
 	journal.store[id] = logs
 }
 
-func (journal *taskLogJournal) watch(interval int) {
+func (journal *taskLogJournal) watch(interval int, shutdown <-chan struct{}) <-chan struct{} {
 
-	go func() {
-		if interval <= 0 {
-			return
-		}
+	inform := make(chan struct{})
+
+	go func(sc <-chan struct{}, inf chan<- struct{}) {
 
 		for {
 			select {
 			case t := <-time.After(time.Duration(interval) * time.Second):
 				{
-					journal.lock.Lock()
 
-					for _, n := range journal.store {
-						if n.Tstamp.Add(time.Duration(interval) * time.Second).Before(t) {
-
-							journal.col.Update(context.Background(), &n)
-						}
-					}
-
-					journal.lock.Unlock()
+					journal.sync(interval, t)
+				}
+			case <-sc:
+				{
+					journal.sync(interval, time.Now())
+					close(inf)
+					return
 				}
 			}
 		}
 
-	}()
+	}(shutdown, inform)
+
+	return inform
+
+}
+
+func (journal *taskLogJournal) sync(interval int, t time.Time) {
+
+	journal.lock.Lock()
+
+	for _, n := range journal.store {
+		if n.Tstamp.Add(time.Duration(interval) * time.Second).Before(t) {
+
+			journal.col.Update(context.Background(), &n)
+		}
+	}
+
+	journal.lock.Unlock()
 }
 
 //Process - receive notification from dispatcher
@@ -188,4 +217,20 @@ func (journal *taskLogJournal) Process(receiver events.EventReceiver, routename 
 			events.ResponseToReceiver(receiver, err)
 		}
 	}
+}
+
+func (journal *taskLogJournal) Start() error {
+
+	journal.done = journal.watch(journal.conf.SyncTime, journal.shutdown)
+
+	return nil
+}
+
+func (journal *taskLogJournal) Shutdown() error {
+
+	journal.shutdown <- struct{}{}
+	<-journal.done
+	close(journal.shutdown)
+
+	return nil
 }

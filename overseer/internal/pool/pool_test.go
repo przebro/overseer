@@ -149,5 +149,5 @@ func init() {
 
 }
 func initTaskPool() {
-	taskPoolT, _ = NewTaskPool(mDispatcher, taskPoolConfig, provider)
+	taskPoolT, _ = NewTaskPool(mDispatcher, taskPoolConfig, provider, true)
 }

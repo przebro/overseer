@@ -10,9 +10,9 @@ import (
 
 //WorkerConfiguration - configuration
 type WorkerConfiguration struct {
-	WorkerName string `json:"name"`
-	WorkerHost string `json:"workerHost"`
-	WorkerPort int    `json:"workerPort"`
+	WorkerName string `json:"name" validate:"required"`
+	WorkerHost string `json:"workerHost" validate:"ipv4,required"`
+	WorkerPort int    `json:"workerPort" validate:"min=1024,max=65535,required"`
 }
 
 //WorkerManagerConfiguration - setting for worker manager
@@ -54,8 +54,9 @@ type IntervalValue int
 type ServerConfiguration struct {
 	ProcessDirectory string
 	RootDirectory    string
-	Host             string `json:"ovshost"`
-	Port             int    `json:"ovsport"`
+	ServiceName      string `json:"serviceName" validate:"required"`
+	Host             string `json:"ovshost" validate:"ipv4,required"`
+	Port             int    `json:"ovsport" validate:"min=1024,max=65535,required"`
 	TLS              bool   `json:"tls"`
 	ServerCert       string `json:"cert"`
 	ServerKey        string `json:"key"`
@@ -105,18 +106,18 @@ type JournalConfiguration struct {
 }
 
 //Load - Loads configuration from a file
-func Load(path string) (*OverseerConfiguration, error) {
+func Load(path string) (OverseerConfiguration, error) {
 
-	config := new(OverseerConfiguration)
+	config := OverseerConfiguration{}
 
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
-		return nil, errors.New("Unable to loadConfiguration from file")
+		return config, errors.New("Unable to loadConfiguration from file")
 	}
 	err = json.Unmarshal(data, &config)
 
 	if err != nil {
-		return nil, fmt.Errorf("unable to unmarshal confiuration file:%w", err)
+		return config, fmt.Errorf("unable to unmarshal confiuration file:%w", err)
 	}
 
 	return config, nil

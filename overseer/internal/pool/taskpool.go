@@ -25,6 +25,9 @@ type ActiveTaskPool struct {
 	processing    chan *activeTask
 	enforcedTasks map[unique.TaskOrderID]bool
 	lock          sync.RWMutex
+	shutdown      chan struct{}
+	activate      chan bool
+	done          <-chan struct{}
 }
 
 //TaskViewer - Provides a view for an active tasks in pool
@@ -34,13 +37,13 @@ type TaskViewer interface {
 }
 
 //NewTaskPool - creates new task pool
-func NewTaskPool(dispatcher events.Dispatcher, cfg config.ActivePoolConfiguration, provider *datastore.Provider) (*ActiveTaskPool, error) {
+func NewTaskPool(dispatcher events.Dispatcher, cfg config.ActivePoolConfiguration, provider *datastore.Provider, isProcActive bool) (*ActiveTaskPool, error) {
 
 	var store *Store
 	var err error
 	log := logger.Get()
 
-	if store, err = NewStore(cfg.Collection, log, provider, cfg.SyncTime); err != nil {
+	if store, err = NewStore(cfg.Collection, log, cfg.SyncTime, provider); err != nil {
 		return nil, err
 	}
 
@@ -48,15 +51,23 @@ func NewTaskPool(dispatcher events.Dispatcher, cfg config.ActivePoolConfiguratio
 		tasks:         store,
 		dispatcher:    dispatcher,
 		config:        cfg,
-		isProcActive:  true,
+		isProcActive:  isProcActive,
 		log:           log,
 		processing:    make(chan *activeTask, 8),
 		enforcedTasks: map[unique.TaskOrderID]bool{},
 		lock:          sync.RWMutex{},
+		activate:      make(chan bool),
+		shutdown:      make(chan struct{}),
 	}
 
 	if dispatcher != nil {
 		dispatcher.Subscribe(events.RouteTimeOut, pool)
+	}
+
+	if pool.isProcActive == true {
+		pool.log.Info("Starting in ACTIVE mode")
+	} else {
+		pool.log.Info("Starting in QUIESCE mode")
 	}
 
 	return pool, nil
@@ -139,7 +150,7 @@ func (pool *ActiveTaskPool) processTaskState(ch <-chan *activeTask, wg *sync.Wai
 
 	for task := range ch {
 
-		executionState := getProcessState(task.State())
+		executionState := getProcessState(task.State(), task.IsHeld())
 		if executionState == nil {
 			continue
 		}
@@ -163,18 +174,6 @@ func (pool *ActiveTaskPool) processTaskState(ch <-chan *activeTask, wg *sync.Wai
 	}
 	wg.Done()
 
-}
-
-//PauseProcessing - Globally holds all tasks.
-func (pool *ActiveTaskPool) PauseProcessing() error {
-	pool.isProcActive = false
-	return nil
-}
-
-//ResumeProcessing  - Resumes processing.
-func (pool *ActiveTaskPool) ResumeProcessing() error {
-	pool.isProcActive = true
-	return nil
 }
 
 //Detail - Gets task details
@@ -277,5 +276,60 @@ func (pool *ActiveTaskPool) ProcessTimeEvent(data events.RouteTimeOutMsgFormat) 
 	t := time.Date(data.Year, time.Month(data.Month), data.Day, data.Hour, data.Min, data.Sec, 0, time.Local)
 
 	pool.cycleTasks(t)
+}
 
+//Start - starts tasks processing
+func (pool *ActiveTaskPool) Start() error {
+
+	defer pool.lock.Unlock()
+	pool.lock.Lock()
+
+	if pool.done == nil {
+		pool.log.Info("starting store watch:", pool.isProcActive)
+		pool.done = pool.tasks.watch(pool.activate, pool.shutdown)
+	}
+
+	pool.activate <- pool.isProcActive
+	<-pool.done
+
+	return nil
+}
+
+//Shutdown - shutdowns task pool
+func (pool *ActiveTaskPool) Shutdown() error {
+
+	defer pool.lock.Unlock()
+	pool.lock.Lock()
+	pool.isProcActive = false
+	pool.shutdown <- struct{}{}
+	<-pool.done
+
+	return nil
+}
+
+//Resume - resumes tasks processing
+func (pool *ActiveTaskPool) Resume() error {
+
+	defer pool.lock.Unlock()
+	pool.lock.Lock()
+
+	pool.isProcActive = true
+	pool.activate <- pool.isProcActive
+	<-pool.done
+
+	return nil
+}
+
+//Quiesce - puts taskpool into sleep mode
+func (pool *ActiveTaskPool) Quiesce() error {
+
+	defer pool.lock.Unlock()
+	pool.lock.Lock()
+
+	pool.isProcActive = false
+	pool.activate <- pool.isProcActive
+
+	<-pool.done
+
+	return nil
 }

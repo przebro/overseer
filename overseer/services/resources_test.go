@@ -410,7 +410,7 @@ func TestListFlags(t *testing.T) {
 		t.Error("unexpected result")
 	}
 
-	msg.Name = "test_flag"
+	msg.Name = "test_flag*"
 	result, err = client.ListFlags(context.Background(), msg)
 
 	if err != nil {
@@ -420,7 +420,7 @@ func TestListFlags(t *testing.T) {
 	_, err = result.Recv()
 
 	if err != nil {
-		t.Error("unexpected result")
+		t.Error("unexpected result:", err)
 	}
 
 }

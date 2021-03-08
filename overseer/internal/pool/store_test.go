@@ -9,7 +9,7 @@ import (
 
 func TestStore(t *testing.T) {
 
-	store, _ := NewStore(testCollectionName, log, provider, 0)
+	store, _ := NewStore(testCollectionName, log, 3600, provider)
 	if store == nil {
 		t.Error("Store not created")
 	}
@@ -50,7 +50,7 @@ func TestStore(t *testing.T) {
 
 func TestStoreOver(t *testing.T) {
 
-	store, _ := NewStore(testCollectionName, log, provider, 0)
+	store, _ := NewStore(testCollectionName, log, 3600, provider)
 	if store == nil {
 		t.Error("Store not created")
 	}
@@ -108,7 +108,7 @@ func TestStoreOver(t *testing.T) {
 }
 func TestStoreForEach(t *testing.T) {
 
-	store, _ := NewStore(testCollectionName, log, provider, 0)
+	store, _ := NewStore(testCollectionName, log, 3600, provider)
 	if store == nil {
 		t.Error("Store not created")
 	}

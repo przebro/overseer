@@ -27,6 +27,10 @@ var tsrvs *ovsActiveTaskService
 
 func (m *mockJournal) WriteLog(id unique.TaskOrderID, entry journal.LogEntry) {}
 func (m *mockJournal) ReadLog(id unique.TaskOrderID) []journal.LogEntry       { return []journal.LogEntry{} }
+func (m *mockJournal) Start() error                                           { return nil }
+func (m *mockJournal) Shutdown() error                                        { return nil }
+func (m *mockJournal) Resume() error                                          { return nil }
+func (m *mockJournal) Quiesce() error                                         { return nil }
 
 func createTaskService(t *testing.T) services.TaskServiceClient {
 
