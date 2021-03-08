@@ -54,18 +54,18 @@ The basic task definition is:
     "schedule" :{"type" : "manual"}
 }
 ```
-**type**:Defines a kind of a task. Right now, there are two kinds of the task:\
+**type**:Defines a kind of a task. Right now, there are two kinds of the task:
 - **dummy** - an empty task that does not call any specific program or service but can have scheduling criteria and can add/remove tickets for other tasks.
 - **os** - executes scripts or programs on a worker.
-**name** and **group** are unique identifiers of a task. Group represents a subfolde of a root of the definition catalog and name represents the name of a json file.\
+**name** and **group** are unique identifiers of a task. Group represents a subfolde of a root of the definition catalog and name represents the name of a json file.
 
-**schedule**:Basically, there are two kinds of a task scheduling, manual and time-based. Manual means that task will be not taken into account by daily ordering process, any other type will be checked against specific, time-based criteria:\
-- **daily**: The task will be ordered everday.\
-- **weekday**: The task will be ordered on a specific day of a week where 1 means Monday and 7 means Sunday.\
-- **dayofmonth**: The task will be ordered on a specific day of a month.\
+**schedule**:Basically, there are two kinds of a task scheduling, manual and time-based. Manual means that task will be not taken into account by daily ordering process, any other type will be checked against specific, time-based criteria:
+- **daily**: The task will be ordered everday.
+- **weekday**: The task will be ordered on a specific day of a week where 1 means Monday and 7 means Sunday.
+- **dayofmonth**: The task will be ordered on a specific day of a month.
 - **fromend**: The task will be ordered on a specific day from the end of a month, where 1 means the end of the month, 2 a day before the end, and so on.
-It is relative value so, fromend=2 in July will be resolved to 30 of July and in February it will be resolved to 27 of February or 28 if it is a leap year.\
-- **exact**: The task will be ordered exactly on a spcefic day: '2020-05-11','2021-04-07'...\
+It is relative value so, fromend=2 in July will be resolved to 30 of July and in February it will be resolved to 27 of February or 28 if it is a leap year.
+- **exact**: The task will be ordered exactly on a spcefic day: '2020-05-11','2021-04-07'...
 
 Each of those values can also be restricted by specifying months, in which the task can be ordered.The above example definition can be changed to:
 ```
@@ -80,7 +80,7 @@ Each of those values can also be restricted by specifying months, in which the t
     }
 }
 ```
-This task will be ordered every day of January, March, July, and December.\
+This task will be ordered every day of January, March, July, and December.
 Despite calendar-based criteria, every task can be restricted to run in a specific period. this can be achieved by setting two properties of schedule:
 from and to. For instance:
 ```
@@ -95,8 +95,8 @@ These values restrict the time window when the task can run to hours between 11:
 **tickets**
 Tickets are an essential element of tasks processing. They allow to define dependencies between tasks, use of tickets gives a posibility to build compound 
 workflows. A task can require a ticket to run and, after complete their work, it can create a ticket for another task. More than one ticket can be expected by the task before starting the job. In that situation, a relation between input tickets can be defined. If relation is set to 'OR' then one of tickets is required
-and if relation is set to 'AND' then all of tickets are requiered.\
-Here is an example:\
+and if relation is set to 'AND' then all of tickets are requiered.
+Here is an example:
 ```
 "inticket" : [
         {"name" : "IN-SAMPLE01A","odate" : "ODATE" },
@@ -104,7 +104,7 @@ Here is an example:\
 ],
 "relation" :"AND"
 ```
-A task with the above declaration can run only if these two tickets exist: IN-SAMPLE01A and IN-SAMPLE02A. Additionally, there is an order date parameter therefore tickets must have the same order date as a task. The "odate" parameter is resolved during the ordering process of a task and it is related to the task's calendar. This field can contain values like: "ODATE", "", "PREV", "NEXT","+nnn", "-nnn" where "nnn" is a number between 001 and 999. As mentioned, the calculated value depends on the task's schedule:\
+A task with the above declaration can run only if these two tickets exist: IN-SAMPLE01A and IN-SAMPLE02A. Additionally, there is an order date parameter therefore tickets must have the same order date as a task. The "odate" parameter is resolved during the ordering process of a task and it is related to the task's calendar. This field can contain values like: "ODATE", "", "PREV", "NEXT","+nnn", "-nnn" where "nnn" is a number between 001 and 999. As mentioned, the calculated value depends on the task's schedule:
 ```
     "schedule" :{
     "type" : "daily",
@@ -115,7 +115,7 @@ A task with the above declaration can run only if these two tickets exist: IN-SA
     "values" :[3,5,7]
     }
 ```
-If these definitions are ordered on the Friday 8 January 2021, the "ODATE" value will always resolve to the current date for both definitions but, "PREV" and "NEXT" will be different. For the first definition, "NEXT" and "PREV" will be resolved to Thursday and Saturday, but for the second definition "PREV" will resolve to Wednesday(3), and "NEXT" will resolve to Sunday(7).\
+If these definitions are ordered on the Friday 8 January 2021, the "ODATE" value will always resolve to the current date for both definitions but, "PREV" and "NEXT" will be different. For the first definition, "NEXT" and "PREV" will be resolved to Thursday and Saturday, but for the second definition "PREV" will resolve to Wednesday(3), and "NEXT" will resolve to Sunday(7).
 For this definition:
 ```
     "schedule" :{
