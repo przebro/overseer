@@ -134,4 +134,4 @@ There are two ways how the ticket can be added. Manually or, each task definitio
         {"name" : "IN-SAMPLE02B","odate" : "ODATE" ,"action":"ADD"},
     ]
 ```
-If a task with that definition ends, the ticket "IN-SAMPLE01A" will be removed and, the ticket "IN-SAMPLE02A" and "IN-SAMPLE02B" will be added with order date as a "ODATE". The Same rules as for an "inticket" definition applies to "odate" field in an "outticket" definition so, "NEXT", "PREV" and, +nnn will resolve accordingly to the task's schedule definition.
+If a task with that definition ends, the ticket "IN-SAMPLE01A" will be removed and, the ticket "IN-SAMPLE02A" and "IN-SAMPLE02B" will be added with an "ODATE" resolved to the order date. The Same rules as for an "inticket" definition applies to an "odate" field in an "outticket" definition so, "NEXT", "PREV" and, +nnn will resolve accordingly to the task's schedule definition.
