@@ -155,3 +155,32 @@ func TestProcess(t *testing.T) {
 	tmsg := events.NewMsg(events.RouteTimeOutMsgFormat{Year: y, Month: int(mth), Day: d, Hour: h, Min: m, Sec: s})
 	taskPoolT.Process(nil, events.RouteTimeOut, tmsg)
 }
+
+func TestStartStopQR(t *testing.T) {
+
+	taskPoolConfig.Collection = testCollectionName
+
+	tpool, err := NewTaskPool(mDispatcher, taskPoolConfig, provider, false)
+	if err != nil {
+		t.Error("Unexpected result")
+	}
+
+	tpool.Start()
+	tpool.Resume()
+	if tpool.isProcActive != true {
+		t.Error("Unexpected result:", tpool.isProcActive)
+	}
+
+	tpool.Quiesce()
+	if tpool.isProcActive != false {
+		t.Error("Unexpected result:", tpool.isProcActive)
+	}
+
+	tpool.Resume()
+
+	tpool.Shutdown()
+	if tpool.isProcActive != false {
+		t.Error("Unexpected result:", tpool.isProcActive)
+	}
+
+}

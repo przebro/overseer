@@ -104,4 +104,32 @@ func TestProcess(t *testing.T) {
 		t.Error("unexpected result:", len(entries))
 	}
 
+	rcvr := events.NewActiveTaskReceiver()
+
+	go tJrnal.Process(rcvr, events.RoutTaskJournal, events.NewMsg("invalid data"))
+
+	if _, err := rcvr.WaitForResult(); err != events.ErrUnrecognizedMsgFormat {
+		t.Error("unexpected result:", err)
+	}
+
+	rcvr = events.NewActiveTaskReceiver()
+
+	go tJrnal.Process(rcvr, events.RouteChangeTaskState, events.NewMsg("invalid data"))
+
+	if _, err := rcvr.WaitForResult(); err != events.ErrInvalidRouteName {
+		t.Error("unexpected result:", err)
+	}
+
+}
+
+func TestStartStop(t *testing.T) {
+	jrnal, _ := NewTaskJournal(conf, nil, provider)
+	tjrnal := jrnal.(*taskLogJournal)
+
+	jrnal.Start()
+	if tjrnal.done == nil {
+		t.Error("unexpected result")
+	}
+
+	jrnal.Shutdown()
 }

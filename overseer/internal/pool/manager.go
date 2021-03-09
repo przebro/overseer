@@ -213,9 +213,10 @@ func (manager *ActiveTaskPoolManager) Hold(id unique.TaskOrderID, username strin
 
 	if task.IsHeld() {
 		return fmt.Sprintf("hold task:%s failed, invalid status", id), ErrInvalidStatus
-	}
 
+	}
 	task.Hold()
+	pushJournalMessage(manager.pool.dispatcher, task.OrderID(), task.CurrentExecutionID(), time.Now(), fmt.Sprintf(journal.TaskHeld, username))
 
 	return fmt.Sprintf("hold task:%s ok", id), nil
 }
@@ -233,6 +234,7 @@ func (manager *ActiveTaskPoolManager) Free(id unique.TaskOrderID, username strin
 	}
 
 	task.Free()
+	pushJournalMessage(manager.pool.dispatcher, task.OrderID(), task.CurrentExecutionID(), time.Now(), fmt.Sprintf(journal.TaskFreed, username))
 
 	return fmt.Sprintf("free task:%s ok", id), nil
 }

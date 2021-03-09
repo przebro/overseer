@@ -12,7 +12,57 @@ import (
 	"overseer/overseer/internal/taskdef"
 	"overseer/overseer/internal/unique"
 	"path/filepath"
+	"time"
 )
+
+type mockJournal struct {
+	timeout   int
+	collected chan events.RouteJournalMsg
+}
+
+func (j *mockJournal) Push(msg events.RouteJournalMsg) {
+	j.collected <- msg
+
+}
+
+func (j *mockJournal) Collect(expected int, after time.Time) <-chan []events.RouteJournalMsg {
+
+	ch := make(chan []events.RouteJournalMsg)
+
+	go func(timeout, expected int, done chan<- []events.RouteJournalMsg, col chan events.RouteJournalMsg) {
+
+		collected := 0
+		deadline := time.After(time.Duration(timeout) * time.Second)
+		result := []events.RouteJournalMsg{}
+		for {
+			select {
+			case <-deadline:
+				{
+					close(done)
+					return
+				}
+			case d := <-col:
+				{
+					if d.Time.Before(after) {
+						continue
+					}
+					result = append(result, d)
+					collected++
+					if collected == expected {
+						done <- result
+						close(done)
+						return
+					}
+
+				}
+			}
+		}
+
+	}(j.timeout, expected, ch, j.collected)
+
+	return ch
+
+}
 
 type mockDispatcher struct {
 	Tickets         map[string]string
@@ -37,6 +87,12 @@ func (m *mockDispatcher) PushEvent(receiver events.EventReceiver, route events.R
 		if route == events.RouteTicketIn {
 
 		}
+
+		if route == events.RoutTaskJournal {
+			r := msg.Message().(events.RouteJournalMsg)
+			mockJournalT.Push(r)
+		}
+
 		if route == events.RouteWorkCheck {
 
 			if m.withError {
@@ -127,6 +183,7 @@ var mDispatcher = &mockDispatcher{Tickets: make(map[string]string, 0)}
 var taskPoolT *ActiveTaskPool
 var activeTaskManagerT *ActiveTaskPoolManager
 var log logger.AppLogger = logger.NewTestLogger()
+var mockJournalT = &mockJournal{timeout: 3, collected: make(chan events.RouteJournalMsg, 10)}
 
 func init() {
 

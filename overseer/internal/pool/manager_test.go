@@ -1,10 +1,12 @@
 package pool
 
 import (
+	"fmt"
 	"overseer/common/types/date"
 	"overseer/overseer/internal/events"
 	"overseer/overseer/internal/unique"
 	"overseer/overseer/taskdata"
+	"strings"
 	"testing"
 	"time"
 )
@@ -23,9 +25,22 @@ func TestOrder(t *testing.T) {
 		t.Error("Unexpected result")
 	}
 
-	id, err := activeTaskManagerT.Order(taskdata.GroupNameData{GroupData: taskdata.GroupData{Group: "test"}, Name: "dummy_03"}, date.CurrentOdate(), "user")
+	var jrnalMsg []events.RouteJournalMsg
+	testUser := "testUserT1"
+	w := mockJournalT.Collect(1, time.Now())
+
+	id, err := activeTaskManagerT.Order(taskdata.GroupNameData{GroupData: taskdata.GroupData{Group: "test"}, Name: "dummy_03"}, date.CurrentOdate(), testUser)
 	if err != nil {
 		t.Error("Unexpected result:", err)
+	}
+
+	if jrnalMsg = <-w; jrnalMsg == nil {
+		t.Error("unexpected result, failed to collect data from journal")
+		t.FailNow()
+	}
+
+	if !strings.HasPrefix(jrnalMsg[0].Msg, "TASK ORDERED") || !strings.Contains(jrnalMsg[0].Msg, fmt.Sprintf("user:%s", testUser)) {
+		t.Error("unexpected result, invalid journal entry:", jrnalMsg[0].Msg)
 	}
 
 	pastDate := date.AddDays(date.CurrentOdate(), -1)
@@ -40,28 +55,62 @@ func TestOrder(t *testing.T) {
 
 func TestHoldFree(t *testing.T) {
 
-	orderid, err := activeTaskManagerT.Order(taskdata.GroupNameData{GroupData: taskdata.GroupData{Group: "test"}, Name: "dummy_03"}, date.CurrentOdate(), "user")
-	if err != nil {
-		t.Error("Unexpected result:", err)
-	}
-	_, err = activeTaskManagerT.Hold(unique.TaskOrderID(orderid), "user")
+	var jrnalMsg []events.RouteJournalMsg
+	testUser := "testUserT1"
+	w := mockJournalT.Collect(1, time.Now())
+
+	orderid, err := activeTaskManagerT.Order(taskdata.GroupNameData{GroupData: taskdata.GroupData{Group: "test"}, Name: "dummy_03"}, date.CurrentOdate(), testUser)
 	if err != nil {
 		t.Error("Unexpected result:", err)
 	}
 
-	_, err = activeTaskManagerT.Hold(unique.TaskOrderID(orderid), "user")
+	if jrnalMsg = <-w; jrnalMsg == nil {
+		t.Error("unexpected result, failed to collect data from journal")
+		t.FailNow()
+	}
+
+	if !strings.HasPrefix(jrnalMsg[0].Msg, "TASK ORDERED") || !strings.Contains(jrnalMsg[0].Msg, fmt.Sprintf("user:%s", testUser)) {
+		t.Error("unexpected result, invalid journal entry:", jrnalMsg[0].Msg)
+	}
+
+	w = mockJournalT.Collect(1, time.Now())
+	_, err = activeTaskManagerT.Hold(unique.TaskOrderID(orderid), testUser)
+	if err != nil {
+		t.Error("Unexpected result:", err)
+	}
+
+	if jrnalMsg = <-w; jrnalMsg == nil {
+		t.Error("unexpected result, failed to collect data from journal")
+		t.FailNow()
+	}
+
+	if !strings.HasPrefix(jrnalMsg[0].Msg, "TASK HELD") || !strings.Contains(jrnalMsg[0].Msg, fmt.Sprintf("user:%s", testUser)) {
+		t.Error("unexpected result, invalid journal entry:", jrnalMsg[0].Msg)
+	}
+
+	_, err = activeTaskManagerT.Hold(unique.TaskOrderID(orderid), testUser)
 
 	if err == nil {
 		t.Error("Unexpected result, expected error")
 	}
 
-	_, err = activeTaskManagerT.Free(unique.TaskOrderID(orderid), "user")
+	w = mockJournalT.Collect(1, time.Now())
+	_, err = activeTaskManagerT.Free(unique.TaskOrderID(orderid), testUser)
 
 	if err != nil {
 		t.Error("Unexpected result:", err)
 	}
 
-	_, err = activeTaskManagerT.Free(unique.TaskOrderID(orderid), "user")
+	if jrnalMsg = <-w; jrnalMsg == nil {
+		t.Error("unexpected result, failed to collect data from journal")
+		t.FailNow()
+	}
+
+	if !strings.HasPrefix(jrnalMsg[0].Msg, "TASK FREED") || !strings.Contains(jrnalMsg[0].Msg, fmt.Sprintf("user:%s", testUser)) {
+		t.Error("unexpected result, invalid journal entry:", jrnalMsg[0].Msg)
+	}
+
+	_, err = activeTaskManagerT.Free(unique.TaskOrderID(orderid), testUser)
 
 	if err == nil {
 		t.Error("Unexpected result, expected error")
@@ -71,14 +120,28 @@ func TestHoldFree(t *testing.T) {
 
 }
 func TestConfirm(t *testing.T) {
+
 	orderid, err := activeTaskManagerT.Force(taskdata.GroupNameData{GroupData: taskdata.GroupData{Group: "test"}, Name: "dummy_04"}, date.CurrentOdate(), "user")
 	if err != nil {
 		t.Error("Unexpected result:", err)
 	}
 
-	_, err = activeTaskManagerT.Confirm(unique.TaskOrderID(orderid), "user")
+	var jrnalMsg []events.RouteJournalMsg
+	testUser := "testUserT1"
+	w := mockJournalT.Collect(1, time.Now())
+
+	_, err = activeTaskManagerT.Confirm(unique.TaskOrderID(orderid), testUser)
 	if err != nil {
 		t.Error("Unexpected result:", err)
+	}
+
+	if jrnalMsg = <-w; jrnalMsg == nil {
+		t.Error("unexpected result, failed to collect data from journal")
+		t.FailNow()
+	}
+
+	if !strings.HasPrefix(jrnalMsg[0].Msg, "TASK CONFIRMED") || !strings.Contains(jrnalMsg[0].Msg, fmt.Sprintf("user:%s", testUser)) {
+		t.Error("unexpected result, invalid journal entry:", jrnalMsg[0].Msg)
 	}
 
 	_, err = activeTaskManagerT.Confirm(unique.TaskOrderID(orderid), "user")
@@ -89,6 +152,43 @@ func TestConfirm(t *testing.T) {
 	_, err = activeTaskManagerT.Confirm(unique.TaskOrderID("12345"), "user")
 	if err == nil {
 		t.Error("Unexpected result, expected error")
+	}
+
+	activeTaskManagerT.pool.tasks.remove(unique.TaskOrderID(orderid))
+
+}
+
+func TestSetOK(t *testing.T) {
+
+	testUser := "testUserT1"
+
+	orderid, err := activeTaskManagerT.Force(taskdata.GroupNameData{GroupData: taskdata.GroupData{Group: "test"}, Name: "dummy_03"}, date.CurrentOdate(), testUser)
+	if err != nil {
+		t.Error("Unexpected result:", err)
+	}
+
+	var jrnalMsg []events.RouteJournalMsg
+
+	_, err = activeTaskManagerT.SetOk(unique.TaskOrderID(orderid), testUser)
+	if err == nil {
+		t.Error("Unexpected result")
+	}
+
+	w := mockJournalT.Collect(1, time.Now())
+	activeTaskManagerT.pool.tasks.store[unique.TaskOrderID(orderid)].executions[0].state = TaskStateEndedNotOk
+
+	_, err = activeTaskManagerT.SetOk(unique.TaskOrderID(orderid), testUser)
+	if err != nil {
+		t.Error("Unexpected result:", err)
+	}
+
+	if jrnalMsg = <-w; jrnalMsg == nil {
+		t.Error("unexpected result, failed to collect data from journal")
+		t.FailNow()
+	}
+
+	if !strings.HasPrefix(jrnalMsg[0].Msg, "TASK SETOK") || !strings.Contains(jrnalMsg[0].Msg, fmt.Sprintf("user:%s", testUser)) {
+		t.Error("unexpected result, invalid journal entry:", jrnalMsg[0].Msg)
 	}
 
 	activeTaskManagerT.pool.tasks.remove(unique.TaskOrderID(orderid))
@@ -195,17 +295,29 @@ func TestGetModel(t *testing.T) {
 
 func TestForce(t *testing.T) {
 
-	_, err := activeTaskManagerT.Force(taskdata.GroupNameData{GroupData: taskdata.GroupData{Group: "test"}, Name: "noexists"}, date.CurrentOdate(), "user")
+	var jrnalMsg []events.RouteJournalMsg
+	testUser := "testUserT1"
 
-	t.Log(err)
+	_, err := activeTaskManagerT.Force(taskdata.GroupNameData{GroupData: taskdata.GroupData{Group: "test"}, Name: "noexists"}, date.CurrentOdate(), testUser)
 
 	if err == nil {
 		t.Error("Unexpected result")
 	}
 
-	id, err := activeTaskManagerT.Force(taskdata.GroupNameData{GroupData: taskdata.GroupData{Group: "test"}, Name: "dummy_03"}, date.CurrentOdate(), "user")
+	w := mockJournalT.Collect(1, time.Now())
+
+	id, err := activeTaskManagerT.Force(taskdata.GroupNameData{GroupData: taskdata.GroupData{Group: "test"}, Name: "dummy_03"}, date.CurrentOdate(), testUser)
 	if err != nil {
 		t.Error("Unexpected result:", err)
+	}
+
+	if jrnalMsg = <-w; jrnalMsg == nil {
+		t.Error("unexpected result, failed to collect data from journal")
+		t.FailNow()
+	}
+
+	if !strings.HasPrefix(jrnalMsg[0].Msg, "TASK FORCED") || !strings.Contains(jrnalMsg[0].Msg, fmt.Sprintf("user:%s", testUser)) {
+		t.Error("unexpected result, invalid journal entry:", jrnalMsg[0].Msg)
 	}
 
 	activeTaskManagerT.pool.tasks.remove(unique.TaskOrderID(id))
@@ -458,9 +570,18 @@ func TestForceGroup(t *testing.T) {
 		t.Error("unepected result")
 	}
 
-	_, err = activeTaskManagerT.ForceGroup(taskdata.GroupData{Group: "test"}, date.CurrentOdate(), "user")
+	var jrnalMsg []events.RouteJournalMsg
+	testUser := "testUserT1"
+	w := mockJournalT.Collect(5, time.Now())
+
+	_, err = activeTaskManagerT.ForceGroup(taskdata.GroupData{Group: "test"}, date.CurrentOdate(), testUser)
 	if err != nil {
 		t.Error("unepected result")
+	}
+
+	if jrnalMsg = <-w; jrnalMsg == nil {
+		t.Error("unexpected result, failed to collect data from journal")
+		t.FailNow()
 	}
 
 	for i := range activeTaskManagerT.pool.tasks.store {
@@ -488,11 +609,24 @@ func TestEnforceTask(t *testing.T) {
 		t.Error("unepected result")
 	}
 
+	var jrnalMsg []events.RouteJournalMsg
+	testUser := "testUserT1"
+	w := mockJournalT.Collect(1, time.Now())
+
 	activeTaskManagerT.pool.tasks.store[unique.TaskOrderID(id)].SetState(TaskStateWaiting)
 
-	_, err = activeTaskManagerT.Enforce(unique.TaskOrderID(id), "user")
+	_, err = activeTaskManagerT.Enforce(unique.TaskOrderID(id), testUser)
 	if err != nil {
 		t.Error("unepected result")
+	}
+
+	if jrnalMsg = <-w; jrnalMsg == nil {
+		t.Error("unexpected result, failed to collect data from journal")
+		t.FailNow()
+	}
+
+	if !strings.HasPrefix(jrnalMsg[0].Msg, "TASK ENFORCED") || !strings.Contains(jrnalMsg[0].Msg, fmt.Sprintf("user:%s", testUser)) {
+		t.Error("unexpected result, invalid journal entry:", jrnalMsg[0].Msg)
 	}
 
 }

@@ -64,7 +64,7 @@ func NewManager(dispatcher events.Dispatcher, log logger.AppLogger, rconfig conf
 		return nil, err
 	}
 
-	frw, err := newFlagReadWriter(rconfig.TicketSource.Collection, "flags", provider)
+	frw, err := newFlagReadWriter(rconfig.FlagSource.Collection, "flags", provider)
 	if err != nil {
 		return nil, err
 	}

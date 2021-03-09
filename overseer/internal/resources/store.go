@@ -26,9 +26,6 @@ type resourceStore struct {
 
 func newStore(rw readWriter, stime int) (*resourceStore, error) {
 
-	if stime <= 0 {
-		return nil, errors.New("sync time must be greater than 0")
-	}
 	items, err := rw.Load()
 	if err != nil {
 		return nil, err
@@ -42,6 +39,18 @@ func newStore(rw readWriter, stime int) (*resourceStore, error) {
 func (s *resourceStore) watch(tm int, shutdown <-chan struct{}) <-chan struct{} {
 
 	inform := make(chan struct{})
+
+	if tm == 0 {
+		go func(sc <-chan struct{}, inf chan<- struct{}) {
+			<-sc
+			s.sync()
+			close(inf)
+			return
+
+		}(shutdown, inform)
+
+		return inform
+	}
 
 	go func(sc <-chan struct{}, inf chan<- struct{}) {
 
@@ -135,7 +144,5 @@ func (s *resourceStore) sync() {
 		tmp[k] = v
 	}
 	s.lock.Unlock()
-
 	s.rw.Write(tmp)
-
 }

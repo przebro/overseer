@@ -10,7 +10,6 @@ import (
 	"overseer/overseer/internal/events"
 	"overseer/overseer/internal/taskdef"
 	"testing"
-	"time"
 )
 
 var manager ResourceManager
@@ -86,7 +85,36 @@ func TestNewManager(t *testing.T) {
 	if err != nil {
 		t.Error("unexpected error:", err)
 	}
-	time.Sleep(2 * time.Second)
+
+	invalidConfig := config.ResourcesConfigurartion{
+		TicketSource: config.ResourceEntry{Sync: 1, Collection: "resources"},
+		FlagSource:   config.ResourceEntry{Sync: 1, Collection: "invalid"},
+	}
+
+	_, err = NewManager(&dispatcher, tlog, invalidConfig, provider)
+
+	if err == nil {
+		t.Error("unexpected error")
+	}
+	invalidConfig.TicketSource.Collection = "invalid"
+
+	_, err = NewManager(&dispatcher, tlog, invalidConfig, provider)
+
+	if err == nil {
+		t.Error("unexpected error")
+	}
+
+}
+
+func TestStartShutdown(t *testing.T) {
+
+	tlog := logger.NewTestLogger()
+	m, err := NewManager(&dispatcher, tlog, resConfig, provider)
+	if err != nil {
+		t.Error("unexpected error:", err)
+	}
+	m.Start()
+	m.Shutdown()
 
 }
 

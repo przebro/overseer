@@ -2,7 +2,6 @@ package journal
 
 import (
 	"context"
-	"errors"
 	"overseer/common/core"
 	"overseer/common/logger"
 	"overseer/datastore"
@@ -16,13 +15,15 @@ import (
 )
 
 const (
+	TaskHeld              = "TASK HELD, user:%s"
+	TaskFreed             = "TASK FREED, user:%s"
 	TaskFulfill           = "TASK PRECONDITIONS OK"
-	TaskEnforce           = "TASK ENFORCED user:%s"
-	TaskRerun             = "TASK RERUN user:%s"
-	TaskSetOK             = "TASK SETOK user:%s"
-	TaskConfirmed         = "TASK CONFIRMED user:%s"
-	TaskForced            = "TASK FORCED user:%s ODATE:%s"
-	TaskOrdered           = "TASK ORDERED user:%s ODATE:%s"
+	TaskEnforce           = "TASK ENFORCED, user:%s"
+	TaskRerun             = "TASK RERUN, user:%s"
+	TaskSetOK             = "TASK SETOK, user:%s"
+	TaskConfirmed         = "TASK CONFIRMED, user:%s"
+	TaskForced            = "TASK FORCED, user:%s ODATE:%s"
+	TaskOrdered           = "TASK ORDERED, user:%s ODATE:%s"
 	TaskStartingRN        = "TASK STARTING RN:%d"
 	TaskStartingFailedErr = "TASK STARTING FAILED worker error"
 	TaskStartingFailed    = "TASK STARTING FAILED invalid worker status:%d"
@@ -79,10 +80,6 @@ func NewTaskJournal(conf config.JournalConfiguration, dispatcher events.Dispatch
 
 	var err error
 	var col collection.DataCollection
-
-	if conf.SyncTime <= 0 {
-		return nil, errors.New("sync time must be greater than 0")
-	}
 
 	if col, err = provider.GetCollection(conf.LogCollection); err != nil {
 		return nil, err
@@ -154,6 +151,19 @@ func (journal *taskLogJournal) WriteLog(id unique.TaskOrderID, entry LogEntry) {
 func (journal *taskLogJournal) watch(interval int, shutdown <-chan struct{}) <-chan struct{} {
 
 	inform := make(chan struct{})
+
+	if interval == 0 {
+		go func(sc <-chan struct{}, inf chan<- struct{}) {
+
+			<-sc
+			journal.sync(interval, time.Now())
+			close(inf)
+			return
+
+		}(shutdown, inform)
+
+		return inform
+	}
 
 	go func(sc <-chan struct{}, inf chan<- struct{}) {
 
