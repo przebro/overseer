@@ -1,0 +1,23 @@
+{
+    "type" : "os",
+    "name" :"flagdelay02",
+    "group" : "flag",
+    "schedule" :{
+        "type" : "manual"
+    },
+    "relation" :"AND",
+    "inticket" : [
+        {"name" : "OUT-FLAG-02","odate" : "ODATE" }
+    ],
+    "outticket" :[
+        {"name" : "OUT-FLAG-02","odate" : "ODATE" ,"action":"REM"},
+        {"name" : "OUT-FLAG-DELAY2","odate" : "ODATE" ,"action":"ADD"}
+    ],
+    "variables" : [
+        {"name": "%%ABEND","value":"N"},
+        {"name": "%%TIMEOUT","value":"1"}
+    ],
+    "spec" :{
+        "type" : "command","command" :"./chkprg"
+    }
+}

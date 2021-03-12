@@ -364,3 +364,53 @@ func TestTaskCleanReceiver(t *testing.T) {
 	}
 
 }
+
+func TestFlagActionReciever(t *testing.T) {
+
+	far := NewFlagActionReceiver()
+
+	go func() {
+
+		ResponseToReceiver(far, RouteFlagActionResponse{Success: true})
+	}()
+
+	data, err := far.WaitForResult()
+
+	if err != nil {
+		t.Error("Unexpected result", err)
+	}
+	if data.Success != true {
+		t.Error("Unexpected result", data)
+	}
+
+	go func() {
+
+		ResponseToReceiver(far, "invsalid value")
+	}()
+
+	data, err = far.WaitForResult()
+
+	if err == nil {
+		t.Error("Unexpected result")
+	}
+	if err != ErrUnrecognizedMsgFormat {
+		t.Error("Unexpected result", err, "expected:", ErrUnrecognizedMsgFormat)
+	}
+
+	customError := errors.New("Custom error")
+
+	go func() {
+
+		ResponseToReceiver(far, customError)
+	}()
+
+	data, err = far.WaitForResult()
+
+	if err == nil {
+		t.Error("Unexpected result")
+	}
+	if err != customError {
+		t.Error("Unexpected result", err, "expected:", customError)
+	}
+
+}

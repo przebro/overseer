@@ -62,14 +62,14 @@ var resources = map[string]interface{}{
 func init() {
 
 	var err error
-	logger.NewTestLogger()
+	log := logger.NewTestLogger()
 	f, _ := os.Create("../../../data/tests/resources.json")
 	data, _ := json.Marshal(resources)
 
 	f.Write(data)
 	f.Close()
 
-	provider, err = datastore.NewDataProvider(storeConfig)
+	provider, err = datastore.NewDataProvider(storeConfig, log)
 
 	if err != nil {
 		panic("fatal error, unable to load store")

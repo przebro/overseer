@@ -42,11 +42,15 @@ message TaskExecutionResponseMsg{
 	int32 returnCode  = 2;
 	int32 statusCode  = 3;
 	int32 pid         = 4;
+	int32 tasks       = 5;
+	int32 tasksLimit  = 6;
 }
 
 message WorkerActionMsg{
 	bool success = 1;
 	string message = 2;
+	int32 tasks       = 3;
+	int32 tasksLimit  = 4;
 }
 message TaskOutputMsg{
 	string data  = 1;
@@ -54,7 +58,8 @@ message TaskOutputMsg{
 
 message WorkerStatusResponseMsg{
 	int32 tasks  = 1;
-	int32 cpuload = 2;
-	int32 memused = 3;
-	int32 memtotal = 4;
+	int32 tasksLimit = 2;
+	int32 cpuload = 3;
+	int32 memused = 4;
+	int32 memtotal = 5;
 }

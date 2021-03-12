@@ -71,7 +71,7 @@ func startWorker() {
 	logcfg := conf.GetLogConfiguration()
 	log := logger.NewLogger(logcfg.Directory, logcfg.Level)
 
-	if worker, err = ovsworker.NewWorkerService(conf); err != nil {
+	if worker, err = ovsworker.NewWorkerService(conf, log); err != nil {
 		log.Error(err)
 		os.Exit(8)
 	}

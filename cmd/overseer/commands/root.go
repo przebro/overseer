@@ -75,7 +75,7 @@ func startOverseer() {
 	logcfg := conf.GetLogConfiguration()
 	log := logger.NewLogger(logcfg.LogDirectory, logcfg.LogLevel)
 
-	if ovs, err = overseer.New(conf, quiesce); err != nil {
+	if ovs, err = overseer.New(conf, log, quiesce); err != nil {
 		log.Error(err)
 		os.Exit(16)
 	}

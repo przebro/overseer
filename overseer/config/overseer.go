@@ -37,11 +37,14 @@ type ActivePoolConfiguration struct {
 	Collection      string            `json:"collection"`
 	SyncTime        int               `json:"syncTime" validate:"min=0,max=60"`
 }
+
+//ResourceEntry - resource configuration
 type ResourceEntry struct {
 	Collection string `json:"collectionName"`
 	Sync       int    `json:"sync"`
 }
 
+//ResourcesConfigurartion - configuration section for tickets and flags
 type ResourcesConfigurartion struct {
 	TicketSource ResourceEntry `json:"tickets"`
 	FlagSource   ResourceEntry `json:"flags"`
@@ -76,21 +79,25 @@ type OverseerConfiguration struct {
 	Journal             JournalConfiguration       `json:"journalConfiguration"`
 }
 
+//StoreProviderConfiguration - datastore configuration section
 type StoreProviderConfiguration struct {
 	Store       []StoreConfiguration      `json:"store"`
 	Collections []CollectionConfiguration `json:"collections"`
 }
 
+//StoreConfiguration - store configuration entry
 type StoreConfiguration struct {
 	ID               string `json:"id"`
 	ConnectionString string `json:"connectionString"`
 }
 
+//CollectionConfiguration - collection configuration entry
 type CollectionConfiguration struct {
 	StoreID string `json:"storeId"`
 	Name    string `json:"name"`
 }
 
+//SecurityConfiguration - security section
 type SecurityConfiguration struct {
 	AllowAnonymous bool          `json:"allowAnonymous"`
 	Timeout        int           `json:"timeout"`
@@ -100,6 +107,7 @@ type SecurityConfiguration struct {
 	Providers      []interface{} `json:"providers"`
 }
 
+//JournalConfiguration - task history section
 type JournalConfiguration struct {
 	LogCollection string `json:"logs"`
 	SyncTime      int    `json:"syncTime" validate:"min=0,max=60"`
@@ -123,6 +131,7 @@ func Load(path string) (OverseerConfiguration, error) {
 	return config, nil
 }
 
+//GetServerConfiguration - gets main configuration section
 func (cfg *OverseerConfiguration) GetServerConfiguration() ServerConfiguration {
 
 	return cfg.Server
@@ -138,22 +147,27 @@ func (cfg *OverseerConfiguration) GetActivePoolConfiguration() ActivePoolConfigu
 	return cfg.PoolConfiguration
 }
 
+//GetResourceConfiguration - Gets  resource configuration section
 func (cfg *OverseerConfiguration) GetResourceConfiguration() ResourcesConfigurartion {
 	return cfg.Resources
 }
 
+//GetStoreProviderConfiguration - gets provider configuration section
 func (cfg *OverseerConfiguration) GetStoreProviderConfiguration() StoreProviderConfiguration {
 	return cfg.StoreProvider
 }
 
+//GetSecurityConfiguration - gets security configuration section
 func (cfg *OverseerConfiguration) GetSecurityConfiguration() SecurityConfiguration {
 	return cfg.Security
 }
 
+//GetWorkerManagerConfiguration - gets worker manager configuration section
 func (cfg *OverseerConfiguration) GetWorkerManagerConfiguration() WorkerManagerConfiguration {
 	return cfg.WorkerManager
 }
 
+//GetJournalConfiguration - gets journal configuration section
 func (cfg *OverseerConfiguration) GetJournalConfiguration() JournalConfiguration {
 	return cfg.Journal
 }

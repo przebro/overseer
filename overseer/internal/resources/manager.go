@@ -2,6 +2,7 @@ package resources
 
 import (
 	"errors"
+	"fmt"
 	"overseer/common/core"
 	"overseer/common/logger"
 	"overseer/common/types/date"
@@ -11,6 +12,7 @@ import (
 	"overseer/overseer/internal/taskdef"
 	"regexp"
 	"sort"
+	"sync"
 )
 
 type resourceManager struct {
@@ -18,8 +20,7 @@ type resourceManager struct {
 	log        logger.AppLogger
 	tstore     *resourceStore
 	fstore     *resourceStore
-	fsdch      chan struct{}
-	tsdch      chan struct{}
+	flock      sync.Mutex
 }
 
 //TicketManager - base resources required by task to run
@@ -49,17 +50,16 @@ type ResourceManager interface {
 func NewManager(dispatcher events.Dispatcher, log logger.AppLogger, rconfig config.ResourcesConfigurartion, provider *datastore.Provider) (ResourceManager, error) {
 
 	var err error
-	rm := new(resourceManager)
-	rm.log = log
-	rm.dispatcher = dispatcher
+
+	var tstore *resourceStore
+	var fstore *resourceStore
 
 	trw, err := newTicketReadWriter(rconfig.TicketSource.Collection, "tickets", provider)
 	if err != nil {
 		return nil, err
 	}
 
-	rm.tstore, err = newStore(trw, rconfig.TicketSource.Sync)
-
+	tstore, err = newStore(trw, rconfig.TicketSource.Sync)
 	if err != nil {
 		return nil, err
 	}
@@ -69,14 +69,24 @@ func NewManager(dispatcher events.Dispatcher, log logger.AppLogger, rconfig conf
 		return nil, err
 	}
 
-	rm.fstore, err = newStore(frw, rconfig.FlagSource.Sync)
+	fstore, err = newStore(frw, rconfig.FlagSource.Sync)
 	if err != nil {
 		return nil, err
+	}
+
+	rm := &resourceManager{
+		log:        log,
+		dispatcher: dispatcher,
+		tstore:     tstore,
+		fstore:     fstore,
+		flock:      sync.Mutex{},
 	}
 
 	//Subscribe for incoming messages about requests for tickets
 	rm.dispatcher.Subscribe(events.RouteTicketCheck, rm)
 	rm.dispatcher.Subscribe(events.RouteTicketIn, rm)
+	rm.dispatcher.Subscribe(events.RouteFlagAcquire, rm)
+	rm.dispatcher.Subscribe(events.RouteFlagRelase, rm)
 
 	return rm, nil
 }
@@ -94,12 +104,11 @@ func (rm *resourceManager) Add(name string, odate date.Odate) (bool, error) {
 func (rm *resourceManager) Delete(name string, odate date.Odate) (bool, error) {
 
 	key := name + string(odate)
-	if _, ok := rm.tstore.Get(key); ok {
-		rm.tstore.Delete(key)
-		return true, nil
+	if err := rm.tstore.Delete(key); err != nil {
+		return false, err
 	}
-	return false, errors.New("unable to find given condition")
 
+	return true, nil
 }
 func (rm *resourceManager) Check(name string, odate date.Odate) bool {
 
@@ -144,25 +153,32 @@ func (rm *resourceManager) ListTickets(name string, datestr string) []TicketReso
 //Set - change a value of a flag
 func (rm *resourceManager) Set(name string, policy FlagResourcePolicy) (bool, error) {
 
+	defer rm.flock.Unlock()
+	rm.flock.Lock()
+
 	var v interface{}
 	var ok bool
 
 	if v, ok = rm.fstore.Get(name); !ok {
+		fmt.Println("CREATE FLAG:", name, "COUNT:", 1, "TYPE:", policy)
 		rm.fstore.Insert(name, FlagResource{Name: name, Policy: policy, Count: 1})
 		return true, nil
 	}
 
 	flag := v.(FlagResource)
 	if flag.Policy == FlagPolicyExclusive {
+		fmt.Println("ACQ ERR FLAG:", name, "TYPE:", policy, "flag in use with exclusive policy")
 		return false, errors.New("flag in use with exclusive policy")
 	}
 
-	if flag.Policy == FlagPolicyShared && policy == FlagPolicyExclusive {
+	if flag.Policy == FlagPolicyShared && policy == FlagPolicyExclusive && flag.Count != 0 {
+		fmt.Println("ACQ ERR FLAG SHR:", name, "TYPE:", flag.Policy, "flag in use with shared,trying exclusive")
 		return false, errors.New("unable to set shared, flag in use with exclusive policy")
 	}
 
 	flag.Count++
 	flag.Policy = policy
+	fmt.Println("ACQ FLAG SUCCESS:", flag.Name, "TYPE:", flag.Policy, "COUNT:", flag.Count)
 	rm.fstore.Update(flag.Name, flag)
 
 	return true, nil
@@ -170,6 +186,9 @@ func (rm *resourceManager) Set(name string, policy FlagResourcePolicy) (bool, er
 
 //Unset - remove a flag
 func (rm *resourceManager) Unset(name string) (bool, error) {
+
+	defer rm.flock.Unlock()
+	rm.flock.Lock()
 
 	var v interface{}
 	var ok bool
@@ -180,15 +199,23 @@ func (rm *resourceManager) Unset(name string) (bool, error) {
 
 	flag := v.(FlagResource)
 	flag.Count--
+	fmt.Println("UNSET FLAG:", flag.Name, "COUNT:", flag.Count)
 	if flag.Count == 0 {
 		rm.fstore.Delete(name)
+		fmt.Println("FLAG REMOVED")
+	} else {
+		rm.fstore.Update(flag.Name, flag)
 	}
+
 	return true, nil
 
 }
 
 //DestroyFlag - forcefully removes a flag
 func (rm *resourceManager) DestroyFlag(name string) (bool, error) {
+
+	defer rm.flock.Unlock()
+	rm.flock.Lock()
 
 	var ok bool
 
@@ -273,6 +300,33 @@ func (rm *resourceManager) Process(receiver events.EventReceiver, route events.R
 			rm.processInTicketEvent(data)
 			events.ResponseToReceiver(receiver, data)
 		}
+	case events.RouteFlagAcquire:
+		{
+			data, ok := msg.Message().(events.RouteFlagAcquireMsg)
+			if !ok {
+				rm.log.Error("ResourceManager: route processing error, unexpected msg format")
+				if receiver != nil {
+					receiver.Done(events.ErrUnrecognizedMsgFormat)
+				}
+			}
+
+			result := rm.processAcquireFlag(data)
+			events.ResponseToReceiver(receiver, result)
+
+		}
+	case events.RouteFlagRelase:
+		{
+			data, ok := msg.Message().(events.RouteFlagAcquireMsg)
+			if !ok {
+				rm.log.Error("ResourceManager: route processing error, unexpected msg format")
+				if receiver != nil {
+					receiver.Done(events.ErrUnrecognizedMsgFormat)
+				}
+			}
+
+			result := rm.processReleaseFlag(data)
+			events.ResponseToReceiver(receiver, result)
+		}
 	default:
 		{
 			err := events.ErrInvalidRouteName
@@ -288,6 +342,57 @@ func (rm *resourceManager) processCheckTicketEvent(data events.RouteTicketCheckM
 		data.Tickets[idx].Fulfilled = rm.Check(d.Name, date.Odate(d.Odate))
 	}
 }
+
+func (rm *resourceManager) processAcquireFlag(data events.RouteFlagAcquireMsg) events.RouteFlagActionResponse {
+
+	var requiredFlagNames []string = []string{}
+	ok := true
+
+	aflags := []struct {
+		Name   string
+		Policy FlagResourcePolicy
+	}{}
+
+	for _, f := range data.Flags {
+		policy := FlagResourcePolicy(f.Policy)
+		// if flag is not acquired, rollback changes that were made
+		if ok, _ = rm.Set(f.Name, policy); !ok {
+			requiredFlagNames = append(requiredFlagNames, f.Name)
+			break
+		}
+		aflags = append(aflags, struct {
+			Name   string
+			Policy FlagResourcePolicy
+		}{Name: f.Name, Policy: policy})
+	}
+
+	if !ok {
+
+		for _, f := range aflags {
+			rm.Unset(f.Name)
+		}
+	}
+
+	return events.RouteFlagActionResponse{Success: ok, Names: requiredFlagNames}
+}
+
+func (rm *resourceManager) processReleaseFlag(data events.RouteFlagAcquireMsg) events.RouteFlagActionResponse {
+
+	var flagNames []string = []string{}
+	var success bool = true
+
+	for _, f := range data.Flags {
+		if ok, _ := rm.Unset(f.Name); !ok {
+			flagNames = append(flagNames, f.Name)
+			success = success && false
+		} else {
+			success = success && true
+		}
+	}
+
+	return events.RouteFlagActionResponse{Success: success, Names: flagNames}
+}
+
 func (rm *resourceManager) processInTicketEvent(data events.RouteTicketInMsgFormat) {
 
 	for _, item := range data.Tickets {

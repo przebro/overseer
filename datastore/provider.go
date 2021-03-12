@@ -45,25 +45,23 @@ func (p *Provider) GetCollection(name string) (collection.DataCollection, error)
 }
 
 //NewDataProvider - Creates a new DataProvider
-func NewDataProvider(conf config.StoreProviderConfiguration) (*Provider, error) {
+func NewDataProvider(conf config.StoreProviderConfiguration, log logger.AppLogger) (*Provider, error) {
 
 	var err error
 	p := &Provider{}
 
-	if p.store, err = loadStoreData(conf.Store); err != nil {
+	if p.store, err = loadStoreData(conf.Store, log); err != nil {
 		return nil, err
 	}
 
-	if p.collections, err = loadCollectionData(conf.Collections); err != nil {
+	if p.collections, err = loadCollectionData(conf.Collections, log); err != nil {
 		return nil, err
 	}
 
 	return p, nil
 
 }
-func loadStoreData(conf []config.StoreConfiguration) (map[string]store.DataStore, error) {
-
-	log := logger.Get()
+func loadStoreData(conf []config.StoreConfiguration, log logger.AppLogger) (map[string]store.DataStore, error) {
 
 	connmap := map[string]string{}
 	smap := map[string]store.DataStore{}
@@ -96,10 +94,9 @@ func loadStoreData(conf []config.StoreConfiguration) (map[string]store.DataStore
 	return smap, nil
 }
 
-func loadCollectionData(conf []config.CollectionConfiguration) (map[string]string, error) {
+func loadCollectionData(conf []config.CollectionConfiguration, log logger.AppLogger) (map[string]string, error) {
 
 	cmap := map[string]string{}
-	log := logger.Get()
 
 	for _, col := range conf {
 

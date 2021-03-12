@@ -1,0 +1,16 @@
+{
+    "type" : "dummy",
+    "name" :"flagstart",
+    "group" : "flag",
+    "schedule" :{
+        "type" : "manual"
+    },
+    "relation" :"AND",
+    "inticket" : [
+        {"name" : "IN-FLAG-START-A","odate" : "ODATE" }
+    ],
+    "outticket" :[
+        {"name" : "IN-FLAG-START-A","odate" : "ODATE" ,"action":"REM"},
+        {"name" : "IN-FLAG-01","odate" : "ODATE" ,"action":"ADD"}
+    ]
+}

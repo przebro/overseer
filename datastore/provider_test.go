@@ -18,7 +18,7 @@ func init() {
 
 func TestProvider(t *testing.T) {
 
-	logger.NewTestLogger()
+	log := logger.NewTestLogger()
 
 	conf := config.StoreProviderConfiguration{
 		Store: []config.StoreConfiguration{
@@ -28,7 +28,7 @@ func TestProvider(t *testing.T) {
 			{Name: "", StoreID: ""},
 		},
 	}
-	_, err := NewDataProvider(conf)
+	_, err := NewDataProvider(conf, log)
 
 	if err == nil || !errors.Is(err, ErrStoreConfiguration) {
 		t.Errorf("unexpected result")
@@ -37,7 +37,7 @@ func TestProvider(t *testing.T) {
 	conf.Store[0] = config.StoreConfiguration{ID: "test1", ConnectionString: "local;/../data/tests?synctime=1"}
 	conf.Store = append(conf.Store, config.StoreConfiguration{ID: "test1", ConnectionString: "local;/../data/tests?synctime=1"})
 
-	_, err = NewDataProvider(conf)
+	_, err = NewDataProvider(conf, log)
 
 	if err == nil || !errors.Is(err, ErrStoreConfiguration) {
 		t.Error("unexpected result:", err)
@@ -45,7 +45,7 @@ func TestProvider(t *testing.T) {
 
 	conf.Store[1] = config.StoreConfiguration{ID: "test2", ConnectionString: "local;/data/tests?synctime=1"}
 
-	_, err = NewDataProvider(conf)
+	_, err = NewDataProvider(conf, log)
 
 	if err == nil {
 		t.Error("unexpected result", err)
@@ -53,7 +53,7 @@ func TestProvider(t *testing.T) {
 
 	conf.Store = []config.StoreConfiguration{{ID: "test1", ConnectionString: "local;/../data/tests?synctime=1"}}
 
-	_, err = NewDataProvider(conf)
+	_, err = NewDataProvider(conf, log)
 
 	if err == nil {
 		t.Error("unexpected result", err)
@@ -63,7 +63,7 @@ func TestProvider(t *testing.T) {
 
 func TestProviderCollections(t *testing.T) {
 
-	logger.NewTestLogger()
+	log := logger.NewTestLogger()
 
 	conf := config.StoreProviderConfiguration{
 		Store: []config.StoreConfiguration{
@@ -73,7 +73,7 @@ func TestProviderCollections(t *testing.T) {
 			{Name: "", StoreID: ""},
 		},
 	}
-	_, err := NewDataProvider(conf)
+	_, err := NewDataProvider(conf, log)
 
 	if err == nil {
 		t.Error("unexpected result", err)
@@ -81,7 +81,7 @@ func TestProviderCollections(t *testing.T) {
 
 	conf.Collections[0] = config.CollectionConfiguration{Name: "resources", StoreID: "test1"}
 
-	_, err = NewDataProvider(conf)
+	_, err = NewDataProvider(conf, log)
 
 	if err != nil {
 		t.Error("unexpected result", err)
@@ -89,7 +89,7 @@ func TestProviderCollections(t *testing.T) {
 
 	conf.Collections = append(conf.Collections, config.CollectionConfiguration{Name: "resources", StoreID: "test1"})
 
-	_, err = NewDataProvider(conf)
+	_, err = NewDataProvider(conf, log)
 
 	if err == nil {
 		t.Error("unexpected result", err)
@@ -99,7 +99,7 @@ func TestProviderCollections(t *testing.T) {
 
 func TestGetCollection(t *testing.T) {
 
-	logger.NewTestLogger()
+	log := logger.NewTestLogger()
 
 	conf := config.StoreProviderConfiguration{
 		Store: []config.StoreConfiguration{
@@ -109,7 +109,7 @@ func TestGetCollection(t *testing.T) {
 			{Name: "resources", StoreID: "test1"},
 		},
 	}
-	p, err := NewDataProvider(conf)
+	p, err := NewDataProvider(conf, log)
 
 	if err != nil {
 		t.Error("unexpected result", err)
@@ -130,7 +130,7 @@ func TestGetCollection(t *testing.T) {
 
 	conf.Collections = []config.CollectionConfiguration{{Name: "resources2", StoreID: "not_exists"}}
 
-	prov, err := NewDataProvider(conf)
+	prov, err := NewDataProvider(conf, log)
 
 	if err != nil {
 		t.Error("unexpected result", err)

@@ -17,20 +17,17 @@ type ovsWorker struct {
 }
 
 //NewWorkerService - creates a new Worker
-func NewWorkerService(config config.OverseerWorkerConfiguration) (core.RunnableComponent, error) {
+func NewWorkerService(config config.OverseerWorkerConfiguration, log logger.AppLogger) (core.RunnableComponent, error) {
 
 	var err error
-	var lg logger.AppLogger
 	var gs *services.OvsWorkerServer
 
-	lg = logger.Get()
-
-	if gs, err = createServiceServer(config); err != nil {
+	if gs, err = createServiceServer(config, log); err != nil {
 		return nil, err
 	}
 
 	wserver := &ovsWorker{
-		logger:        lg,
+		logger:        log,
 		grpcComponent: gs,
 		conf:          config,
 	}
@@ -38,7 +35,7 @@ func NewWorkerService(config config.OverseerWorkerConfiguration) (core.RunnableC
 	return wserver, nil
 }
 
-func createServiceServer(conf config.OverseerWorkerConfiguration) (*services.OvsWorkerServer, error) {
+func createServiceServer(conf config.OverseerWorkerConfiguration, log logger.AppLogger) (*services.OvsWorkerServer, error) {
 
 	var sysPath string
 
@@ -48,7 +45,7 @@ func createServiceServer(conf config.OverseerWorkerConfiguration) (*services.Ovs
 		sysPath = conf.Worker.SysoutDirectory
 	}
 
-	srvc, err := services.NewWorkerExecutionService(sysPath)
+	srvc, err := services.NewWorkerExecutionService(sysPath, conf.Worker.TaskLimit, log)
 	if err != nil {
 		return nil, err
 	}

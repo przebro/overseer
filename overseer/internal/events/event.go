@@ -229,6 +229,46 @@ func (r *taskCleanReceiver) WaitForResult() (RouteTaskCleanMsg, error) {
 	return result, err
 }
 
+//FlagActionReciever - Receiver for RouteFlagAcquire and RouteFlagRelease
+type FlagActionReciever interface {
+	EventReceiver
+	WaitForResult() (RouteFlagActionResponse, error)
+}
+
+type flagActionReciever struct {
+	eventReceiver
+}
+
+//NewFlagActionReceiver - Creates a new FlagActionReceiver
+func NewFlagActionReceiver() FlagActionReciever {
+	l := &flagActionReciever{}
+	l.done = make(chan interface{})
+	return l
+}
+
+func (r *flagActionReciever) WaitForResult() (RouteFlagActionResponse, error) {
+
+	var result RouteFlagActionResponse
+	var err error = nil
+
+	x := <-r.done
+	switch val := x.(type) {
+	case RouteFlagActionResponse:
+		{
+			result = val
+		}
+	case error:
+		{
+			err = val
+		}
+	default:
+		{
+			err = ErrUnrecognizedMsgFormat
+		}
+	}
+	return result, err
+}
+
 //ResponseToReceiver - Helper function, sends response to receiver. If receiver is nil this function does nothing
 func ResponseToReceiver(r EventReceiver, data interface{}) {
 

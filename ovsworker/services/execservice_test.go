@@ -17,36 +17,37 @@ import (
 )
 
 var exservice *workerExecutionService
+var lg = logger.NewTestLogger()
 
 func init() {
 
 	os.Mkdir("../../data/tests/sysout", os.ModePerm)
 	exservice = &workerExecutionService{
-		log:       logger.NewTestLogger(),
+		log:       lg,
 		te:        task.NewTaskExecutor(),
 		sysoutDir: "../../data/tests/sysout",
 	}
 
 }
 func TestCreateInstance(t *testing.T) {
-	inst, _ := NewWorkerExecutionService("../../data/tests/sysout")
+	inst, _ := NewWorkerExecutionService("../../data/tests/sysout", 0, lg)
 	if inst == nil {
 		t.Error("create instance")
 	}
 
-	_, err := NewWorkerExecutionService("../../data/tests/tasks.json")
+	_, err := NewWorkerExecutionService("../../data/tests/tasks.json", 0, lg)
 	if err == nil {
 		t.Error("create instance")
 	}
 
-	_, err = NewWorkerExecutionService("../../data/not_exists/sysout")
+	_, err = NewWorkerExecutionService("../../data/not_exists/sysout", 0, lg)
 	if err == nil {
 		t.Error("create instance")
 	}
 
 	s, _ := os.Getwd()
 
-	inst, _ = NewWorkerExecutionService(s)
+	inst, _ = NewWorkerExecutionService(s, 0, lg)
 	if inst == nil {
 		t.Error("create instance:", err)
 	}

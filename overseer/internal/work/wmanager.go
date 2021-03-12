@@ -1,6 +1,8 @@
 package work
 
 import (
+	"errors"
+	"fmt"
 	"overseer/common/logger"
 	"overseer/common/types"
 	"overseer/overseer/config"
@@ -9,6 +11,8 @@ import (
 	"sync"
 	"time"
 )
+
+var errWorkerBusy = errors.New("no available workers")
 
 type workerManager struct {
 	askChannel    chan taskGetStatusMsg
@@ -29,10 +33,10 @@ type WorkerManager interface {
 }
 
 //NewWorkerManager - Creates a new WorkerManager
-func NewWorkerManager(d events.Dispatcher, conf config.WorkerManagerConfiguration) WorkerManager {
+func NewWorkerManager(d events.Dispatcher, conf config.WorkerManagerConfiguration, log logger.AppLogger) WorkerManager {
 
 	w := &workerManager{}
-	w.log = logger.Get()
+	w.log = log
 	w.askChannel = make(chan taskGetStatusMsg)
 	w.resultChannel = make(chan events.RouteWorkResponseMsg)
 	w.launchChannel = make(chan taskExecuteMsg)
@@ -103,8 +107,19 @@ func (w *workerManager) startTask(msg events.RouteTaskExecutionMsg) events.Route
 
 	var response events.RouteWorkResponseMsg
 	var wname string
+	var err error
 
-	if wname = w.getWorker(); wname == "" {
+	if wname, err = w.getWorker(); err == errWorkerBusy {
+		response = events.RouteWorkResponseMsg{
+			Status:      types.WorkerTaskStatusWorkerBusy,
+			OrderID:     msg.OrderID,
+			ExecutionID: msg.ExecutionID,
+			WorkerName:  "",
+		}
+		return response
+	}
+
+	if wname == "" && err != errWorkerBusy {
 		response = events.RouteWorkResponseMsg{
 			Status:      types.WorkerTaskStatusFailed,
 			OrderID:     msg.OrderID,
@@ -112,6 +127,7 @@ func (w *workerManager) startTask(msg events.RouteTaskExecutionMsg) events.Route
 			WorkerName:  "",
 		}
 		return response
+
 	}
 
 	defer w.lock.Unlock()
@@ -131,13 +147,44 @@ func (w *workerManager) startTask(msg events.RouteTaskExecutionMsg) events.Route
 	return response
 }
 
-func (w *workerManager) getWorker() string {
+func (w *workerManager) getWorker() (string, error) {
+
+	limit := 1
+	cIdleWorkerTasks := 0
+	sWorkerName := ""
+	aworkers := []availableWorker{}
+	connected := false
+
 	for name, wrkr := range w.workers {
-		if wrkr.Active() {
-			return name
+		act := wrkr.Active()
+		if act.connected {
+			connected = true
+			ftasks := act.tasksLimit - act.tasks
+			if ftasks >= limit {
+				aworkers = append(aworkers, availableWorker{name: name, freeTasks: ftasks})
+			}
 		}
 	}
-	return ""
+
+	if !connected {
+		return "", fmt.Errorf("no connected workers")
+	}
+
+	if len(aworkers) == 0 {
+		return "", errWorkerBusy
+	}
+
+	cIdleWorkerTasks = aworkers[0].freeTasks
+	sWorkerName = aworkers[0].name
+
+	for _, w := range aworkers {
+		if w.freeTasks > cIdleWorkerTasks {
+			sWorkerName = w.name
+			cIdleWorkerTasks = w.freeTasks
+		}
+	}
+
+	return sWorkerName, nil
 }
 
 func (w *workerManager) updateTaskStatus(msg events.RouteWorkResponseMsg) {
@@ -172,6 +219,7 @@ func (w *workerManager) cleanupTask(worker string, orderID unique.TaskOrderID, e
 
 	defer w.lock.Unlock()
 	w.lock.Lock()
+	fmt.Println("WORKER CLEAN:", orderID, "::", executionID, "worker:", worker, ";")
 
 	delete(w.status, executionID)
 
@@ -192,6 +240,7 @@ func (w *workerManager) updateWorkers(interval int) {
 		for _, worker := range w.workers {
 			worker.Available()
 		}
+
 	}
 }
 

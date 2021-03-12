@@ -186,7 +186,7 @@ func init() {
 
 	log := logger.NewTestLogger()
 
-	if provider, err = datastore.NewDataProvider(provcfg); err != nil {
+	if provider, err = datastore.NewDataProvider(provcfg, log); err != nil {
 		panic("")
 	}
 
@@ -206,14 +206,14 @@ func init() {
 	initTaskPool()
 
 	path, _ := filepath.Abs("../../def")
-	definitionManagerT, err = taskdef.NewManager(path)
+	definitionManagerT, err = taskdef.NewManager(path, log)
 	if err != nil {
 		fmt.Println(err)
 	}
-	activeTaskManagerT, _ = pool.NewActiveTaskPoolManager(&dispatcher, definitionManagerT, taskPoolT, provider)
+	activeTaskManagerT, _ = pool.NewActiveTaskPoolManager(&dispatcher, definitionManagerT, taskPoolT, provider, log)
 
 }
 
 func initTaskPool() {
-	taskPoolT, _ = pool.NewTaskPool(&dispatcher, taskPoolConfig, provider, true)
+	taskPoolT, _ = pool.NewTaskPool(&dispatcher, taskPoolConfig, provider, true, logger.NewTestLogger())
 }

@@ -1,0 +1,22 @@
+{
+    "type" : "os",
+    "name" :"flagshare02",
+    "group" : "flag",
+    "schedule" :{
+        "type" : "manual"
+    },
+    "flags" : [{"name" :"SMPL-FLAG","type" : "SHR"}],
+    "relation" :"AND",
+    "inticket" : [
+        {"name" : "IN-FLAG-01","odate" : "ODATE" }
+    ],
+    "outticket" :[
+        {"name" : "OUT-FLAG-02","odate" : "ODATE","action":"ADD" }
+    ],
+    "variables" : [
+        {"name": "%%TIMEOUT","value":"10"}
+    ],
+    "spec" :{
+        "type" : "command","command" :"./chkprg"
+    }
+}

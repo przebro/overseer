@@ -1,6 +1,7 @@
 package taskdef
 
 import (
+	"fmt"
 	"io/ioutil"
 	"overseer/common/logger"
 	"overseer/common/types"
@@ -146,12 +147,13 @@ func TestMarshalTask(t *testing.T) {
 
 func TestManagerGroups(t *testing.T) {
 	path, _ := filepath.Abs("../../../def/")
-	manager, _ := NewManager(path)
+	manager, _ := NewManager(path, logger.NewTestLogger())
 
 	groups := manager.GetGroups()
+	fmt.Println(groups)
 
-	if groups[0] != "" && groups[1] != "test" {
-		t.Error("invalig group names")
+	if len(groups) != 3 {
+		t.Error("invalid group names")
 	}
 
 	err := manager.DeleteGroup("")
@@ -191,7 +193,7 @@ func TestManagerGroups(t *testing.T) {
 func TestManagerLock(t *testing.T) {
 
 	path, _ := filepath.Abs("../../../def/")
-	manager, _ := NewManager(path)
+	manager, _ := NewManager(path, logger.NewTestLogger())
 	// try to unlock a lock that does not exists
 	err := manager.Unlock(12345)
 	if err == nil {
@@ -233,7 +235,7 @@ func TestManagerUpdate(t *testing.T) {
 
 	path, _ := filepath.Abs("../../../def/")
 
-	manager, _ := NewManager(path)
+	manager, _ := NewManager(path, logger.NewTestLogger())
 	modTask, modTask2, modTask3, modTask4 := helperCreateTasks()
 
 	lockID, err := manager.Lock(taskdata.GroupNameData{Name: "dummy_01", GroupData: taskdata.GroupData{Group: "test"}})
@@ -284,7 +286,7 @@ func TestManagerUpdate(t *testing.T) {
 func TestManagerCreateDelete(t *testing.T) {
 
 	path, _ := filepath.Abs("../../../def/")
-	manager, _ := NewManager(path)
+	manager, _ := NewManager(path, logger.NewTestLogger())
 	modTask, modTask2, _, _ := helperCreateTasks()
 
 	name, grp, _ := modTask.GetInfo()
@@ -334,7 +336,7 @@ func TestManagerCreateDelete(t *testing.T) {
 func TestGetTask(t *testing.T) {
 
 	path, _ := filepath.Abs("../../../def/")
-	manager, err := NewManager(path)
+	manager, err := NewManager(path, logger.NewTestLogger())
 	if err != nil {
 		t.Fatal("unable to intialize manager")
 	}
@@ -361,7 +363,7 @@ func TestGetTask(t *testing.T) {
 
 func TestListTaskModel(t *testing.T) {
 	path, _ := filepath.Abs("../../../def/")
-	manager, err := NewManager(path)
+	manager, err := NewManager(path, logger.NewTestLogger())
 	if err != nil {
 		t.Fatal("unable to intialize manager")
 	}

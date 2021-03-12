@@ -68,7 +68,7 @@ func (cl *flagReadWriter) Write(items map[string]interface{}) error {
 		model = append(model, v.(FlagResource))
 	}
 
-	frm := FlagsResourceModel{ID: cl.objectID, REV: cl.rev}
+	frm := FlagsResourceModel{ID: cl.objectID, REV: cl.rev, Flags: model}
 
 	err := cl.col.Update(context.Background(), frm)
 

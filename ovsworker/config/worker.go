@@ -13,6 +13,7 @@ type WorkerConfiguration struct {
 	Host             string `json:"host" validate:"ipv4,required"`
 	Port             int    `json:"port" validate:"min=1024,max=65535,required"`
 	SysoutDirectory  string `json:"sysoutDirectory" validate:"required"`
+	TaskLimit        int    `json:"taskLimit" validate:"min=0,max=128"`
 	RootDirectory    string
 	ProcessDirectory string
 }

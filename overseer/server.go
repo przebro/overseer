@@ -31,11 +31,10 @@ type Overseer struct {
 }
 
 //New - creates a new instance of Overseer
-func New(config config.OverseerConfiguration, quiesce bool) (core.RunnableComponent, error) {
+func New(config config.OverseerConfiguration, lg logger.AppLogger, quiesce bool) (core.RunnableComponent, error) {
 
 	var defPath string
 	var err error
-	var lg logger.AppLogger
 	var pl *pool.ActiveTaskPool
 	var pm *pool.ActiveTaskPoolManager
 	var dm taskdef.TaskDefinitionManager
@@ -44,11 +43,9 @@ func New(config config.OverseerConfiguration, quiesce bool) (core.RunnableCompon
 	var gs *services.OvsGrpcServer
 	var ds events.Dispatcher
 
-	lg = logger.NewLogger(config.GetLogConfiguration().LogDirectory, config.GetLogConfiguration().LogLevel)
-
 	ds = events.NewDispatcher()
 
-	dataProvider, err := datastore.NewDataProvider(config.GetStoreProviderConfiguration())
+	dataProvider, err := datastore.NewDataProvider(config.GetStoreProviderConfiguration(), logger.NewTestLogger())
 	if err != nil {
 		lg.Error(err)
 		return nil, err
@@ -64,19 +61,19 @@ func New(config config.OverseerConfiguration, quiesce bool) (core.RunnableCompon
 		return nil, err
 	}
 
-	if dm, err = taskdef.NewManager(defPath); err != nil {
+	if dm, err = taskdef.NewManager(defPath, lg); err != nil {
 		return nil, err
 	}
 
-	if pl, err = pool.NewTaskPool(ds, config.PoolConfiguration, dataProvider, !quiesce); err != nil {
+	if pl, err = pool.NewTaskPool(ds, config.PoolConfiguration, dataProvider, !quiesce, lg); err != nil {
 		return nil, err
 	}
 
-	if pm, err = pool.NewActiveTaskPoolManager(ds, dm, pl, dataProvider); err != nil {
+	if pm, err = pool.NewActiveTaskPoolManager(ds, dm, pl, dataProvider, lg); err != nil {
 		return nil, err
 	}
 
-	if jn, err = journal.NewTaskJournal(config.GetJournalConfiguration(), ds, dataProvider); err != nil {
+	if jn, err = journal.NewTaskJournal(config.GetJournalConfiguration(), ds, dataProvider, lg); err != nil {
 		return nil, err
 	}
 
@@ -86,9 +83,9 @@ func New(config config.OverseerConfiguration, quiesce bool) (core.RunnableCompon
 		daily.DailyProcedure()
 	}
 
-	wrunner := work.NewWorkerManager(ds, config.GetWorkerManagerConfiguration())
+	wrunner := work.NewWorkerManager(ds, config.GetWorkerManagerConfiguration(), lg)
 
-	if gs, err = createServiceServer(config.GetServerConfiguration(), ds, rm, dm, pm, pl, jn, dataProvider, config.GetSecurityConfiguration()); err != nil {
+	if gs, err = createServiceServer(config.GetServerConfiguration(), ds, rm, dm, pm, pl, jn, dataProvider, config.GetSecurityConfiguration(), lg); err != nil {
 		return nil, err
 	}
 
@@ -114,6 +111,7 @@ func createServiceServer(config config.ServerConfiguration,
 	jrnl journal.TaskJournal,
 	provider *datastore.Provider,
 	sec config.SecurityConfiguration,
+	log logger.AppLogger,
 ) (*services.OvsGrpcServer, error) {
 
 	tcv, err := services.NewTokenCreatorVerifier(sec)
@@ -163,6 +161,7 @@ func createServiceServer(config config.ServerConfiguration,
 		admservice,
 		statservice,
 		config,
+		log,
 	)
 
 	return grpcsrv, nil

@@ -195,16 +195,16 @@ func init() {
 	f2.Write([]byte(`{}`))
 	f2.Close()
 
-	provider, _ = datastore.NewDataProvider(storeConfig)
+	provider, _ = datastore.NewDataProvider(storeConfig, log)
 	initTaskPool()
 	taskPoolT.log = logger.NewTestLogger()
 	path, _ := filepath.Abs("../../../def/")
-	definitionManagerT, _ = taskdef.NewManager(path)
-	activeTaskManagerT, _ = NewActiveTaskPoolManager(mDispatcher, definitionManagerT, taskPoolT, provider)
+	definitionManagerT, _ = taskdef.NewManager(path, log)
+	activeTaskManagerT, _ = NewActiveTaskPoolManager(mDispatcher, definitionManagerT, taskPoolT, provider, log)
 	activeTaskManagerT.log = log
 	activeTaskManagerT.sequence = seq
 
 }
 func initTaskPool() {
-	taskPoolT, _ = NewTaskPool(mDispatcher, taskPoolConfig, provider, true)
+	taskPoolT, _ = NewTaskPool(mDispatcher, taskPoolConfig, provider, true, log)
 }

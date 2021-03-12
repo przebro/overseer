@@ -27,6 +27,26 @@ type RouteTicketCheckMsgFormat struct {
 	}
 }
 
+type FlagActionData struct {
+	Name   string
+	Policy int8
+}
+
+//RouteFlagAcquireMsg - acquires flags
+type RouteFlagAcquireMsg struct {
+	Flags []FlagActionData
+}
+
+/*RouteFlagActionResponse - response for both RouteFlagAcquireMsg and RouteFlagReleaseMsg messages.
+Contains information if all required flags were acquired; if Success is false, then the Names field will contain
+the name of the flag that was not acquired
+if it is a response for a RouteFlagReleaseMsg then the Names filed will contain all flags that were not unset
+*/
+type RouteFlagActionResponse struct {
+	Success bool
+	Names   []string
+}
+
 //RouteTicketInMsgFormat - Basing on this structure, tickets are added or removed from the resources manager
 type RouteTicketInMsgFormat struct {
 	Tickets []struct {

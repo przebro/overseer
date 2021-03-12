@@ -28,11 +28,17 @@ type taskGetStatusMsg struct {
 }
 
 type workerStatus struct {
-	connected bool
-	cpu       int
-	memused   int
-	memtotal  int
-	tasks     int
+	connected  bool
+	cpu        int
+	memused    int
+	memtotal   int
+	tasks      int
+	tasksLimit int
+}
+
+type availableWorker struct {
+	name      string
+	freeTasks int
 }
 
 var reverseStatusMap = map[wservices.TaskExecutionResponseMsg_TaskStatus]types.WorkerTaskStatus{

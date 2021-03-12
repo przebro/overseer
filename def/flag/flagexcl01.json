@@ -1,0 +1,21 @@
+{
+    "type" : "os",
+    "name" :"flagexcl01",
+    "group" : "flag",
+    "schedule" :{
+        "type" : "manual"
+    },
+    "flags" : [{"name" :"SMPL-FLAG","type" : "EXL"}],
+    "relation" :"AND",
+    "inticket" : [
+        {"name" : "IN-FLAG-01","odate" : "ODATE" },
+        {"name" : "OUT-FLAG-DELAY","odate" : "ODATE"}
+    ],
+    "outticket" :[{"name" : "IN-FLAG-01","odate" : "ODATE", "action":"REM" }],
+    "variables" : [
+        {"name": "%%TIMEOUT","value":"10"}
+    ],
+    "spec" :{
+        "type" : "command","command" :"./chkprg"
+    }
+}

@@ -19,7 +19,7 @@ var daily *DailyExecutor
 func init() {
 
 	if taskPoolT == nil {
-		provider, _ = datastore.NewDataProvider(storeConfig)
+		provider, _ = datastore.NewDataProvider(storeConfig, log)
 		initTaskPool()
 	}
 	daily = NewDailyExecutor(mDispatcher, pManager, taskPoolT)
@@ -98,7 +98,7 @@ func TestDailyProc(t *testing.T) {
 
 	daily.log = logger.NewTestLogger()
 	taskPoolT.log = daily.log
-	daily.manager.tdm, _ = taskdef.NewManager("../../def/test")
+	daily.manager.tdm, _ = taskdef.NewManager("../../def/test", log)
 	pManager.log = daily.log
 	del, ord := daily.DailyProcedure()
 	if del != 0 || ord != 0 {

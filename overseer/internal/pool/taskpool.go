@@ -37,11 +37,10 @@ type TaskViewer interface {
 }
 
 //NewTaskPool - creates new task pool
-func NewTaskPool(dispatcher events.Dispatcher, cfg config.ActivePoolConfiguration, provider *datastore.Provider, isProcActive bool) (*ActiveTaskPool, error) {
+func NewTaskPool(dispatcher events.Dispatcher, cfg config.ActivePoolConfiguration, provider *datastore.Provider, isProcActive bool, log logger.AppLogger) (*ActiveTaskPool, error) {
 
 	var store *Store
 	var err error
-	log := logger.Get()
 
 	if store, err = NewStore(cfg.Collection, log, cfg.SyncTime, provider); err != nil {
 		return nil, err

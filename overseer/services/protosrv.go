@@ -35,6 +35,7 @@ func NewOvsGrpcServer(disp events.Dispatcher,
 	adm services.AdministrationServiceServer,
 	stat services.StatusServiceServer,
 	config config.ServerConfiguration,
+	log logger.AppLogger,
 
 ) *OvsGrpcServer {
 
@@ -43,6 +44,7 @@ func NewOvsGrpcServer(disp events.Dispatcher,
 
 	srv := &OvsGrpcServer{}
 	srv.conf = config
+	srv.log = log
 
 	if options, err = buildOptions(config); err != nil {
 		return nil
@@ -56,7 +58,6 @@ func NewOvsGrpcServer(disp events.Dispatcher,
 	services.RegisterAdministrationServiceServer(srv.grpcServer, adm)
 	services.RegisterStatusServiceServer(srv.grpcServer, stat)
 	srv.dispatcher = disp
-	srv.log = logger.Get()
 
 	return srv
 }

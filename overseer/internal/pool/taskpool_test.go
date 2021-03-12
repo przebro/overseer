@@ -1,6 +1,7 @@
 package pool
 
 import (
+	"overseer/common/logger"
 	"overseer/common/types/date"
 	"overseer/overseer/internal/events"
 	"overseer/overseer/internal/taskdef"
@@ -17,7 +18,7 @@ func TestNewTaskPool(t *testing.T) {
 	}
 
 	taskPoolConfig.Collection = "invalid_collection"
-	_, err := NewTaskPool(mDispatcher, taskPoolConfig, provider, true)
+	_, err := NewTaskPool(mDispatcher, taskPoolConfig, provider, true, logger.NewTestLogger())
 	if err == nil {
 		t.Error("unexpected result")
 	}
@@ -160,7 +161,7 @@ func TestStartStopQR(t *testing.T) {
 
 	taskPoolConfig.Collection = testCollectionName
 
-	tpool, err := NewTaskPool(mDispatcher, taskPoolConfig, provider, false)
+	tpool, err := NewTaskPool(mDispatcher, taskPoolConfig, provider, false, logger.NewTestLogger())
 	if err != nil {
 		t.Error("Unexpected result")
 	}

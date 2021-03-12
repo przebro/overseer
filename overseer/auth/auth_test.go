@@ -111,7 +111,7 @@ func prvprepare(t *testing.T) {
 		return
 	}
 
-	logger.NewTestLogger()
+	log := logger.NewTestLogger()
 
 	var err error
 	f, _ := os.Create("../../data/tests/securitytest.json")
@@ -122,7 +122,7 @@ func prvprepare(t *testing.T) {
 	f.Write(data)
 	f.Close()
 
-	prvprovider, err = datastore.NewDataProvider(prvstorecfg)
+	prvprovider, err = datastore.NewDataProvider(prvstorecfg, log)
 	if err != nil {
 		t.Fatal("unable to init store")
 	}

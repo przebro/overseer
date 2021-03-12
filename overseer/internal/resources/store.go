@@ -104,11 +104,16 @@ func (s *resourceStore) Update(key string, item interface{}) error {
 
 	return errKeyNotFound
 }
-func (s *resourceStore) Delete(key string) {
+func (s *resourceStore) Delete(key string) error {
 	defer s.lock.Unlock()
 	s.lock.Lock()
 
+	if _, ok := s.items[key]; !ok {
+		return errKeyNotFound
+	}
+
 	delete(s.items, key)
+	return nil
 }
 
 func (s *resourceStore) All() []interface{} {

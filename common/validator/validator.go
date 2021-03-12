@@ -7,11 +7,13 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
+//DataValidator - validates data
 type DataValidator struct {
 	v        *validator.Validate
 	regTypes map[string]string
 }
 
+//Valid - instance of a DataValidator
 var Valid *DataValidator
 var errValidatorNotRegistered = errors.New("Validator for given type not registered")
 
@@ -31,7 +33,7 @@ func (dv *DataValidator) RegisterValidatorRule(rule string, vfunc validator.Func
 
 }
 
-/*RegisterValidator - Registers a custom rule for type validation. This method should be used only for
+/*RegisterTypeValidator - Registers a custom rule for type validation. This method should be used only for
 types that can't be described with struct tag e.g. variables of custom type
 */
 func (dv *DataValidator) RegisterTypeValidator(typeName, rule string, vfunc validator.Func) error {
@@ -45,11 +47,13 @@ func (dv *DataValidator) RegisterTypeValidator(typeName, rule string, vfunc vali
 	return err
 }
 
+//ValidateTag - validates a tag
 func (dv *DataValidator) ValidateTag(s interface{}, tag string) error {
 
 	return dv.v.Var(s, tag)
 }
 
+//Validate - validates struct
 func (dv *DataValidator) Validate(s interface{}) error {
 	var err error
 

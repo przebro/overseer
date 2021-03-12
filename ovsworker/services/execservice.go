@@ -33,9 +33,10 @@ type workerExecutionService struct {
 	log       logger.AppLogger
 	te        *task.TaskExecutor
 	sysoutDir string
+	taskLimit int
 }
 
-func NewWorkerExecutionService(sysoutDir string) (*workerExecutionService, error) {
+func NewWorkerExecutionService(sysoutDir string, limit int, log logger.AppLogger) (*workerExecutionService, error) {
 
 	var sysout string
 	var err error
@@ -58,8 +59,9 @@ func NewWorkerExecutionService(sysoutDir string) (*workerExecutionService, error
 	}
 
 	wservice := &workerExecutionService{
-		log:       logger.Get(),
+		log:       log,
 		sysoutDir: sysout,
+		taskLimit: limit,
 	}
 
 	wservice.te = task.NewTaskExecutor()
@@ -98,10 +100,12 @@ func (wsrvc *workerExecutionService) StartTask(ctx context.Context, msg *wservic
 
 	}
 
-	wsrvc.te.ExecuteTask(frag)
+	_, num := wsrvc.te.ExecuteTask(frag)
 
 	response = &wservices.TaskExecutionResponseMsg{
-		Status: wservices.TaskExecutionResponseMsg_RECEIVED,
+		Status:     wservices.TaskExecutionResponseMsg_RECEIVED,
+		TasksLimit: int32(wsrvc.taskLimit),
+		Tasks:      int32(num),
 	}
 
 	wsrvc.log.Info("TaskStatus: response for:", msg.TaskID.TaskID, ",", msg.TaskID.ExecutionID, ";", response)
@@ -111,7 +115,7 @@ func (wsrvc *workerExecutionService) StartTask(ctx context.Context, msg *wservic
 func (wsrvc *workerExecutionService) TaskStatus(ctx context.Context, msg *wservices.TaskIdMsg) (*wservices.TaskExecutionResponseMsg, error) {
 
 	var response *wservices.TaskExecutionResponseMsg
-	result, ok := wsrvc.te.GetTaskStatus(msg.ExecutionID)
+	result, num, ok := wsrvc.te.GetTaskStatus(msg.ExecutionID)
 
 	if ok != true {
 		return nil, status.Error(codes.NotFound, fmt.Sprintf("task:%s does not exists", msg.TaskID))
@@ -123,9 +127,11 @@ func (wsrvc *workerExecutionService) TaskStatus(ctx context.Context, msg *wservi
 		ReturnCode: int32(result.ReturnCode),
 		StatusCode: int32(result.StatusCode),
 		Pid:        int32(result.PID),
+		TasksLimit: int32(wsrvc.taskLimit),
+		Tasks:      int32(num),
 	}
 
-	wsrvc.log.Info("TaskStatus: response for:", msg.TaskID, ",", msg.ExecutionID, ";", types.RemoteTaskStatusInfo[result.State])
+	wsrvc.log.Info("TaskStatus:", msg.TaskID, ",", msg.ExecutionID, ";", types.RemoteTaskStatusInfo[result.State], "task processed:", num, "task limit:", wsrvc.taskLimit)
 
 	return response, nil
 
@@ -136,8 +142,9 @@ func (wsrvc *workerExecutionService) TerminateTask(context.Context, *wservices.T
 }
 func (wsrvc *workerExecutionService) CompleteTask(ctx context.Context, msg *wservices.TaskIdMsg) (*wservices.WorkerActionMsg, error) {
 
-	resp := &wservices.WorkerActionMsg{Message: "task removed", Success: true}
-	wsrvc.te.CleanupTask(msg.ExecutionID)
+	tasks := wsrvc.te.CleanupTask(msg.ExecutionID)
+	wsrvc.log.Info("Clean Task: ID:", msg.TaskID, "EID:", msg.ExecutionID, "tasks:", tasks, "limit:", wsrvc.taskLimit)
+	resp := &wservices.WorkerActionMsg{Message: "task removed", Success: true, Tasks: int32(tasks), TasksLimit: int32(wsrvc.taskLimit)}
 	return resp, nil
 }
 
@@ -149,8 +156,8 @@ func (wsrvc *workerExecutionService) WorkerStatus(ctx context.Context, msg *empt
 
 	num := wsrvc.te.TaskCount()
 
-	response := &wservices.WorkerStatusResponseMsg{Tasks: int32(num), Memused: 0, Memtotal: 0, Cpuload: 0}
-	wsrvc.log.Info("WorkStatus: response:", response)
+	response := &wservices.WorkerStatusResponseMsg{Tasks: int32(num), TasksLimit: int32(wsrvc.taskLimit), Memused: 0, Memtotal: 0, Cpuload: 0}
+	wsrvc.log.Info("WorkStatus: response:", "tasks:", num, "limit:", response.TasksLimit)
 	return response, nil
 
 }

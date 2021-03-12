@@ -28,8 +28,9 @@ func NewTaskExecutor() *TaskExecutor {
 }
 
 //ExecuteTask - starts work fragment
-func (exec *TaskExecutor) ExecuteTask(fragment fragments.WorkFragment) fragments.FragmentStatus {
+func (exec *TaskExecutor) ExecuteTask(fragment fragments.WorkFragment) (fragments.FragmentStatus, int) {
 
+	tasks := 0
 	status := fragments.FragmentStatus{
 		TaskID:      fragment.TaskID(),
 		ExecutionID: fragment.ExecutionID(),
@@ -40,13 +41,14 @@ func (exec *TaskExecutor) ExecuteTask(fragment fragments.WorkFragment) fragments
 
 	exec.lock.Lock()
 	exec.store[fragment.ExecutionID()] = status
+	tasks = len(exec.store)
 	exec.lock.Unlock()
 
 	go func() {
 		fragment.StartFragment(context.Background(), exec.statChan)
 	}()
 
-	return status
+	return status, tasks
 
 }
 
@@ -68,12 +70,12 @@ func (exec *TaskExecutor) update(status fragments.FragmentStatus) {
 }
 
 //GetTaskStatus - gets fragment status
-func (exec *TaskExecutor) GetTaskStatus(executionID string) (fragments.FragmentStatus, bool) {
+func (exec *TaskExecutor) GetTaskStatus(executionID string) (fragments.FragmentStatus, int, bool) {
 	defer exec.lock.Unlock()
 	exec.lock.Lock()
 
 	stat, exists := exec.store[executionID]
-	return stat, exists
+	return stat, len(exec.store), exists
 }
 
 //TaskCount - returns the number of tasks currently processed
@@ -85,19 +87,21 @@ func (exec *TaskExecutor) TaskCount() int {
 }
 
 //CleanupTask - removes a task
-func (exec *TaskExecutor) CleanupTask(executionID string) {
+func (exec *TaskExecutor) CleanupTask(executionID string) int {
 
 	defer exec.lock.Unlock()
 	exec.lock.Lock()
 
 	delete(exec.store, executionID)
+	return len(exec.store)
 }
 
 //TerminateTask - removes a task
-func (exec *TaskExecutor) TerminateTask(executionID string) {
+func (exec *TaskExecutor) TerminateTask(executionID string) int {
 
 	defer exec.lock.Unlock()
 	exec.lock.Lock()
 
 	delete(exec.store, executionID)
+	return len(exec.store)
 }

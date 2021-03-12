@@ -19,6 +19,8 @@ const (
 	RouteWorkCheck       RouteName = "WORK_CHECK"
 	RouteTaskClean       RouteName = "TASK_CLEAN"
 	RoutTaskJournal      RouteName = "TASK_JOURNAL"
+	RouteFlagAcquire     RouteName = "FLAG_ACQUIRE"
+	RouteFlagRelase      RouteName = "FLAG_RELEASE"
 )
 
 //messageRoute - holds participants of route
@@ -53,6 +55,7 @@ func (route *messgeRoute) PushMessage(receiver EventReceiver, msg DispatchedMess
 	route.lock.RLock()
 
 	for _, r := range route.participants {
+		log.Debug(route, ">>>", msg)
 		log.Debug("Push message route:", route.routename, msg.MsgID(), ",", msg.Created())
 		r.Process(receiver, route.routename, msg)
 	}

@@ -36,13 +36,14 @@ type ActiveTaskPoolManager struct {
 func NewActiveTaskPoolManager(dispatcher events.Dispatcher,
 	tdm taskdef.TaskDefinitionManager,
 	pool *ActiveTaskPool,
-	provider *datastore.Provider) (*ActiveTaskPoolManager, error) {
+	provider *datastore.Provider,
+	log logger.AppLogger) (*ActiveTaskPoolManager, error) {
 
 	var err error
 	manager := &ActiveTaskPoolManager{}
 	manager.tdm = tdm
 	manager.pool = pool
-	manager.log = logger.Get()
+	manager.log = log
 
 	if manager.sequence, err = NewSequenceGenerator("sequence", provider); err != nil {
 		return nil, err

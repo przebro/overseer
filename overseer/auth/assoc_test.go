@@ -36,14 +36,14 @@ func aprepare(t *testing.T) {
 		return
 	}
 
-	logger.NewTestLogger()
+	log := logger.NewTestLogger()
 
 	var err error
 	f, _ := os.Create("../../data/tests/authtest.json")
 	f.Write([]byte("{}"))
 	f.Close()
 
-	provider, err = datastore.NewDataProvider(astorecfg)
+	provider, err = datastore.NewDataProvider(astorecfg, log)
 	if err != nil {
 		t.Fatal("unable to init store")
 	}

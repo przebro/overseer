@@ -14,6 +14,7 @@ import (
 	"github.com/przebro/databazaar/collection"
 )
 
+//Enumeration of task's messages that will be sent to journal when a specific event occurs
 const (
 	TaskHeld              = "TASK HELD, user:%s"
 	TaskFreed             = "TASK FREED, user:%s"
@@ -76,7 +77,7 @@ type taskLogJournal struct {
 }
 
 //NewTaskJournal - creates a new instance of a TaskJournal
-func NewTaskJournal(conf config.JournalConfiguration, dispatcher events.Dispatcher, provider *datastore.Provider) (TaskJournal, error) {
+func NewTaskJournal(conf config.JournalConfiguration, dispatcher events.Dispatcher, provider *datastore.Provider, log logger.AppLogger) (TaskJournal, error) {
 
 	var err error
 	var col collection.DataCollection
@@ -90,7 +91,7 @@ func NewTaskJournal(conf config.JournalConfiguration, dispatcher events.Dispatch
 	journal := &taskLogJournal{col: col,
 		store:    map[unique.TaskOrderID]mLogModel{},
 		lock:     sync.Mutex{},
-		log:      logger.Get(),
+		log:      log,
 		conf:     conf,
 		shutdown: sch,
 	}

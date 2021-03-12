@@ -17,15 +17,18 @@ Note that currently, overseer is in a demo stage; therefore, some parts of a pro
 ### Features
 * Scheduling options: Manual, Daily, Day of a week, Selected months, Specific date
 * Time criteria: Active from time, Active to time
-* Hold / Free task
+* Hold / Free task / Rerun / Enforce
 * Confirm task
 * Task types: Dummy, OS
 * Global variables, Task variables
+* Flags
+* Worker limits
 ### TODO
 * Cyclic tasks
-* Flags
 * Management of an internal state of components, quiesce mode...
-* Another task types: FTP, Messages, Services, Azure jobs, ...
+* Other task types: FTP, Messages, Services, Azure jobs, ...
+* Logging
+* Tasks running in the user's context
 * ...
 ### Installation
 ```
@@ -35,16 +38,15 @@ Note that currently, overseer is in a demo stage; therefore, some parts of a pro
   make -f scripts/Makefile build
 ```
 ### Getting Started 
-Inside def/samples directory there are sample definitions that consist together for an example workflow.
-After successful build binaries can be found inside the bin catalog.
+Inside def/samples directory, there are sample definitions that consist together for an example workflow.
+After a successful build, binaries can be found inside the bin catalog.
 * ovs - scheduler, by default it starts listening on 127.0.0.1:7053
 * ovswork - worker, by default it starts listening on 127.0.0.1:7055
 * chkprg - sample program
-* tools/ovscli - tool, helps manage resources and tasks. There is also an Electron-based client:(https://github.com/przebro/overseergui). It is recommended to use although it is also in a phase of a high development
+* tools/ovscli - tool, helps manage resources and tasks. There is also an Electron-based client:(https://github.com/przebro/overseergui). It is recommended to use although it is also in a phase of a high development.
 
-
-**Task definition**
-Currently tasks definitions are stored in catalog, by default it is `def` catalog located in a root directory of a project.
+**Task definition**\
+Currently, tasks definitions are stored in catalog, by default it is `def` catalog located in a root directory of a project.
 The basic task definition is:
 ```
 {
@@ -55,19 +57,19 @@ The basic task definition is:
 }
 ```
 **type**:Defines a kind of a task. Right now, there are two kinds of the task:
-- **dummy** - an empty task that does not call any specific program or service but can have scheduling criteria and can add/remove tickets for other tasks.
+- **dummy** - an empty task that does not call any specific program or service but can have scheduling criteria and add/remove tickets for other tasks.
 - **os** - executes scripts or programs on a worker.
-**name** and **group** are unique identifiers of a task. Group represents a subfolde of a root of the definition catalog and name represents the name of a json file.
+**name** and **group** are unique identifiers of a task. Group represents a subfolder of a root of the definition catalog, and the name field represents the name of a json file.
 
 **schedule**:Basically, there are two kinds of a task scheduling, manual and time-based. Manual means that task will be not taken into account by daily ordering process, any other type will be checked against specific, time-based criteria:
-- **daily**: The task will be ordered everday.
+- **daily**: The task will be ordered everyday.
 - **weekday**: The task will be ordered on a specific day of a week where 1 means Monday and 7 means Sunday.
 - **dayofmonth**: The task will be ordered on a specific day of a month.
 - **fromend**: The task will be ordered on a specific day from the end of a month, where 1 means the end of the month, 2 a day before the end, and so on.
-It is relative value so, fromend=2 in July will be resolved to 30 of July and in February it will be resolved to 27 of February or 28 if it is a leap year.
-- **exact**: The task will be ordered exactly on a spcefic day: '2020-05-11','2021-04-07'...
+It is relative value so, fromend=2 in July will be resolved to 30 of July, and in February, it will be resolved to 27 of February or 28 if it is a leap year.
+- **exact**: The task will be ordered exactly on a specific day: '2020-05-11','2021-04-07'...
 
-Each of those values can also be restricted by specifying months, in which the task can be ordered.The above example definition can be changed to:
+Each of those values can also be restricted by specifying months in which the task can be ordered. The above example definition can be changed to:
 ```
 {
     "type" : "dummy",
@@ -81,7 +83,7 @@ Each of those values can also be restricted by specifying months, in which the t
 }
 ```
 This task will be ordered every day of January, March, July, and December.
-Despite calendar-based criteria, every task can be restricted to run in a specific period. this can be achieved by setting two properties of schedule:
+Despite calendar-based criteria, every task can be restricted to run in a specific period. This can be achieved by setting two properties of schedule:
 from and to. For instance:
 ```
     "schedule" :{
@@ -92,7 +94,7 @@ from and to. For instance:
     }
 ```
 These values restrict the time window when the task can run to hours between 11:15 and 13:00. A task can be capped at the bottom or the end so, setting only one of the mentioned values will make the time window half-open or half-closed.
-**tickets**
+#### Tickets
 Tickets are an essential element of tasks processing. They allow to define dependencies between tasks, use of tickets gives a posibility to build compound 
 workflows. A task can require a ticket to run and, after complete their work, it can create a ticket for another task. More than one ticket can be expected by the task before starting the job. In that situation, a relation between input tickets can be defined. If relation is set to 'OR' then one of tickets is required
 and if relation is set to 'AND' then all of tickets are requiered.
@@ -125,7 +127,7 @@ For this definition:
 ```
 The task is ordered on the last day of a month, If the order date is 31 March, the "NEXT" will resolve to 30 April, and "PREV" will resolve to 28 February or,
 29 February if it is a leap year.
-**Issuing tickets**
+#### Issuing tickets
 There are two ways how the ticket can be added. Manually or, each task definition can contain a section that defines tickets that will be issued after successful completion of a task.
 ```
 "outticket" :[
@@ -135,3 +137,14 @@ There are two ways how the ticket can be added. Manually or, each task definitio
     ]
 ```
 If a task with that definition ends, the ticket "IN-SAMPLE01A" will be removed and, the ticket "IN-SAMPLE02A" and "IN-SAMPLE02B" will be added with an "ODATE" resolved to the order date. The Same rules as for an "inticket" definition applies to an "odate" field in an "outticket" definition so, "NEXT", "PREV" and, +nnn will resolve accordingly to the task's schedule definition.
+#### Flags
+Another type of resource is a flag. It helps manage interactions between tasks and prevents simultaneous execution of tasks that should not run together.
+```
+"flags" : [{"name" :"SMPL-FLAG","type" : "EXL"}]
+```
+When the task collects all tickets, it checks if it requires a flag to run; then, if a flag is defined for a given task, it checks if it can acquire a flag "SMPL-FLAG" if so, the task starts its execution. If any other task uses a flag with the same name, the task will back to the waiting state.
+A Flag can have one of two values:
+- **SHR**: Shared means that multiple tasks can use a flag and run together.
+- **EXL**: Exclusive, only one task can run with acquired flag of that name.
+For instance: if there are T1, T2 that have a flag with a type "SHR", and there is a T3 that has the flag with the same name but with a type "EXL", then
+at the same time, T1 and T2 can run but not T3, and if T3 runs, both T1 and T2 have to wait until T3 releases a flag. It is worth mentioning that the flag does not determine the priority of a task nor the order in which tasks can run. It prevents only a collision between tasks that cannot run together. There is a flag group inside the def catalog, which contains a sample chain of jobs that are controlled by flags.

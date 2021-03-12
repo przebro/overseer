@@ -53,18 +53,26 @@ type ostateNotSubmitted struct {
 }
 
 //States for task in Active pool
-type ostateConfirm struct {
-}
-type ostateCheckTime struct {
-}
-type ostateCheckConditions struct {
-}
-type ostateStarting struct {
-}
-type ostateExecuting struct {
-}
-type ostatePostProcessing struct {
-}
+//ostateConfirm - Task is ordered but waits for user's confirmation
+type ostateConfirm struct{}
+
+//ostateCheckTime -  Task is confirmed but waits for the time window
+type ostateCheckTime struct{}
+
+//ostateCheckConditions - Task is already in time window but waits for conditions
+type ostateCheckConditions struct{}
+
+//ostateAcquireResources - Task has all tickets but waits for a flag or an idle worker
+type ostateAcquireResources struct{}
+
+//ostateStarting - Task has all resources and can run now
+type ostateStarting struct{}
+
+//ostateExecuting - Task is executed
+type ostateExecuting struct{}
+
+//ostatePostProcessing - Task ended, if ok, release resources and manage conditions
+type ostatePostProcessing struct{}
 
 type taskOrderState interface {
 	processState(order *TaskOrderContext) bool
@@ -284,19 +292,45 @@ func (state ostateCheckConditions) processState(ctx *TaskExecutionContext) bool 
 	}
 
 	if fulfilled && ctx.isInTime {
-		ctx.state = &ostateStarting{}
+		ctx.state = &ostateAcquireResources{}
 		pushJournalMessage(ctx.dispatcher, ctx.task.OrderID(), ctx.task.CurrentExecutionID(), time.Now(), journal.TaskFulfill)
 	}
 
 	return fulfilled && ctx.isInTime
 }
 
+func (state ostateAcquireResources) processState(ctx *TaskExecutionContext) bool {
+
+	msg := buildFlagMsg(ctx.task.Flags())
+	if msg == nil {
+		ctx.state = &ostateStarting{}
+		return true
+	}
+
+	receiver := events.NewFlagActionReceiver()
+	ctx.dispatcher.PushEvent(receiver, events.RouteFlagAcquire, msg)
+
+	result, err := receiver.WaitForResult()
+
+	if err != nil {
+		n, g, _ := ctx.task.GetInfo()
+		ctx.log.Error(err, g, " ", n)
+		return false
+	}
+
+	if !result.Success {
+		ctx.task.SetState(TaskStateWaiting)
+		ctx.task.SetWaitingInfo("FLAG:" + strings.Join(result.Names, ";"))
+		return false
+	}
+
+	ctx.state = &ostateStarting{}
+	return true
+}
+
 func (state ostateStarting) processState(ctx *TaskExecutionContext) bool {
 
 	ctx.task.SetState(TaskStateStarting)
-	ctx.task.SetWaitingInfo("")
-	ctx.task.SetRunNumber()
-	stime := ctx.task.SetStartTime()
 
 	variables := prepareVaribles(ctx.task, ctx.odate)
 
@@ -308,13 +342,10 @@ func (state ostateStarting) processState(ctx *TaskExecutionContext) bool {
 		Command:     ctx.task.Action(),
 	}
 
-	pushJournalMessage(ctx.dispatcher, ctx.task.OrderID(), ctx.task.CurrentExecutionID(), stime, fmt.Sprintf(journal.TaskStartingRN, ctx.task.RunNumber()))
-
 	msg := events.NewMsg(data)
 	receiver := events.NewWorkLaunchReceiver()
 
 	ctx.dispatcher.PushEvent(receiver, events.RouteWorkLaunch, msg)
-
 	result, err := receiver.WaitForResult()
 
 	if err != nil {
@@ -326,6 +357,28 @@ func (state ostateStarting) processState(ctx *TaskExecutionContext) bool {
 		ctx.log.Error("State executing error:", err)
 		return true
 	}
+
+	if result.Status == types.WorkerTaskStatusWorkerBusy {
+
+		ctx.task.SetState(TaskStateWaiting)
+		ctx.task.SetWaitingInfo("Waiting for worker")
+
+		fmsg := buildFlagMsg(ctx.task.Flags())
+		if fmsg != nil {
+
+			ctx.dispatcher.PushEvent(nil, events.RouteFlagRelase, fmsg)
+			fmt.Println("Release resources:", result, err)
+		}
+
+		return false
+
+	}
+
+	ctx.task.SetWaitingInfo("")
+	ctx.task.SetRunNumber()
+	stime := ctx.task.SetStartTime()
+
+	pushJournalMessage(ctx.dispatcher, ctx.task.OrderID(), ctx.task.CurrentExecutionID(), stime, fmt.Sprintf(journal.TaskStartingRN, ctx.task.RunNumber()))
 
 	if result.Status != types.WorkerTaskStatusStarting {
 
@@ -406,10 +459,14 @@ func (state ostateExecuting) processState(ctx *TaskExecutionContext) bool {
 }
 func (state ostatePostProcessing) processState(ctx *TaskExecutionContext) bool {
 
-	msg := events.NewMsg(events.RouteTaskCleanMsg{OrderID: ctx.task.OrderID(), WorkerName: ctx.task.WorkerName(), Terminate: false})
+	msg := events.NewMsg(events.RouteTaskCleanMsg{ExecutionID: ctx.task.CurrentExecutionID(), OrderID: ctx.task.OrderID(), WorkerName: ctx.task.WorkerName(), Terminate: false})
 	ctx.dispatcher.PushEvent(nil, events.RouteTaskClean, msg)
-
 	ctx.task.SetEndTime()
+
+	fmsg := buildFlagMsg(ctx.task.Flags())
+	if fmsg != nil {
+		ctx.dispatcher.PushEvent(nil, events.RouteFlagRelase, fmsg)
+	}
 
 	if ctx.task.State() == TaskStateEndedNotOk {
 
@@ -430,7 +487,7 @@ func (state ostatePostProcessing) processState(ctx *TaskExecutionContext) bool {
 
 	for i, t := range outticket {
 
-		realOdat := calcRealOdate(ctx.odate, t.Odate, ctx.task.TaskDefinition.Calendar())
+		realOdat := calcRealOdate(ctx.task.OrderDate(), t.Odate, ctx.task.TaskDefinition.Calendar())
 		ticketMsg.Tickets[i].Name = t.Name
 		ticketMsg.Tickets[i].Odate = realOdat
 		ticketMsg.Tickets[i].Action = t.Action
@@ -848,4 +905,25 @@ func pushJournalMessage(dispatcher events.Dispatcher, ID unique.TaskOrderID, exe
 	}
 
 	dispatcher.PushEvent(nil, events.RoutTaskJournal, events.NewMsg(jmsg))
+}
+
+func buildFlagMsg(data []taskdef.FlagData) events.DispatchedMessage {
+
+	if len(data) == 0 {
+		return nil
+	}
+
+	flags := []events.FlagActionData{}
+	policy := int8(0)
+
+	for _, rs := range data {
+
+		if rs.Type == taskdef.FlagExclusive {
+			policy = 1
+		}
+
+		flags = append(flags, events.FlagActionData{Name: rs.Name, Policy: policy})
+	}
+
+	return events.NewMsg(events.RouteFlagAcquireMsg{Flags: flags})
 }

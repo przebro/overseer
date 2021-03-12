@@ -52,12 +52,12 @@ type TaskDefinitionManager interface {
 }
 
 //NewManager - returns new instance of a TaskDefinitionManager
-func NewManager(path string) (TaskDefinitionManager, error) {
+func NewManager(path string, log logger.AppLogger) (TaskDefinitionManager, error) {
 
 	var t = new(taskManager)
 	t.dirPath = path
 	t.lockTab = make(map[uint32]lockData, 0)
-	t.log = logger.Get()
+	t.log = log
 
 	return t, nil
 }

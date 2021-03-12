@@ -56,7 +56,7 @@ func NewWorkerMediator(conf config.WorkerConfiguration, timeout int, status chan
 //WorkerMediator - WorkerMediator is responsible for communication with remote workers
 type WorkerMediator interface {
 	Available()
-	Active() bool
+	Active() workerStatus
 	Name() string
 	StartTask(msg events.RouteTaskExecutionMsg)
 	RequestTaskStatusFromWorker(taskID unique.TaskOrderID, executionID string)
@@ -91,57 +91,56 @@ func (worker *workerMediator) connect(host string, port int, timeout int) wservi
 //Available - Gets a status of a worker
 func (worker *workerMediator) Available() {
 
-	go func() {
+	go func(w *workerMediator) {
 		var client wservices.TaskExecutionServiceClient
 
-		worker.lock.Lock()
+		w.lock.Lock()
 		client = worker.client
-		worker.lock.Unlock()
+		w.lock.Unlock()
 
 		if client == nil {
-			if client := worker.connect(worker.config.WorkerHost, worker.config.WorkerPort, worker.timeout); client == nil {
+			if client := w.connect(w.config.WorkerHost, w.config.WorkerPort, w.timeout); client == nil {
 				fmt.Println("connect with worker failed")
 			} else {
-				worker.lock.Lock()
+				w.lock.Lock()
 				worker.client = client
-				worker.lock.Unlock()
+				w.lock.Unlock()
 			}
 
 		} else {
 
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer worker.lock.Unlock()
+			defer w.lock.Unlock()
 			defer cancel()
-			result, err := worker.client.WorkerStatus(ctx, &empty.Empty{})
+			result, err := w.client.WorkerStatus(ctx, &empty.Empty{})
 
 			if err != nil {
 				fmt.Println("worker connection lost")
-				worker.lock.Lock()
-				worker.wdata = workerStatus{connected: false}
+				w.lock.Lock()
+				w.wdata = workerStatus{connected: false}
 			} else {
-				worker.lock.Lock()
-				if !worker.wdata.connected {
-					worker.wdata = workerStatus{
-						connected: true,
-						cpu:       int(result.Cpuload),
-						memused:   int(result.Memused),
-						memtotal:  int(result.Memtotal),
-						tasks:     int(result.Tasks),
-					}
+				w.lock.Lock()
 
+				w.wdata = workerStatus{
+					connected:  true,
+					cpu:        int(result.Cpuload),
+					memused:    int(result.Memused),
+					memtotal:   int(result.Memtotal),
+					tasks:      int(result.Tasks),
+					tasksLimit: int(result.TasksLimit),
 				}
 			}
 		}
 
-	}()
+	}(worker)
 
 }
 
 //Active - returns whether a connection with the worker is active
-func (worker *workerMediator) Active() bool {
+func (worker *workerMediator) Active() workerStatus {
 	defer worker.lock.Unlock()
 	worker.lock.Lock()
-	return worker.wdata.connected
+	return worker.wdata
 }
 
 //StartTaskExecution - Sends a task to execution.
@@ -171,7 +170,7 @@ func (worker *workerMediator) StartTask(msg events.RouteTaskExecutionMsg) {
 		return
 	}
 
-	go func() {
+	go func(worker *workerMediator) {
 		s := events.RouteWorkResponseMsg{
 			OrderID:     msg.OrderID,
 			ExecutionID: msg.ExecutionID,
@@ -185,11 +184,14 @@ func (worker *workerMediator) StartTask(msg events.RouteTaskExecutionMsg) {
 			s.ReturnCode = resp.ReturnCode
 			s.WorkerName = worker.config.WorkerName
 			s.Status = reverseStatusMap[resp.Status]
+
+			worker.setTaskInfo(int(resp.TasksLimit), int(resp.Tasks))
+
 		}
 
 		worker.taskStatus <- s
 
-	}()
+	}(worker)
 
 	status.Status = types.WorkerTaskStatusStarting
 	worker.taskStatus <- status
@@ -219,6 +221,8 @@ func (worker *workerMediator) RequestTaskStatusFromWorker(taskID unique.TaskOrde
 		result.WorkerName = worker.config.WorkerName
 
 		worker.taskStatus <- result
+		worker.setTaskInfo(int(resp.TasksLimit), int(resp.Tasks))
+
 	}
 }
 
@@ -233,7 +237,22 @@ func (worker *workerMediator) TerminateTask(taskID unique.TaskOrderID, execution
 //CompleteTask - sends information that the task is complete and all resources can be released
 func (worker *workerMediator) CompleteTask(taskID unique.TaskOrderID, executionID string) {
 
-	go func() {
-		worker.client.CompleteTask(context.Background(), &wservices.TaskIdMsg{TaskID: string(taskID), ExecutionID: executionID})
-	}()
+	go func(w *workerMediator) {
+		resp, err := worker.client.CompleteTask(context.Background(), &wservices.TaskIdMsg{TaskID: string(taskID), ExecutionID: executionID})
+		if err != nil {
+			return
+		}
+
+		w.setTaskInfo(int(resp.TasksLimit), int(resp.Tasks))
+
+	}(worker)
+}
+
+func (worker *workerMediator) setTaskInfo(limit, tasks int) {
+	defer worker.lock.Unlock()
+	worker.lock.Lock()
+
+	worker.wdata.tasks = tasks
+	worker.wdata.tasksLimit = limit
+
 }

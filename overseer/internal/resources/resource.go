@@ -20,13 +20,13 @@ type (
 		Policy FlagResourcePolicy `json:"policy" bson:"policy"`
 		Count  int                `json:"count" bson:"count"`
 	}
-
+	//TicketsResourceModel - tickets model
 	TicketsResourceModel struct {
 		ID      string           `json:"_id" bson:"_id"`
 		REV     string           `json:"_rev" bson:"_rev"`
 		Tickets []TicketResource `json:"tickets" bson:"tickets"`
 	}
-
+	//FlagsResourceModel - flags model
 	FlagsResourceModel struct {
 		ID    string         `json:"_id" bson:"_id"`
 		REV   string         `json:"_rev" bson:"_rev"`

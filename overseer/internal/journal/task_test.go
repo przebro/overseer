@@ -28,20 +28,19 @@ var provider *datastore.Provider
 var jrnal TaskJournal
 
 func init() {
-	logger.NewTestLogger()
 	f2, _ := os.Create("../../../data/tests/journal.json")
 	f2.Write([]byte(`{}`))
 	f2.Close()
 
-	provider, _ = datastore.NewDataProvider(storeConfig)
-	jrnal, _ = NewTaskJournal(conf, nil, provider)
+	provider, _ = datastore.NewDataProvider(storeConfig, logger.NewTestLogger())
+	jrnal, _ = NewTaskJournal(conf, nil, provider, logger.NewTestLogger())
 }
 
 func TestNewTaskJournal(t *testing.T) {
 	var err error
 	cfg := config.JournalConfiguration{LogCollection: "_invalid_collection", SyncTime: 3600}
 
-	_, err = NewTaskJournal(cfg, nil, provider)
+	_, err = NewTaskJournal(cfg, nil, provider, logger.NewTestLogger())
 	if err == nil {
 		t.Error("unexpected result:", err)
 	}
@@ -123,7 +122,7 @@ func TestProcess(t *testing.T) {
 }
 
 func TestStartStop(t *testing.T) {
-	jrnal, _ := NewTaskJournal(conf, nil, provider)
+	jrnal, _ := NewTaskJournal(conf, nil, provider, logger.NewTestLogger())
 	tjrnal := jrnal.(*taskLogJournal)
 
 	jrnal.Start()
