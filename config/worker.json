@@ -9,6 +9,9 @@
     },
     "logConfiguration" :{
         "logLevel" : 1,
-        "logDirectory" : "./logs"
+        "sizeLimit" : 2048, 
+        "logDirectory" : "logs",
+        "prefix" :""
         }
+        
 }

@@ -19,9 +19,9 @@ type ovsDefinitionService struct {
 }
 
 //NewDefinistionService - Creates a new Definition service
-func NewDefinistionService(dm taskdef.TaskDefinitionManager) services.DefinitionServiceServer {
+func NewDefinistionService(dm taskdef.TaskDefinitionManager, log logger.AppLogger) services.DefinitionServiceServer {
 
-	dservice := &ovsDefinitionService{defManager: dm, log: logger.Get()}
+	dservice := &ovsDefinitionService{defManager: dm, log: log}
 	return dservice
 }
 

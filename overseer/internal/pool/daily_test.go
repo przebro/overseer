@@ -22,12 +22,12 @@ func init() {
 		provider, _ = datastore.NewDataProvider(storeConfig, log)
 		initTaskPool()
 	}
-	daily = NewDailyExecutor(mDispatcher, pManager, taskPoolT)
+	daily = NewDailyExecutor(mDispatcher, pManager, taskPoolT, log)
 }
 
 func TestDailyExecutor(t *testing.T) {
 
-	daily = NewDailyExecutor(mDispatcher, pManager, taskPoolT)
+	daily = NewDailyExecutor(mDispatcher, pManager, taskPoolT, log)
 	if daily == nil {
 		t.Error("Daile executor not initialized")
 	}

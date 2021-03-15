@@ -16,9 +16,9 @@ type DailyExecutor struct {
 }
 
 //NewDailyExecutor - Creates new DailyExecutor
-func NewDailyExecutor(dispatcher events.Dispatcher, manager *ActiveTaskPoolManager, pool *ActiveTaskPool) *DailyExecutor {
+func NewDailyExecutor(dispatcher events.Dispatcher, manager *ActiveTaskPoolManager, pool *ActiveTaskPool, log logger.AppLogger) *DailyExecutor {
 
-	daily := &DailyExecutor{pool: pool, manager: manager, log: logger.Get(), lastExecutionDate: date.CurrentOdate()}
+	daily := &DailyExecutor{pool: pool, manager: manager, log: log, lastExecutionDate: date.CurrentOdate()}
 	if dispatcher != nil {
 		dispatcher.Subscribe(events.RouteTimeOut, daily)
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"net"
+	"overseer/common/logger"
 	"overseer/common/types/date"
 	"overseer/overseer/auth"
 	"overseer/overseer/internal/journal"
@@ -42,7 +43,7 @@ func createTaskService(t *testing.T) services.TaskServiceClient {
 	if err != nil {
 		panic("")
 	}
-	authhandler, err := handlers.NewServiceAuthorizeHandler(authcfg, tcv, provider)
+	authhandler, err := handlers.NewServiceAuthorizeHandler(authcfg, tcv, provider, logger.NewTestLogger())
 
 	if err != nil {
 		panic("")
@@ -53,7 +54,7 @@ func createTaskService(t *testing.T) services.TaskServiceClient {
 	listener := bufconn.Listen(1)
 	mocksrv := &mockBuffconnServer{grpcServer: grpc.NewServer(buildUnaryChain(), buildStreamChain())}
 
-	srvc := NewTaskService(activeTaskManagerT, taskPoolT, jrnl)
+	srvc := NewTaskService(activeTaskManagerT, taskPoolT, jrnl, logger.NewTestLogger())
 	tsrvs = srvc.(*ovsActiveTaskService)
 
 	services.RegisterTaskServiceServer(mocksrv.grpcServer, srvc)

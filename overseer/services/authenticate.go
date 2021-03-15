@@ -17,14 +17,14 @@ type ovsAuthenticateService struct {
 }
 
 //NewAuthenticateService - Creates a new Authentication service
-func NewAuthenticateService(security config.SecurityConfiguration, tm *auth.TokenCreatorVerifier, provider *datastore.Provider) (services.AuthenticateServiceServer, error) {
+func NewAuthenticateService(security config.SecurityConfiguration, tm *auth.TokenCreatorVerifier, provider *datastore.Provider, log logger.AppLogger) (services.AuthenticateServiceServer, error) {
 
 	authman, err := auth.NewAuthenticationManager(security.Collection, provider)
 	if err != nil {
 		return nil, err
 	}
 
-	dservice := &ovsAuthenticateService{log: logger.Get(), authmanager: authman, tokenManager: tm, allowAnonymous: security.AllowAnonymous}
+	dservice := &ovsAuthenticateService{log: log, authmanager: authman, tokenManager: tm, allowAnonymous: security.AllowAnonymous}
 	return dservice, nil
 }
 

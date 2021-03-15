@@ -55,7 +55,7 @@ func NewWorkerManager(d events.Dispatcher, conf config.WorkerManagerConfiguratio
 
 	for _, n := range conf.Workers {
 		w.log.Info("Creating service worker:", n.WorkerName, ",", n.WorkerHost, ":", n.WorkerPort)
-		sworker := NewWorkerMediator(n, conf.Timeout, w.resultChannel)
+		sworker := NewWorkerMediator(n, conf.Timeout, w.resultChannel, log)
 		w.workers[n.WorkerName] = sworker
 	}
 
@@ -219,7 +219,7 @@ func (w *workerManager) cleanupTask(worker string, orderID unique.TaskOrderID, e
 
 	defer w.lock.Unlock()
 	w.lock.Lock()
-	fmt.Println("WORKER CLEAN:", orderID, "::", executionID, "worker:", worker, ";")
+	w.log.Debug("WORKER CLEAN:", orderID, executionID, worker)
 
 	delete(w.status, executionID)
 

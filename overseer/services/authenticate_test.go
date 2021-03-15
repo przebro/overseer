@@ -32,7 +32,7 @@ func createAuthClient(t *testing.T) services.AuthenticateServiceClient {
 		t.Fatal("unable to create connection", err)
 	}
 
-	authservice, err := NewAuthenticateService(authcfg, tcv, provider)
+	authservice, err := NewAuthenticateService(authcfg, tcv, provider, logger.NewTestLogger())
 
 	if err != nil {
 		t.Error(err)

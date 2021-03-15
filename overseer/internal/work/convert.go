@@ -13,7 +13,7 @@ import (
 
 //ActionConverter -  Converts from an internal task to protobuf type Any.
 type ActionConverter interface {
-	Convert(data interface{}, variables []taskdef.VariableData) *any.Any
+	Convert(data interface{}, variables []taskdef.VariableData, log logger.AppLogger) *any.Any
 }
 
 //DummyActionConverter - Chains link for an Dummy action type.
@@ -39,9 +39,7 @@ func NewConverterChain() ActionConverter {
 }
 
 //Convert - Converts from an internal task to protobuf type Any.
-func (c *DummyActionConverter) Convert(data interface{}, variables []taskdef.VariableData) *any.Any {
-
-	log := logger.Get()
+func (c *DummyActionConverter) Convert(data interface{}, variables []taskdef.VariableData, log logger.AppLogger) *any.Any {
 
 	result, isOk := data.(string)
 	if isOk {
@@ -57,13 +55,11 @@ func (c *DummyActionConverter) Convert(data interface{}, variables []taskdef.Var
 	if c.next == nil {
 		return nil
 	}
-	return c.next.Convert(data, variables)
+	return c.next.Convert(data, variables, log)
 }
 
 //Convert - Converts from an internal task to protobuf type Any.
-func (c *OsTaskActionConverter) Convert(data interface{}, variables []taskdef.VariableData) *any.Any {
-
-	log := logger.Get()
+func (c *OsTaskActionConverter) Convert(data interface{}, variables []taskdef.VariableData, log logger.AppLogger) *any.Any {
 
 	result, isOk := data.(taskdef.OsTaskData)
 	if isOk {
@@ -89,5 +85,5 @@ func (c *OsTaskActionConverter) Convert(data interface{}, variables []taskdef.Va
 	if c.next == nil {
 		return nil
 	}
-	return c.next.Convert(data, variables)
+	return c.next.Convert(data, variables, log)
 }

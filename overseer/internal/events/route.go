@@ -27,6 +27,7 @@ const (
 type messgeRoute struct {
 	routename    RouteName
 	participants []EventParticipant
+	log          logger.AppLogger
 	lock         sync.RWMutex
 }
 
@@ -42,34 +43,32 @@ type MessageRoute interface {
 func (route *messgeRoute) AddParticipant(p EventParticipant) {
 	defer route.lock.Unlock()
 	route.lock.Lock()
-	log := logger.Get()
-	log.Debug("Append new participant to:", route.routename)
+
+	route.log.Debug("Append new participant to:", route.routename)
 	route.participants = append(route.participants, p)
 
 }
 
 //PushMessage - sends message to all subscribers
 func (route *messgeRoute) PushMessage(receiver EventReceiver, msg DispatchedMessage) {
-	log := logger.Get()
+
 	defer route.lock.RUnlock()
 	route.lock.RLock()
 
 	for _, r := range route.participants {
-		log.Debug(route, ">>>", msg)
-		log.Debug("Push message route:", route.routename, msg.MsgID(), ",", msg.Created())
+		route.log.Debug("Push message route:", route.routename, msg.MsgID(), ",", msg.Created())
 		r.Process(receiver, route.routename, msg)
 	}
 }
 func (route *messgeRoute) Remove(p EventParticipant) {
 
-	log := logger.Get()
 	defer route.lock.Unlock()
 	route.lock.Lock()
 
 	for i, e := range route.participants {
 		if e == p {
 			route.participants = append(route.participants[:i], route.participants[i+1:]...)
-			log.Debug("Remove participant from:", route.routename)
+			route.log.Debug("Remove participant from:", route.routename)
 		}
 	}
 

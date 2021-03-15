@@ -1,6 +1,7 @@
 package ovsworker
 
 import (
+	"fmt"
 	"overseer/common/core"
 	"overseer/common/logger"
 	"overseer/ovsworker/config"
@@ -37,20 +38,16 @@ func NewWorkerService(config config.OverseerWorkerConfiguration, log logger.AppL
 
 func createServiceServer(conf config.OverseerWorkerConfiguration, log logger.AppLogger) (*services.OvsWorkerServer, error) {
 
-	var sysPath string
-
 	if !filepath.IsAbs(conf.Worker.SysoutDirectory) {
-		sysPath = filepath.Join(conf.Worker.RootDirectory, conf.Worker.SysoutDirectory)
-	} else {
-		sysPath = conf.Worker.SysoutDirectory
+		return nil, fmt.Errorf("filepath is not absolute:%s", conf.Worker.SysoutDirectory)
 	}
 
-	srvc, err := services.NewWorkerExecutionService(sysPath, conf.Worker.TaskLimit, log)
+	srvc, err := services.NewWorkerExecutionService(conf.Worker.SysoutDirectory, conf.Worker.TaskLimit, log)
 	if err != nil {
 		return nil, err
 	}
 
-	grpcsrv := services.New(conf.Worker, srvc)
+	grpcsrv := services.New(conf.Worker, srvc, log)
 	if grpcsrv == nil {
 		return nil, errors.New("unable to initialize grpc server")
 	}

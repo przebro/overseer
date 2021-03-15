@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-type overseerTimer struct{}
+type overseerTimer struct{ log logger.AppLogger }
 
 type ovsTimer interface {
 	tickerFunc(dispatcher events.Dispatcher, interval config.IntervalValue) error
@@ -15,7 +15,6 @@ type ovsTimer interface {
 
 func (timer *overseerTimer) tickerFunc(dispatcher events.Dispatcher, interval config.IntervalValue) error {
 
-	log := logger.Get()
 	t := time.NewTicker(time.Duration(int(interval) * int(time.Second)))
 	go func() {
 		for {
@@ -27,7 +26,7 @@ func (timer *overseerTimer) tickerFunc(dispatcher events.Dispatcher, interval co
 			err := dispatcher.PushEvent(nil, events.RouteTimeOut, msg)
 
 			if err != nil {
-				log.Info("Unable to Push events:", err)
+				timer.log.Info("Unable to Push events:", err)
 				continue
 			}
 		}

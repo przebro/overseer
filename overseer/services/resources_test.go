@@ -32,7 +32,7 @@ func createResourceClient(t *testing.T) services.ResourceServiceClient {
 		t.Fatal("unable to create connection", err)
 	}
 
-	resservice := NewResourceService(resmanager)
+	resservice := NewResourceService(resmanager, logger.NewTestLogger())
 	rsrvc = resservice.(*ovsResourceService)
 
 	services.RegisterResourceServiceServer(mocksrv.grpcServer, resservice)

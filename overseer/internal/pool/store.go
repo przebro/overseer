@@ -2,7 +2,6 @@ package pool
 
 import (
 	"context"
-	"fmt"
 	"overseer/common/logger"
 	"overseer/datastore"
 	"overseer/overseer/internal/unique"
@@ -139,7 +138,7 @@ func (s *Store) storeTasks() {
 	s.Over(func(id unique.TaskOrderID, at *activeTask) { ilist = append(ilist, at.getModel()) })
 	err := s.collection.BulkUpdate(context.Background(), ilist)
 	if err != nil {
-		fmt.Println(err)
+		s.log.Error(err)
 	}
 
 	s.log.Info("store task complete:", time.Since(tsart))

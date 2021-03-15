@@ -42,7 +42,7 @@ func createAdminCLient(t *testing.T) services.AdministrationServiceClient {
 		t.Fatal("unable to create association manager:", err)
 	}
 
-	admservice := NewAdministrationService(umanager, rmanager, amanager)
+	admservice := NewAdministrationService(umanager, rmanager, amanager, logger.NewTestLogger())
 	srvc = admservice.(*ovsAdministrationService)
 
 	services.RegisterAdministrationServiceServer(mocksrv.grpcServer, admservice)

@@ -1,103 +1,82 @@
 package logger
 
 import (
-	"errors"
-	"log"
+	"fmt"
 	"os"
-)
 
-type appLogger struct {
-	level     int
-	directory string
-	logError  *log.Logger
-	logInfo   *log.Logger
-	logDebug  *log.Logger
-}
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+)
 
 //AppLogger - Logger interface
 type AppLogger interface {
-	SetLevel(logLevel int) error
-	Level() int
 	Error(a ...interface{})
 	Info(a ...interface{})
 	Debug(a ...interface{})
+	Desugar() *zap.Logger
 }
 
-var logger AppLogger = nil
-
-//SetLevel - Sets current log level
-func (log *appLogger) SetLevel(logLevel int) error {
-
-	if logLevel > 2 {
-		return errors.New("Invalid log level value")
-	}
-	log.level = logLevel
-	return nil
-}
-
-//Level - Gets log level
-func (log *appLogger) Level() int {
-
-	return log.level
-}
-
-//Error - Logs error
-func (log *appLogger) Error(a ...interface{}) {
-	if log.level >= 0 {
-		log.logError.Println(a...)
-	}
-
-}
-
-//Info - Logs info
-func (log *appLogger) Info(a ...interface{}) {
-	if log.level >= 1 {
-		log.logInfo.Println(a...)
-	}
-
-}
-
-//Debug - Logs debug
-func (log *appLogger) Debug(a ...interface{}) {
-	if log.level == 2 {
-		log.logDebug.Println(a...)
-	}
-
-}
-
-//Get - gets instance of a AppLogger
-func Get() AppLogger {
-	return logger
+//LogConfiguration - provides required log settings
+type LogConfiguration interface {
+	Level() int
+	Directory() string
+	Prefix() string
+	Limit() int
 }
 
 //NewTestLogger - returns instance of a logger for tests
 func NewTestLogger() AppLogger {
 
-	if logger == nil {
-		logger = &appLogger{
-			level:    2,
-			logDebug: log.New(os.Stderr, "DEBUG:", log.Ldate|log.LUTC|log.Ltime|log.Lmicroseconds),
-			logInfo:  log.New(os.Stdout, "INFO:", log.Ldate|log.LUTC|log.Ltime|log.Lmicroseconds),
-			logError: log.New(os.Stdout, "ERROR:", log.Ldate|log.LUTC|log.Ltime|log.Lmicroseconds),
-		}
-	}
+	lg, _ := zap.NewDevelopment()
 
-	return logger
-
+	return lg.Sugar()
 }
 
-// NewLogger - get single instance of logger
-func NewLogger(directory string, logLevel int) AppLogger {
+// NewLogger - get a new instance of AppLogger
+func NewLogger(conf LogConfiguration) (*zap.SugaredLogger, error) {
 
-	if logger == nil {
-		logger = &appLogger{
-			level:    logLevel,
-			logDebug: log.New(os.Stderr, "DEBUG:", log.Ldate|log.LUTC|log.Ltime|log.Lmicroseconds),
-			logInfo:  log.New(os.Stdout, "INFO:", log.Ldate|log.LUTC|log.Ltime|log.Lmicroseconds),
-			logError: log.New(os.Stdout, "ERROR:", log.Ldate|log.LUTC|log.Ltime|log.Lmicroseconds),
-		}
+	var lg *zap.Logger
+	var rsync *fileRotateSync
+	var err error
+	var jfile zapcore.Core
+	var cons zapcore.Core
+
+	zapconfig := zapcore.EncoderConfig{
+		MessageKey:   "message",
+		LevelKey:     "lvl",
+		EncodeLevel:  zapcore.CapitalLevelEncoder,
+		TimeKey:      "time",
+		EncodeTime:   zapcore.ISO8601TimeEncoder,
+		CallerKey:    "caller",
+		EncodeCaller: zapcore.ShortCallerEncoder,
 	}
 
-	return logger
+	cEncoder := zapcore.NewConsoleEncoder(zapconfig)
+
+	f := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
+
+		return lvl >= zapcore.Level(conf.Level()-1)
+	})
+
+	if conf.Prefix() != "" {
+
+		jEncoder := zapcore.NewJSONEncoder(zapconfig)
+
+		if rsync, err = newRotateSync(conf.Directory(), conf.Prefix(), conf.Limit()*1024); err != nil {
+			return nil, fmt.Errorf("fatal, can't create WriteSyncer:%v", err)
+		}
+
+		jfile = zapcore.NewCore(jEncoder, rsync, f)
+
+	} else {
+		jfile = zapcore.NewNopCore()
+	}
+
+	cons = zapcore.NewCore(cEncoder, os.Stdout, f)
+	core := zapcore.NewTee(jfile, cons)
+
+	lg = zap.New(core, zap.AddCaller())
+
+	return lg.Sugar(), nil
 
 }

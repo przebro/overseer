@@ -147,7 +147,6 @@ func (frag *OsWorkFragment) ExecutionID() string {
 func stdout(out io.ReadCloser, path string) struct{} {
 
 	wait := sync.WaitGroup{}
-	fmt.Println(path)
 	file, _ := os.Create(path)
 
 	wait.Add(1)

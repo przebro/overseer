@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-var log logger.AppLogger = logger.NewLogger("./logs", 2)
+var log logger.AppLogger = logger.NewTestLogger()
 
 type mockParticipant struct {
 	rout RouteName
@@ -39,7 +39,7 @@ func TestMessage(t *testing.T) {
 func TestRoute(t *testing.T) {
 
 	mock := &mockParticipant{}
-	r := &messgeRoute{participants: make([]EventParticipant, 0), routename: "name"}
+	r := &messgeRoute{participants: make([]EventParticipant, 0), routename: "name", log: logger.NewTestLogger()}
 	now := time.Now()
 
 	r.AddParticipant(mock)
@@ -76,7 +76,7 @@ func TestRoute(t *testing.T) {
 
 func TestDispatcher(t *testing.T) {
 
-	disp := NewDispatcher()
+	disp := NewDispatcher(logger.NewTestLogger())
 
 	if disp == nil {
 		t.Error("unable to create dispatcher")
@@ -99,7 +99,7 @@ func TestDispatcher(t *testing.T) {
 		t.Error("Invalid msgroutes size")
 	}
 
-	fakeroute := &messgeRoute{routename: "FAKE_ROUTE2", participants: make([]EventParticipant, 0)}
+	fakeroute := &messgeRoute{routename: "FAKE_ROUTE2", participants: make([]EventParticipant, 0), log: logger.NewTestLogger()}
 	sdsp.msgRoutes["FAKE_ROUTE2"] = fakeroute
 
 	sdsp.Subscribe("FAKE_ROUTE2", mock1)

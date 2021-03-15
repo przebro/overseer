@@ -31,12 +31,12 @@ type workerMediator struct {
 }
 
 //NewWorkerMediator - Creates a new WorkerMediator.
-func NewWorkerMediator(conf config.WorkerConfiguration, timeout int, status chan events.RouteWorkResponseMsg) WorkerMediator {
+func NewWorkerMediator(conf config.WorkerConfiguration, timeout int, status chan events.RouteWorkResponseMsg, log logger.AppLogger) WorkerMediator {
 
 	worker := &workerMediator{
 		config:     conf,
 		timeout:    timeout,
-		log:        logger.Get(),
+		log:        log,
 		converter:  NewConverterChain(),
 		taskStatus: status,
 		wdata:      workerStatus{},
@@ -100,7 +100,7 @@ func (worker *workerMediator) Available() {
 
 		if client == nil {
 			if client := w.connect(w.config.WorkerHost, w.config.WorkerPort, w.timeout); client == nil {
-				fmt.Println("connect with worker failed")
+				worker.log.Error("connect with worker failed")
 			} else {
 				w.lock.Lock()
 				worker.client = client
@@ -115,7 +115,7 @@ func (worker *workerMediator) Available() {
 			result, err := w.client.WorkerStatus(ctx, &empty.Empty{})
 
 			if err != nil {
-				fmt.Println("worker connection lost")
+				worker.log.Error("worker connection lost")
 				w.lock.Lock()
 				w.wdata = workerStatus{connected: false}
 			} else {
@@ -163,7 +163,7 @@ func (worker *workerMediator) StartTask(msg events.RouteTaskExecutionMsg) {
 
 	}
 
-	if smsg.Command = worker.converter.Convert(msg.Command, msg.Variables); smsg.Command == nil {
+	if smsg.Command = worker.converter.Convert(msg.Command, msg.Variables, worker.log); smsg.Command == nil {
 
 		status.Status = types.WorkerTaskStatusFailed
 		worker.taskStatus <- status

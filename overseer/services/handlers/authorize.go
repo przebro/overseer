@@ -3,7 +3,6 @@ package handlers
 import (
 	"context"
 	"errors"
-	"fmt"
 	"overseer/common/logger"
 	"overseer/datastore"
 	"overseer/overseer/auth"
@@ -19,6 +18,8 @@ import (
 
 const bearer = "Bearer "
 const authorization = "Authorization"
+const usernameKey = "username"
+const anonymousKey = "<ANONYMOUS>"
 
 var (
 	ErrUnauthorizedAccess = "unauthorized access"
@@ -26,10 +27,12 @@ var (
 	ErrUserNotAuthorized  = errors.New("user not authorized to perform this action")
 )
 
+//AccessRestricter - restricts access to services
 type AccessRestricter interface {
 	GetAllowedAction(method string) auth.UserAction
 }
 
+//ServiceAuthorizeHandler - provides both unary and stream handlers for middleware authorization
 type ServiceAuthorizeHandler struct {
 	authman        *auth.AuthorizationManager
 	verifier       *auth.TokenCreatorVerifier
@@ -37,7 +40,8 @@ type ServiceAuthorizeHandler struct {
 	log            logger.AppLogger
 }
 
-func NewServiceAuthorizeHandler(security config.SecurityConfiguration, tm *auth.TokenCreatorVerifier, provider *datastore.Provider) (*ServiceAuthorizeHandler, error) {
+//NewServiceAuthorizeHandler - creates a new instance of a ServiceAuthorizeHandler
+func NewServiceAuthorizeHandler(security config.SecurityConfiguration, tm *auth.TokenCreatorVerifier, provider *datastore.Provider, log logger.AppLogger) (*ServiceAuthorizeHandler, error) {
 
 	var authman *auth.AuthorizationManager
 	var anonymous = security.AllowAnonymous
@@ -47,10 +51,11 @@ func NewServiceAuthorizeHandler(security config.SecurityConfiguration, tm *auth.
 		return nil, err
 	}
 
-	return &ServiceAuthorizeHandler{authman: authman, verifier: tm, allowAnonymous: anonymous, log: logger.Get()}, nil
+	return &ServiceAuthorizeHandler{authman: authman, verifier: tm, allowAnonymous: anonymous, log: log}, nil
 
 }
 
+//Authorize - handler for an unary service
 func (ap *ServiceAuthorizeHandler) Authorize(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 
 	var ok bool
@@ -71,7 +76,7 @@ func (ap *ServiceAuthorizeHandler) Authorize(ctx context.Context, req interface{
 	}
 
 	if token == "" && ap.allowAnonymous == true {
-		nctx := context.WithValue(ctx, interface{}("username"), "<ANONYMOUS>")
+		nctx := context.WithValue(ctx, interface{}(usernameKey), anonymousKey)
 		return handler(nctx, req)
 	}
 
@@ -79,11 +84,12 @@ func (ap *ServiceAuthorizeHandler) Authorize(ctx context.Context, req interface{
 		return nil, status.Error(codes.Unauthenticated, ErrUnauthorizedAccess)
 	}
 
-	nctx := context.WithValue(ctx, interface{}("username"), username)
+	nctx := context.WithValue(ctx, interface{}(usernameKey), username)
 
 	return handler(nctx, req)
 }
 
+//StreamAuthorize - handler for a stream service
 func (ap *ServiceAuthorizeHandler) StreamAuthorize(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 
 	var ok bool
@@ -107,18 +113,21 @@ func (ap *ServiceAuthorizeHandler) StreamAuthorize(srv interface{}, ss grpc.Serv
 	if username, err = ap.verifyAccess(ss.Context(), restrictedService, "", info.FullMethod); err != nil {
 		return err
 	}
-	fmt.Println(username)
-	nctx := context.WithValue(ss.Context(), interface{}("username"), username)
-	wrapped := WrapServerStream(ss)
+
+	nctx := context.WithValue(ss.Context(), interface{}(usernameKey), username)
+	wrapped := wrapServerStream(ss)
 	wrapped.WrappedContext = nctx
 
 	return handler(srv, wrapped)
 }
 
+//GetUnaryHandler - gets a unary handler
 func (ap *ServiceAuthorizeHandler) GetUnaryHandler() grpc.UnaryServerInterceptor {
 
 	return ap.Authorize
 }
+
+//GetStreamHandler - gets a stream handler
 func (ap *ServiceAuthorizeHandler) GetStreamHandler() grpc.StreamServerInterceptor {
 	return ap.StreamAuthorize
 }
@@ -153,26 +162,27 @@ func (ap *ServiceAuthorizeHandler) getTokenFromContext(ctx context.Context) stri
 
 	if len(authData) == 0 {
 		ap.log.Info("authorization header not found metadata")
+
 		return ""
 	}
 
 	return strings.TrimPrefix(authData[0], bearer)
 }
 
-type WrappedServerStream struct {
+type wrappedServerStream struct {
 	grpc.ServerStream
 	// WrappedContext is the wrapper's own Context. You can assign it.
 	WrappedContext context.Context
 }
 
 // Context returns the wrapper's WrappedContext, overwriting the nested grpc.ServerStream.Context()
-func (w *WrappedServerStream) Context() context.Context {
+func (w *wrappedServerStream) Context() context.Context {
 	return w.WrappedContext
 }
 
-func WrapServerStream(stream grpc.ServerStream) *WrappedServerStream {
-	if existing, ok := stream.(*WrappedServerStream); ok {
+func wrapServerStream(stream grpc.ServerStream) *wrappedServerStream {
+	if existing, ok := stream.(*wrappedServerStream); ok {
 		return existing
 	}
-	return &WrappedServerStream{ServerStream: stream, WrappedContext: stream.Context()}
+	return &wrappedServerStream{ServerStream: stream, WrappedContext: stream.Context()}
 }

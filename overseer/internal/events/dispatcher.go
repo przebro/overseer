@@ -19,11 +19,11 @@ type eventDipspatcher struct {
 }
 
 //NewDispatcher - creates new Dispatcher
-func NewDispatcher() Dispatcher {
+func NewDispatcher(log logger.AppLogger) Dispatcher {
 
 	dispatcher := eventDipspatcher{
 		msgRoutes: make(map[RouteName]MessageRoute),
-		log:       logger.Get(),
+		log:       log,
 		lock:      sync.Mutex{}}
 
 	return &dispatcher
@@ -52,7 +52,7 @@ func (m *eventDipspatcher) Subscribe(routename RouteName, participant EventParti
 	route, exists := m.msgRoutes[routename]
 	if !exists {
 		m.log.Debug("Creating route:", routename)
-		route = &messgeRoute{participants: make([]EventParticipant, 0), routename: routename, lock: sync.RWMutex{}}
+		route = &messgeRoute{participants: make([]EventParticipant, 0), routename: routename, lock: sync.RWMutex{}, log: m.log}
 		m.msgRoutes[routename] = route
 	}
 

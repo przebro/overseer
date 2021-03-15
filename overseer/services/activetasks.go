@@ -24,9 +24,9 @@ type ovsActiveTaskService struct {
 }
 
 //NewTaskService - New task service
-func NewTaskService(m *pool.ActiveTaskPoolManager, p pool.TaskViewer, j journal.TaskJournal) services.TaskServiceServer {
+func NewTaskService(m *pool.ActiveTaskPoolManager, p pool.TaskViewer, j journal.TaskJournal, log logger.AppLogger) services.TaskServiceServer {
 
-	tservice := &ovsActiveTaskService{manager: m, poolView: p, log: logger.Get(), jrnal: j}
+	tservice := &ovsActiveTaskService{manager: m, poolView: p, log: log, jrnal: j}
 
 	return tservice
 }

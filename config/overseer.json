@@ -8,7 +8,9 @@
     "definitionDirectory" : "./def",
     "LogConfiguration" :{
         "logLevel" : 1,
-        "logDirectory" : "./logs"
+        "sizeLimit" : 2048, 
+        "logDirectory" : "./logs",
+        "prefix" :""
     },
     "ResourceConfiguration" : {
         "tickets" :{ "collectionName" : "resources", "sync" : 2},

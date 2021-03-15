@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"net"
+	"overseer/common/logger"
 	"overseer/proto/services"
 	"testing"
 
@@ -23,7 +24,7 @@ func createCLient(t *testing.T) services.StatusServiceClient {
 	listener := bufconn.Listen(1)
 	mocksrv := &mockBuffconnServer{grpcServer: grpc.NewServer(buildUnaryChain(), buildStreamChain())}
 
-	services.RegisterStatusServiceServer(mocksrv.grpcServer, NewStatusService())
+	services.RegisterStatusServiceServer(mocksrv.grpcServer, NewStatusService(logger.NewTestLogger()))
 
 	dialer := func(ctx context.Context, s string) (net.Conn, error) {
 		return listener.Dial()

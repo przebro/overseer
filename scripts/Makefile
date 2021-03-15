@@ -3,10 +3,12 @@ OUTDIR=bin
 TOOLDIR=bin/tools
 TESTDIR=data/tests
 SYSDIR=data/sysout
+LOGDIR=logs
 build:
 	[ -d $(OUTDIR) ] || mkdir -p $(OUTDIR)
 	[ -d $(TOOLDIR) ] || mkdir -p $(TOOLDIR)
 	[ -d $(SYSDIR) ] || mkdir -p $(SYSDIR)
+	[ -d $(LOGDIR) ] || mkdir -p $(LOGDIR)
 	go build -race -o bin cmd/overseer/ovs.go
 	go build -race -o bin cmd/ovswork/ovswork.go
 	go build -o bin/tools/ cmd/ovstools/ovscli.go

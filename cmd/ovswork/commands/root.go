@@ -57,6 +57,7 @@ func startWorker() {
 	var err error
 	var worker core.RunnableComponent
 	var conf config.OverseerWorkerConfiguration
+	var log logger.AppLogger
 
 	if rootPath, progPath, err = helpers.GetDirectories(os.Args[0]); err != nil {
 		fmt.Println(err)
@@ -69,7 +70,19 @@ func startWorker() {
 	}
 
 	logcfg := conf.GetLogConfiguration()
-	log := logger.NewLogger(logcfg.Directory, logcfg.Level)
+
+	if !filepath.IsAbs(logcfg.LogDirectory) {
+		logcfg.LogDirectory = filepath.Join(rootPath, logcfg.LogDirectory)
+	}
+
+	if log, err = logger.NewLogger(logcfg); err != nil {
+		fmt.Println(err)
+		os.Exit(16)
+	}
+
+	if !filepath.IsAbs(conf.Worker.SysoutDirectory) {
+		conf.Worker.SysoutDirectory = filepath.Join(rootPath, conf.Worker.SysoutDirectory)
+	}
 
 	if worker, err = ovsworker.NewWorkerService(conf, log); err != nil {
 		log.Error(err)

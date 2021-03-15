@@ -18,6 +18,8 @@ require (
 	github.com/przebro/localstore v0.0.0-20210223095046-7159d94d8e15
 	github.com/przebro/mongostore v0.0.0-20210223001122-3c2ccdf7a332
 	github.com/spf13/cobra v1.1.1
+	go.uber.org/multierr v1.6.0 // indirect
+	go.uber.org/zap v1.16.0
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	golang.org/x/net v0.0.0-20201224014010-6772e930b67b
 	golang.org/x/sys v0.0.0-20210124154548-22da62e12c0c

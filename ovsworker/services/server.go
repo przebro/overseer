@@ -16,12 +16,12 @@ type OvsWorkerServer struct {
 	log        logger.AppLogger
 }
 
-func New(config config.WorkerConfiguration, es wservices.TaskExecutionServiceServer) *OvsWorkerServer {
+func New(config config.WorkerConfiguration, es wservices.TaskExecutionServiceServer, log logger.AppLogger) *OvsWorkerServer {
 
 	wserver := &OvsWorkerServer{}
 	wserver.conf = config
 	wserver.grpcServer = grpc.NewServer()
-	wserver.log = logger.Get()
+	wserver.log = log
 
 	wservices.RegisterTaskExecutionServiceServer(wserver.grpcServer, es)
 

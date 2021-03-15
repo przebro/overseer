@@ -2,7 +2,6 @@ package resources
 
 import (
 	"errors"
-	"fmt"
 	"overseer/common/core"
 	"overseer/common/logger"
 	"overseer/common/types/date"
@@ -160,25 +159,25 @@ func (rm *resourceManager) Set(name string, policy FlagResourcePolicy) (bool, er
 	var ok bool
 
 	if v, ok = rm.fstore.Get(name); !ok {
-		fmt.Println("CREATE FLAG:", name, "COUNT:", 1, "TYPE:", policy)
+		rm.log.Debug("CREATE FLAG:", name, "COUNT:", 1, "TYPE:", policy)
 		rm.fstore.Insert(name, FlagResource{Name: name, Policy: policy, Count: 1})
 		return true, nil
 	}
 
 	flag := v.(FlagResource)
 	if flag.Policy == FlagPolicyExclusive {
-		fmt.Println("ACQ ERR FLAG:", name, "TYPE:", policy, "flag in use with exclusive policy")
+		rm.log.Debug("ACQ ERR FLAG:", name, "TYPE:", policy, "flag in use with exclusive policy")
 		return false, errors.New("flag in use with exclusive policy")
 	}
 
 	if flag.Policy == FlagPolicyShared && policy == FlagPolicyExclusive && flag.Count != 0 {
-		fmt.Println("ACQ ERR FLAG SHR:", name, "TYPE:", flag.Policy, "flag in use with shared,trying exclusive")
+		rm.log.Debug("ACQ ERR FLAG SHR:", name, "TYPE:", flag.Policy, "flag in use with shared,trying exclusive")
 		return false, errors.New("unable to set shared, flag in use with exclusive policy")
 	}
 
 	flag.Count++
 	flag.Policy = policy
-	fmt.Println("ACQ FLAG SUCCESS:", flag.Name, "TYPE:", flag.Policy, "COUNT:", flag.Count)
+	rm.log.Debug("ACQ FLAG SUCCESS:", flag.Name, "TYPE:", flag.Policy, "COUNT:", flag.Count)
 	rm.fstore.Update(flag.Name, flag)
 
 	return true, nil
@@ -199,10 +198,10 @@ func (rm *resourceManager) Unset(name string) (bool, error) {
 
 	flag := v.(FlagResource)
 	flag.Count--
-	fmt.Println("UNSET FLAG:", flag.Name, "COUNT:", flag.Count)
+	rm.log.Debug("UNSET FLAG:", flag.Name, "COUNT:", flag.Count)
 	if flag.Count == 0 {
 		rm.fstore.Delete(name)
-		fmt.Println("FLAG REMOVED")
+		rm.log.Debug("FLAG REMOVED")
 	} else {
 		rm.fstore.Update(flag.Name, flag)
 	}

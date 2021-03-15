@@ -43,7 +43,7 @@ func New(config config.OverseerConfiguration, lg logger.AppLogger, quiesce bool)
 	var gs *services.OvsGrpcServer
 	var ds events.Dispatcher
 
-	ds = events.NewDispatcher()
+	ds = events.NewDispatcher(lg)
 
 	dataProvider, err := datastore.NewDataProvider(config.GetStoreProviderConfiguration(), logger.NewTestLogger())
 	if err != nil {
@@ -77,7 +77,7 @@ func New(config config.OverseerConfiguration, lg logger.AppLogger, quiesce bool)
 		return nil, err
 	}
 
-	daily := pool.NewDailyExecutor(ds, pm, pl)
+	daily := pool.NewDailyExecutor(ds, pm, pl, lg)
 
 	if config.GetActivePoolConfiguration().ForceNewDayProc {
 		daily.DailyProcedure()
@@ -119,18 +119,23 @@ func createServiceServer(config config.ServerConfiguration,
 		return nil, err
 	}
 
-	aservice, err := services.NewAuthenticateService(sec, tcv, provider)
+	aservice, err := services.NewAuthenticateService(sec, tcv, provider, log)
 	if err != nil {
 		return nil, err
 	}
 
-	authhandler, err := handlers.NewServiceAuthorizeHandler(sec, tcv, provider)
+	authhandler, err := handlers.NewServiceAuthorizeHandler(sec, tcv, provider, log)
 
 	if err != nil {
 		return nil, err
 	}
+
+	loghandler := handlers.NewServiceLoggerHandler(log)
 
 	middleware.RegisterHandler(authhandler)
+	middleware.RegisterStreamHandler(authhandler)
+	middleware.RegisterHandler(loghandler)
+	middleware.RegisterStreamHandler(loghandler)
 
 	um, err := auth.NewUserManager(sec, provider)
 	if err != nil {
@@ -147,11 +152,11 @@ func createServiceServer(config config.ServerConfiguration,
 		return nil, err
 	}
 
-	rservice := services.NewResourceService(rm)
-	dservice := services.NewDefinistionService(dm)
-	tservice := services.NewTaskService(tm, pv, jrnl)
-	admservice := services.NewAdministrationService(um, rmn, am, pv)
-	statservice := services.NewStatusService()
+	rservice := services.NewResourceService(rm, log)
+	dservice := services.NewDefinistionService(dm, log)
+	tservice := services.NewTaskService(tm, pv, jrnl, log)
+	admservice := services.NewAdministrationService(um, rmn, am, log, pv)
+	statservice := services.NewStatusService(log)
 
 	grpcsrv := services.NewOvsGrpcServer(disp,
 		rservice,
@@ -173,7 +178,7 @@ func (s *Overseer) Start() error {
 	s.logger.Info("starting worker manager")
 	s.wmanager.Run()
 
-	timer := overseerTimer{}
+	timer := overseerTimer{s.logger}
 	timer.tickerFunc(s.dispatcher, s.conf.TimeInterval)
 
 	s.logger.Info("starting task journal")

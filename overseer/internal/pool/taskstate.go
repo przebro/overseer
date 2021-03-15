@@ -367,7 +367,7 @@ func (state ostateStarting) processState(ctx *TaskExecutionContext) bool {
 		if fmsg != nil {
 
 			ctx.dispatcher.PushEvent(nil, events.RouteFlagRelase, fmsg)
-			fmt.Println("Release resources:", result, err)
+			ctx.log.Info("Release resources:", result, err)
 		}
 
 		return false

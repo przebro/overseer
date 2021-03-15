@@ -60,6 +60,7 @@ func startOverseer() {
 	var err error
 	var ovs core.RunnableComponent
 	var conf config.OverseerConfiguration
+	var log logger.AppLogger
 
 	if rootPath, progPath, err = helpers.GetDirectories(os.Args[0]); err != nil {
 		fmt.Println(err)
@@ -73,7 +74,15 @@ func startOverseer() {
 
 	//Get log section from configuration
 	logcfg := conf.GetLogConfiguration()
-	log := logger.NewLogger(logcfg.LogDirectory, logcfg.LogLevel)
+
+	if !filepath.IsAbs(logcfg.LogDirectory) {
+		logcfg.LogDirectory = filepath.Join(rootPath, logcfg.LogDirectory)
+	}
+
+	if log, err = logger.NewLogger(logcfg); err != nil {
+		fmt.Println(err)
+		os.Exit(16)
+	}
 
 	if ovs, err = overseer.New(conf, log, quiesce); err != nil {
 		log.Error(err)

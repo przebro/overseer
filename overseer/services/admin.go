@@ -23,9 +23,9 @@ type ovsAdministrationService struct {
 }
 
 //NewAdministrationService - returns a new instance of ovsAdministrationService
-func NewAdministrationService(u *auth.UserManager, r *auth.RoleManager, a *auth.RoleAssociationManager, q ...core.ComponentQuiescer) services.AdministrationServiceServer {
+func NewAdministrationService(u *auth.UserManager, r *auth.RoleManager, a *auth.RoleAssociationManager, log logger.AppLogger, q ...core.ComponentQuiescer) services.AdministrationServiceServer {
 
-	return &ovsAdministrationService{umanager: u, rmanager: r, amanager: a, log: logger.Get()}
+	return &ovsAdministrationService{umanager: u, rmanager: r, amanager: a, log: log}
 }
 
 //CreateUser - Creates a new user

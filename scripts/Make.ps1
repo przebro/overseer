@@ -18,6 +18,9 @@ if ((Test-Path -Path ".\data" -PathType Container) -eq $False){
     mkdir "data"
     mkdir "data/sysout"
 }
+if ((Test-Path -Path ".\logs" -PathType Container) -eq $False){
+    mkdir "logs"
+}
 
 if ($targetname -eq "build"){
     go build -race -o bin/ cmd/overseer/ovs.go
