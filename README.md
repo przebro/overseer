@@ -41,9 +41,10 @@ Note that currently, overseer is in a demo stage; therefore, some parts of a pro
 Inside def/samples directory, there are sample definitions that consist together for an example workflow.
 After a successful build, binaries can be found inside the bin catalog.
 * ovs - scheduler, by default it starts listening on 127.0.0.1:7053
+* ovsgate - api gateway 127.0.0.1:7054
 * ovswork - worker, by default it starts listening on 127.0.0.1:7055
 * chkprg - sample program
-* tools/ovscli - tool, helps manage resources and tasks. There is also an Electron-based client:(https://github.com/przebro/overseergui). It is recommended to use although it is also in a phase of a high development.
+* tools/ovscli - tool, helps manage resources and tasks. There is also a web application client:(https://github.com/przebro/ovswc). It is recommended to use although it is also in a phase of a high development.
 
 **Task definition**\
 Currently, tasks definitions are stored in catalog, by default it is `def` catalog located in a root directory of a project.
