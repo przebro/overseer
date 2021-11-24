@@ -14,6 +14,9 @@ import (
 	"overseer/overseer/taskdata"
 	"overseer/proto/services"
 	"strings"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type ovsActiveTaskService struct {
@@ -22,6 +25,8 @@ type ovsActiveTaskService struct {
 	jrnal    journal.TaskLogReader
 	log      logger.AppLogger
 }
+
+const errInvalidUser = "invalid user"
 
 //NewTaskService - New task service
 func NewTaskService(m *pool.ActiveTaskPoolManager, p pool.TaskViewer, j journal.TaskJournal, log logger.AppLogger) services.TaskServiceServer {
@@ -40,7 +45,8 @@ func (srv *ovsActiveTaskService) OrderGroup(ctx context.Context, in *services.Ta
 	if err := validator.Valid.Validate(odate); err != nil {
 		response.Success = false
 		response.Message = err.Error()
-		return response, nil
+
+		return response, status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	if odate == date.OdateNone {
@@ -52,22 +58,20 @@ func (srv *ovsActiveTaskService) OrderGroup(ctx context.Context, in *services.Ta
 	if err := validator.Valid.Validate(data); err != nil {
 		response.Success = false
 		response.Message = err.Error()
-		return response, nil
+		return response, status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	var username string
 	var ok bool
 	if username, ok = ctx.Value("username").(string); !ok {
-		response.Success = false
-		response.Message = "undefined user"
-		return response, nil
+		return response, status.Error(codes.Unauthenticated, errInvalidUser)
 	}
 
 	result, err := srv.manager.OrderGroup(data, odate, username)
 	if err != nil {
 		response.Success = false
 		response.Message = err.Error()
-		return response, nil
+		return response, status.Error(codes.Internal, err.Error())
 	}
 
 	response.Message = fmt.Sprintf("TaskID:%s", result)
@@ -85,7 +89,7 @@ func (srv *ovsActiveTaskService) ForceGroup(ctx context.Context, in *services.Ta
 	if err := validator.Valid.Validate(odate); err != nil {
 		response.Success = false
 		response.Message = err.Error()
-		return response, nil
+		return response, status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	if odate == date.OdateNone {
@@ -95,24 +99,18 @@ func (srv *ovsActiveTaskService) ForceGroup(ctx context.Context, in *services.Ta
 	data := taskdata.GroupData{Group: in.TaskGroup}
 
 	if err := validator.Valid.Validate(data); err != nil {
-		response.Success = false
-		response.Message = err.Error()
-		return response, nil
+		return response, status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	var username string
 	var ok bool
 	if username, ok = ctx.Value("username").(string); !ok {
-		response.Success = false
-		response.Message = "undefined user"
-		return response, nil
+		return response, status.Error(codes.Unauthenticated, errInvalidUser)
 	}
 
 	result, err := srv.manager.OrderGroup(data, odate, username)
 	if err != nil {
-		response.Success = false
-		response.Message = err.Error()
-		return response, nil
+		return response, status.Error(codes.Internal, err.Error())
 	}
 
 	response.Message = fmt.Sprintf("TaskID:%s", result)
@@ -128,9 +126,7 @@ func (srv *ovsActiveTaskService) OrderTask(ctx context.Context, in *services.Tas
 	odate := date.Odate(in.Odate)
 
 	if err := validator.Valid.Validate(odate); err != nil {
-		response.Success = false
-		response.Message = err.Error()
-		return response, nil
+		return response, status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	if odate == date.OdateNone {
@@ -140,24 +136,19 @@ func (srv *ovsActiveTaskService) OrderTask(ctx context.Context, in *services.Tas
 	data := taskdata.GroupNameData{GroupData: taskdata.GroupData{Group: in.TaskGroup}, Name: in.TaskName}
 
 	if err := validator.Valid.Validate(data); err != nil {
-		response.Success = false
-		response.Message = err.Error()
-		return response, nil
+		return response, status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	var username string
 	var ok bool
+
 	if username, ok = ctx.Value("username").(string); !ok {
-		response.Success = false
-		response.Message = "undefined user"
-		return response, nil
+		return response, status.Error(codes.Unauthenticated, errInvalidUser)
 	}
 
 	result, err := srv.manager.Order(data, odate, username)
 	if err != nil {
-		response.Success = false
-		response.Message = err.Error()
-		return response, nil
+		return response, status.Error(codes.Internal, err.Error())
 	}
 
 	response.Message = fmt.Sprintf("TaskID:%s", result)
@@ -172,9 +163,7 @@ func (srv *ovsActiveTaskService) ForceTask(ctx context.Context, in *services.Tas
 
 	odate := date.Odate(in.Odate)
 	if err := validator.Valid.Validate(odate); err != nil {
-		response.Success = false
-		response.Message = err.Error()
-		return response, nil
+		return response, status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	if odate == date.OdateNone {
@@ -184,24 +173,18 @@ func (srv *ovsActiveTaskService) ForceTask(ctx context.Context, in *services.Tas
 	data := taskdata.GroupNameData{GroupData: taskdata.GroupData{Group: in.TaskGroup}, Name: in.TaskName}
 
 	if err := validator.Valid.Validate(data); err != nil {
-		response.Success = false
-		response.Message = err.Error()
-		return response, nil
+		return response, status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	var username string
 	var ok bool
 	if username, ok = ctx.Value("username").(string); !ok {
-		response.Success = false
-		response.Message = "undefined user"
-		return response, nil
+		return response, status.Error(codes.Unauthenticated, errInvalidUser)
 	}
 
 	result, err := srv.manager.Force(data, odate, username)
 	if err != nil {
-		response.Success = false
-		response.Message = err.Error()
-		return response, err
+		return response, status.Error(codes.Internal, err.Error())
 	}
 
 	response.Message = fmt.Sprintf("TaskID:%s", result)
@@ -216,30 +199,18 @@ func (srv *ovsActiveTaskService) RerunTask(ctx context.Context, in *services.Tas
 	orderID := unique.TaskOrderID(in.TaskID)
 
 	if err := validator.Valid.Validate(orderID); err != nil {
-		response.Success = false
-		response.Message = err.Error()
-		return response, nil
+		return response, status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	var username string
 	var ok bool
 	if username, ok = ctx.Value("username").(string); !ok {
-		response.Success = false
-		response.Message = "undefined user"
-		return response, nil
+		return response, status.Error(codes.Unauthenticated, errInvalidUser)
 	}
 
 	result, err := srv.manager.Rerun(orderID, username)
 	if err != nil {
-
-		response.Success = false
-
-		if err == pool.ErrInvalidStatus {
-			response.Message = result
-		} else {
-			response.Message = err.Error()
-		}
-		return response, nil
+		return response, setErrorResponse(result, err)
 	}
 
 	response.Message = result
@@ -254,29 +225,18 @@ func (srv *ovsActiveTaskService) EnforceTask(ctx context.Context, in *services.T
 	orderID := unique.TaskOrderID(in.TaskID)
 
 	if err := validator.Valid.Validate(orderID); err != nil {
-		response.Success = false
-		response.Message = err.Error()
-		return response, nil
+		return response, status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	var username string
 	var ok bool
 	if username, ok = ctx.Value("username").(string); !ok {
-		response.Success = false
-		response.Message = "undefined user"
-		return response, nil
+		return response, status.Error(codes.Unauthenticated, errInvalidUser)
 	}
 
 	result, err := srv.manager.Enforce(orderID, username)
 	if err != nil {
-		response.Success = false
-
-		if err == pool.ErrInvalidStatus {
-			response.Message = result
-		} else {
-			response.Message = err.Error()
-		}
-		return response, nil
+		return response, setErrorResponse(result, err)
 	}
 
 	response.Message = result
@@ -292,31 +252,18 @@ func (srv *ovsActiveTaskService) HoldTask(ctx context.Context, in *services.Task
 	orderID := unique.TaskOrderID(in.TaskID)
 
 	if err := validator.Valid.Validate(orderID); err != nil {
-
-		response.Success = false
-		response.Message = err.Error()
-		return response, nil
+		return response, status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	var username string
 	var ok bool
 	if username, ok = ctx.Value("username").(string); !ok {
-		response.Success = false
-		response.Message = "undefined user"
-		return response, nil
+		return response, status.Error(codes.Unauthenticated, errInvalidUser)
 	}
 
 	result, err := srv.manager.Hold(orderID, username)
 	if err != nil {
-
-		response.Success = false
-
-		if err == pool.ErrInvalidStatus {
-			response.Message = result
-		} else {
-			response.Message = err.Error()
-		}
-		return response, nil
+		return response, setErrorResponse(result, err)
 	}
 
 	response.Success = true
@@ -331,32 +278,19 @@ func (srv *ovsActiveTaskService) FreeTask(ctx context.Context, in *services.Task
 	orderID := unique.TaskOrderID(in.TaskID)
 
 	if err := validator.Valid.Validate(orderID); err != nil {
-
-		response.Success = false
-		response.Message = err.Error()
-		return response, nil
+		return response, status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	var username string
 	var ok bool
 	if username, ok = ctx.Value("username").(string); !ok {
-		response.Success = false
-		response.Message = "undefined user"
-		return response, nil
+		return response, status.Error(codes.Unauthenticated, errInvalidUser)
 	}
 
 	result, err := srv.manager.Free(orderID, username)
 
 	if err != nil {
-
-		response.Success = false
-
-		if err == pool.ErrInvalidStatus {
-			response.Message = result
-		} else {
-			response.Message = err.Error()
-		}
-		return response, nil
+		return response, setErrorResponse(result, err)
 	}
 
 	response.Success = true
@@ -371,32 +305,18 @@ func (srv *ovsActiveTaskService) SetToOk(ctx context.Context, in *services.TaskA
 	orderID := unique.TaskOrderID(in.TaskID)
 
 	if err := validator.Valid.Validate(orderID); err != nil {
-
-		response.Success = false
-		response.Message = err.Error()
-		return response, nil
+		return response, status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	var username string
 	var ok bool
 	if username, ok = ctx.Value("username").(string); !ok {
-		response.Success = false
-		response.Message = "undefined user"
-		return response, nil
+		return response, status.Error(codes.Unauthenticated, errInvalidUser)
 	}
 
 	result, err := srv.manager.SetOk(orderID, username)
 	if err != nil {
-
-		response.Success = false
-
-		if err == pool.ErrInvalidStatus {
-			response.Message = result
-		} else {
-			response.Message = err.Error()
-		}
-
-		return response, nil
+		return response, setErrorResponse(result, err)
 	}
 
 	response.Message = result
@@ -408,35 +328,21 @@ func (srv *ovsActiveTaskService) SetToOk(ctx context.Context, in *services.TaskA
 func (srv *ovsActiveTaskService) ConfirmTask(ctx context.Context, in *services.TaskActionMsg) (*services.ActionResultMsg, error) {
 
 	response := &services.ActionResultMsg{}
-
 	orderID := unique.TaskOrderID(in.TaskID)
 
 	if err := validator.Valid.Validate(orderID); err != nil {
-
-		response.Success = false
-		response.Message = err.Error()
-		return response, nil
+		return response, status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	var username string
 	var ok bool
 	if username, ok = ctx.Value("username").(string); !ok {
-		response.Success = false
-		response.Message = "undefined user"
-		return response, nil
+		return response, status.Error(codes.Unauthenticated, errInvalidUser)
 	}
 
 	result, err := srv.manager.Confirm(orderID, username)
 	if err != nil {
-
-		response.Success = false
-
-		if err == pool.ErrInvalidStatus {
-			response.Message = result
-		} else {
-			response.Message = err.Error()
-		}
-		return response, nil
+		return response, setErrorResponse(result, err)
 	}
 
 	response.Message = result
@@ -472,15 +378,12 @@ func (srv *ovsActiveTaskService) TaskDetail(ctx context.Context, in *services.Ta
 	orderID := unique.TaskOrderID(in.TaskID)
 
 	if err := validator.Valid.Validate(orderID); err != nil {
-
-		response.Result = &services.ActionResultMsg{Success: false, Message: err.Error()}
-		return response, nil
+		return response, status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	result, err := srv.poolView.Detail(orderID)
 	if err != nil {
-		response.Result = &services.ActionResultMsg{Success: false, Message: err.Error()}
-		return response, nil
+		return response, setErrorResponse(err.Error(), err)
 	}
 
 	response.BaseData = &services.TaskListResultMsg{
@@ -524,10 +427,7 @@ func (srv *ovsActiveTaskService) TaskOutput(ctx context.Context, in *services.Ta
 
 	orderID := unique.TaskOrderID(in.TaskID)
 	if err := validator.Valid.Validate(orderID); err != nil {
-
-		response.Success = false
-		response.Message = err.Error()
-		return response, nil
+		return response, status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	response.Message = "Not implemented"
@@ -542,10 +442,7 @@ func (srv *ovsActiveTaskService) TaskLog(ctx context.Context, in *services.TaskA
 
 	orderID := unique.TaskOrderID(in.TaskID)
 	if err := validator.Valid.Validate(orderID); err != nil {
-
-		response.Success = false
-		response.Message = err.Error()
-		return response, nil
+		return response, status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	entries := srv.jrnal.ReadLog(orderID)
@@ -596,4 +493,23 @@ func (srv *ovsActiveTaskService) GetAllowedAction(method string) auth.UserAction
 	}
 
 	return action
+}
+
+func setErrorResponse(msg string, err error) error {
+
+	errmsg := ""
+	code := codes.Code(0)
+
+	if err == pool.ErrInvalidStatus {
+		errmsg = msg
+		code = codes.FailedPrecondition
+	} else if err == pool.ErrUnableFindTask {
+		errmsg = msg
+		code = codes.NotFound
+	} else {
+		code = codes.Internal
+		errmsg = err.Error()
+	}
+
+	return status.Error(code, errmsg)
 }

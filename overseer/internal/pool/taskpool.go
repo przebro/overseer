@@ -155,15 +155,16 @@ func (pool *ActiveTaskPool) processTaskState(ch <-chan *activeTask, wg *sync.Wai
 		}
 
 		exCtx := &TaskExecutionContext{
-			odate:      date.CurrentOdate(),
-			task:       task,
-			time:       t,
-			maxRc:      pool.config.MaxOkReturnCode,
-			state:      executionState,
-			dispatcher: pool.dispatcher,
-			log:        pool.log,
-			isEnforced: pool.isEnforced(task.OrderID()),
-			isInTime:   false,
+			odate:        date.CurrentOdate(),
+			task:         task,
+			time:         t,
+			maxRc:        pool.config.MaxOkReturnCode,
+			state:        executionState,
+			dispatcher:   pool.dispatcher,
+			log:          pool.log,
+			isEnforced:   pool.isEnforced(task.OrderID()),
+			isInTime:     false,
+			scheduleTime: pool.config.NewDayProc,
 		}
 		for exCtx.state.processState(exCtx) {
 		}
@@ -182,8 +183,8 @@ func (pool *ActiveTaskPool) Detail(orderID unique.TaskOrderID) (events.TaskDetai
 	var t *activeTask
 	var exists bool
 
-	if t, exists = pool.tasks.get(orderID); exists == false {
-		return result, errors.New("unable  to find task with give ID")
+	if t, exists = pool.tasks.get(orderID); !exists {
+		return result, ErrUnableFindTask
 	}
 
 	result.Name, result.Group, result.Description = t.GetInfo()

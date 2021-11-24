@@ -30,15 +30,16 @@ type TaskOrderContext struct {
 
 //TaskExecutionContext - context for processing active task
 type TaskExecutionContext struct {
-	task       *activeTask
-	odate      date.Odate
-	time       time.Time
-	state      taskExecutionState
-	dispatcher events.Dispatcher
-	log        logger.AppLogger
-	isInTime   bool
-	isEnforced bool
-	maxRc      int32
+	task         *activeTask
+	odate        date.Odate
+	time         time.Time
+	state        taskExecutionState
+	dispatcher   events.Dispatcher
+	log          logger.AppLogger
+	isInTime     bool
+	isEnforced   bool
+	maxRc        int32
+	scheduleTime types.HourMinTime
 }
 
 type ostateCheckOtype struct {
@@ -473,31 +474,21 @@ func (state ostatePostProcessing) processState(ctx *TaskExecutionContext) bool {
 		pushJournalMessage(ctx.dispatcher, ctx.task.OrderID(), ctx.task.CurrentExecutionID(), time.Now(), journal.TaskPostProc)
 		ctx.log.Info("Task post processing ends")
 		return false
+
 	}
 
-	n, g, _ := ctx.task.GetInfo()
 	outticket := ctx.task.TicketsOut()
-	ticketMsg := events.RouteTicketInMsgFormat{Tickets: make([]struct {
-		Name   string
-		Odate  date.Odate
-		Action taskdef.OutAction
-	}, len(outticket))}
-
-	ctx.log.Info("TASK:", n, ":", g)
-
-	for i, t := range outticket {
-
-		realOdat := calcRealOdate(ctx.task.OrderDate(), t.Odate, ctx.task.TaskDefinition.Calendar())
-		ticketMsg.Tickets[i].Name = t.Name
-		ticketMsg.Tickets[i].Odate = realOdat
-		ticketMsg.Tickets[i].Action = t.Action
-		ctx.log.Info("TICKET:", t.Name, " ", realOdat, " ", t.Action)
-
-	}
+	ticketMsg := buildTicketMsg(ctx.task, outticket)
 
 	ctx.dispatcher.PushEvent(nil, events.RouteTicketIn, events.NewMsg(ticketMsg))
 	pushJournalMessage(ctx.dispatcher, ctx.task.OrderID(), ctx.task.CurrentExecutionID(), time.Now(), journal.TaskPostProc)
+
 	ctx.log.Info("Task post processing ends")
+
+	if ctx.task.IsCyclic() {
+		updateCyclicTask(ctx.task)
+	}
+
 	return false
 }
 
@@ -926,4 +917,53 @@ func buildFlagMsg(data []taskdef.FlagData) events.DispatchedMessage {
 	}
 
 	return events.NewMsg(events.RouteFlagAcquireMsg{Flags: flags})
+}
+
+func buildTicketMsg(task *activeTask, outticket []taskdef.OutTicketData) events.RouteTicketInMsgFormat {
+
+	ticketMsg := events.RouteTicketInMsgFormat{Tickets: make([]struct {
+		Name   string
+		Odate  date.Odate
+		Action taskdef.OutAction
+	}, len(outticket))}
+
+	for i, t := range outticket {
+
+		realOdat := calcRealOdate(task.OrderDate(), t.Odate, task.TaskDefinition.Calendar())
+		ticketMsg.Tickets[i].Name = t.Name
+		ticketMsg.Tickets[i].Odate = realOdat
+		ticketMsg.Tickets[i].Action = t.Action
+
+	}
+
+	return ticketMsg
+}
+
+func updateCyclicTask(task *activeTask) {
+
+	cdata := task.CycleData()
+	if cdata.CurrentRunNumber == cdata.MaxRun {
+		return
+	}
+
+	var tm time.Time
+
+	switch cdata.RunFrom {
+	case "start":
+		{
+			tm = task.StartTime().Add(time.Duration(cdata.RunInterval) * time.Minute)
+		}
+	case "end":
+		{
+			tm = task.EndTime().Add(time.Duration(cdata.RunInterval) * time.Minute)
+		}
+	case "schedule":
+		{
+			//:TODO for now it acts like from end
+			tm = task.EndTime().Add(time.Duration(cdata.RunInterval) * time.Minute)
+		}
+	}
+
+	cdata.NextRun = types.FromTime(tm)
+
 }

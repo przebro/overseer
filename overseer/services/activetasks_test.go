@@ -16,6 +16,7 @@ import (
 	"testing"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/test/bufconn"
 )
 
@@ -74,39 +75,47 @@ func createTaskService(t *testing.T) services.TaskServiceClient {
 	return tsl
 }
 
+func TestOrderTask_Errors(t *testing.T) {
+
+	service := createTaskService(t)
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, "username", "<anonymous>")
+
+	_, err := service.OrderTask(ctx, &services.TaskOrderMsg{TaskGroup: "test", Odate: "abcdef", TaskName: "dummy_01"})
+	if err == nil {
+		t.Error("unexpected result")
+	}
+
+	if ok, code := matchExpectedStatusFromError(err, codes.InvalidArgument); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.InvalidArgument)
+	}
+
+	_, err = service.OrderTask(ctx, &services.TaskOrderMsg{TaskGroup: "#$SDtest", Odate: string(date.CurrentOdate()), TaskName: "dummy_01"})
+	if err == nil {
+		t.Error("unexpected result")
+	}
+
+	if ok, code := matchExpectedStatusFromError(err, codes.InvalidArgument); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.InvalidArgument)
+	}
+
+	_, err = service.OrderTask(ctx, &services.TaskOrderMsg{TaskGroup: "test", Odate: string(date.CurrentOdate()), TaskName: "%^&$%dummy_01"})
+	if err == nil {
+		t.Error("unexpected result")
+	}
+
+	if ok, code := matchExpectedStatusFromError(err, codes.InvalidArgument); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.InvalidArgument)
+	}
+
+}
 func TestOrderTask(t *testing.T) {
 
 	service := createTaskService(t)
 	ctx := context.Background()
+	ctx = context.WithValue(ctx, "username", "<anonymous>")
 
-	r, err := service.OrderTask(ctx, &services.TaskOrderMsg{TaskGroup: "test", Odate: "abcdef", TaskName: "dummy_01"})
-	if err != nil {
-		t.Error("unexpected result")
-	}
-
-	if r.Success != false || !strings.Contains(r.Message, "'odate'") {
-		t.Error("unexpected result:", r.Success, ";", r.Message)
-	}
-
-	r, err = service.OrderTask(ctx, &services.TaskOrderMsg{TaskGroup: "#$SDtest", Odate: string(date.CurrentOdate()), TaskName: "dummy_01"})
-	if err != nil {
-		t.Error("unexpected result")
-	}
-
-	if r.Success != false || !strings.Contains(r.Message, "'Group'") {
-		t.Error("unexpected result:", r.Success, ";", r.Message)
-	}
-
-	r, err = service.OrderTask(ctx, &services.TaskOrderMsg{TaskGroup: "test", Odate: string(date.CurrentOdate()), TaskName: "%^&$%dummy_01"})
-	if err != nil {
-		t.Error("unexpected result")
-	}
-
-	if r.Success != false || !strings.Contains(r.Message, "'Name'") {
-		t.Error("unexpected result:", r.Success, ";", r.Message)
-	}
-
-	r, err = service.OrderTask(ctx, &services.TaskOrderMsg{TaskGroup: "test", Odate: string(date.CurrentOdate()), TaskName: "dummy_04"})
+	r, err := service.OrderTask(ctx, &services.TaskOrderMsg{TaskGroup: "test", Odate: string(date.CurrentOdate()), TaskName: "dummy_04"})
 	if err != nil {
 		t.Error("unexpected result")
 	}
@@ -116,50 +125,57 @@ func TestOrderTask(t *testing.T) {
 	}
 
 	// call method directly to skip setting the name of the user in a middleware handler
-	r, err = tsrvs.OrderTask(ctx, &services.TaskOrderMsg{TaskGroup: "test", Odate: string(date.CurrentOdate()), TaskName: "dummy_04"})
+	_, err = tsrvs.OrderTask(context.Background(), &services.TaskOrderMsg{TaskGroup: "test", Odate: string(date.CurrentOdate()), TaskName: "dummy_04"})
 
-	if err != nil {
+	if err == nil {
 		t.Error("unexpected result")
 	}
 
-	if r.Success != false || !strings.Contains(r.Message, "undefined user") {
-		t.Error("unexpected result:", r.Success, ";", r.Message)
+	if ok, code := matchExpectedStatusFromError(err, codes.Unauthenticated); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.Unauthenticated)
 	}
+
 }
 
+func TestForceTask_Errors(t *testing.T) {
+
+	service := createTaskService(t)
+	ctx := context.Background()
+
+	_, err := service.ForceTask(ctx, &services.TaskOrderMsg{TaskGroup: "test", Odate: "abcdef", TaskName: "dummy_01"})
+	if err == nil {
+		t.Error("unexpected result")
+	}
+
+	if ok, code := matchExpectedStatusFromError(err, codes.InvalidArgument); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.InvalidArgument)
+	}
+
+	_, err = service.ForceTask(ctx, &services.TaskOrderMsg{TaskGroup: "#$SDtest", Odate: string(date.CurrentOdate()), TaskName: "dummy_01"})
+	if err == nil {
+		t.Error("unexpected result")
+	}
+
+	if ok, code := matchExpectedStatusFromError(err, codes.InvalidArgument); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.InvalidArgument)
+	}
+
+	_, err = service.ForceTask(ctx, &services.TaskOrderMsg{TaskGroup: "test", Odate: string(date.CurrentOdate()), TaskName: "%^&$%dummy_01"})
+	if err == nil {
+		t.Error("unexpected result")
+	}
+
+	if ok, code := matchExpectedStatusFromError(err, codes.InvalidArgument); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.InvalidArgument)
+	}
+
+}
 func TestForceTask(t *testing.T) {
 
 	service := createTaskService(t)
 	ctx := context.Background()
 
-	r, err := service.ForceTask(ctx, &services.TaskOrderMsg{TaskGroup: "test", Odate: "abcdef", TaskName: "dummy_01"})
-	if err != nil {
-		t.Error("unexpected result")
-	}
-
-	if r.Success != false || !strings.Contains(r.Message, "'odate'") {
-		t.Error("unexpected result:", r.Success, ";", r.Message)
-	}
-
-	r, err = service.ForceTask(ctx, &services.TaskOrderMsg{TaskGroup: "#$SDtest", Odate: string(date.CurrentOdate()), TaskName: "dummy_01"})
-	if err != nil {
-		t.Error("unexpected result")
-	}
-
-	if r.Success != false || !strings.Contains(r.Message, "'Group'") {
-		t.Error("unexpected result:", r.Success, ";", r.Message)
-	}
-
-	r, err = service.ForceTask(ctx, &services.TaskOrderMsg{TaskGroup: "test", Odate: string(date.CurrentOdate()), TaskName: "%^&$%dummy_01"})
-	if err != nil {
-		t.Error("unexpected result")
-	}
-
-	if r.Success != false || !strings.Contains(r.Message, "'Name'") {
-		t.Error("unexpected result:", r.Success, ";", r.Message)
-	}
-
-	r, err = service.ForceTask(ctx, &services.TaskOrderMsg{TaskGroup: "test", Odate: string(date.CurrentOdate()), TaskName: "dummy_04"})
+	r, err := service.ForceTask(ctx, &services.TaskOrderMsg{TaskGroup: "test", Odate: string(date.CurrentOdate()), TaskName: "dummy_04"})
 	if err != nil {
 		t.Error("unexpected result")
 	}
@@ -169,15 +185,16 @@ func TestForceTask(t *testing.T) {
 	}
 
 	// call method directly to omit set of the name of the user in middleware handler
-	r, err = tsrvs.ForceTask(ctx, &services.TaskOrderMsg{TaskGroup: "test", Odate: string(date.CurrentOdate()), TaskName: "dummy_04"})
+	_, err = tsrvs.ForceTask(ctx, &services.TaskOrderMsg{TaskGroup: "test", Odate: string(date.CurrentOdate()), TaskName: "dummy_04"})
 
-	if err != nil {
+	if err == nil {
 		t.Error("unexpected result")
 	}
 
-	if r.Success != false || !strings.Contains(r.Message, "undefined user") {
-		t.Error("unexpected result:", r.Success, ";", r.Message)
+	if ok, code := matchExpectedStatusFromError(err, codes.Unauthenticated); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.Unauthenticated)
 	}
+
 }
 
 func TestListTask(t *testing.T) {
@@ -208,61 +225,111 @@ func TestListTask(t *testing.T) {
 
 }
 
+func TestOrderGroup_Errors(t *testing.T) {
+
+	service := createTaskService(t)
+	ctx := context.Background()
+
+	_, err := service.OrderGroup(ctx, &services.TaskOrderGroupMsg{TaskGroup: "_4@42!5terfds", Odate: string(date.CurrentOdate())})
+	if err == nil {
+		t.Error("unexpected result:", err)
+	}
+
+	if ok, code := matchExpectedStatusFromError(err, codes.InvalidArgument); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.InvalidArgument)
+	}
+
+	_, err = service.OrderGroup(ctx, &services.TaskOrderGroupMsg{TaskGroup: "TEST", Odate: "ABCDEF"})
+	if err == nil {
+		t.Error("unexpected result:", err)
+	}
+
+	if ok, code := matchExpectedStatusFromError(err, codes.InvalidArgument); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.InvalidArgument)
+	}
+
+	_, err = service.OrderGroup(ctx, &services.TaskOrderGroupMsg{TaskGroup: "", Odate: string(date.CurrentOdate())})
+	if err == nil {
+		t.Error("unexpected result:", err)
+	}
+
+	if ok, code := matchExpectedStatusFromError(err, codes.InvalidArgument); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.InvalidArgument)
+	}
+
+	_, err = service.OrderGroup(ctx, &services.TaskOrderGroupMsg{TaskGroup: "ABCDED", Odate: ""})
+	if err == nil {
+		t.Error("unexpected result:", err)
+	}
+
+	if ok, code := matchExpectedStatusFromError(err, codes.Internal); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.Internal)
+	}
+}
+
 func TestOrderGroup(t *testing.T) {
 
 	service := createTaskService(t)
 	ctx := context.Background()
 
-	r, err := service.OrderGroup(ctx, &services.TaskOrderGroupMsg{TaskGroup: "_4@42!5terfds", Odate: string(date.CurrentOdate())})
+	_, err := service.OrderGroup(ctx, &services.TaskOrderGroupMsg{TaskGroup: "test", Odate: ""})
 	if err != nil {
 		t.Error("unexpected result:", err)
-	}
-	if r.Success != false {
-		t.Error("unexpected result:", r.Success, "expected:", false)
-	}
-
-	r, err = service.OrderGroup(ctx, &services.TaskOrderGroupMsg{TaskGroup: "TEST", Odate: "ABCDEF"})
-	if err != nil {
-		t.Error("unexpected result:", err)
-	}
-	if r.Success != false {
-		t.Error("unexpected result:", r.Success, "expected:", false)
-	}
-
-	r, err = service.OrderGroup(ctx, &services.TaskOrderGroupMsg{TaskGroup: "", Odate: string(date.CurrentOdate())})
-	if err != nil {
-		t.Error("unexpected result:", err)
-	}
-	if r.Success != false {
-		t.Error("unexpected result:", r.Success, "expected:", false)
-	}
-
-	r, err = service.OrderGroup(ctx, &services.TaskOrderGroupMsg{TaskGroup: "ABCDED", Odate: ""})
-	if err != nil {
-		t.Error("unexpected result:", err)
-	}
-	if r.Success != false {
-		t.Error("unexpected result:", r.Success, "expected:", false)
-	}
-
-	r, err = service.OrderGroup(ctx, &services.TaskOrderGroupMsg{TaskGroup: "test", Odate: ""})
-	if err != nil {
-		t.Error("unexpected result:", err)
-	}
-	if r.Success != true {
-		t.Error("unexpected result:", r.Success, "expected:", true)
 	}
 
 	// call method directly to skip setting the name of the user in a middleware handler
-	r, err = tsrvs.OrderGroup(ctx, &services.TaskOrderGroupMsg{TaskGroup: "test", Odate: ""})
+	_, err = tsrvs.OrderGroup(ctx, &services.TaskOrderGroupMsg{TaskGroup: "test", Odate: ""})
 
-	if err != nil {
+	if err == nil {
 		t.Error("unexpected result")
 	}
 
-	if r.Success != false || !strings.Contains(r.Message, "undefined user") {
-		t.Error("unexpected result:", r.Success, ";", r.Message)
+	if ok, code := matchExpectedStatusFromError(err, codes.Unauthenticated); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.Unauthenticated)
 	}
+}
+
+func TestForceGroup_Errors(t *testing.T) {
+
+	service := createTaskService(t)
+	ctx := context.Background()
+
+	_, err := service.ForceGroup(ctx, &services.TaskOrderGroupMsg{TaskGroup: "_4@42!5terfds", Odate: string(date.CurrentOdate())})
+	if err == nil {
+		t.Error("unexpected result:", err)
+	}
+
+	if ok, code := matchExpectedStatusFromError(err, codes.InvalidArgument); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.InvalidArgument)
+	}
+
+	_, err = service.ForceGroup(ctx, &services.TaskOrderGroupMsg{TaskGroup: "TEST", Odate: "ABCDEF"})
+	if err == nil {
+		t.Error("unexpected result:", err)
+	}
+
+	if ok, code := matchExpectedStatusFromError(err, codes.InvalidArgument); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.InvalidArgument)
+	}
+
+	_, err = service.ForceGroup(ctx, &services.TaskOrderGroupMsg{TaskGroup: "", Odate: string(date.CurrentOdate())})
+	if err == nil {
+		t.Error("unexpected result:", err)
+	}
+
+	if ok, code := matchExpectedStatusFromError(err, codes.InvalidArgument); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.InvalidArgument)
+	}
+
+	_, err = service.ForceGroup(ctx, &services.TaskOrderGroupMsg{TaskGroup: "ABCDED", Odate: ""})
+	if err == nil {
+		t.Error("unexpected result:", err)
+	}
+
+	if ok, code := matchExpectedStatusFromError(err, codes.Internal); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.Internal)
+	}
+
 }
 
 func TestForceGroup(t *testing.T) {
@@ -270,39 +337,7 @@ func TestForceGroup(t *testing.T) {
 	service := createTaskService(t)
 	ctx := context.Background()
 
-	r, err := service.ForceGroup(ctx, &services.TaskOrderGroupMsg{TaskGroup: "_4@42!5terfds", Odate: string(date.CurrentOdate())})
-	if err != nil {
-		t.Error("unexpected result:", err)
-	}
-	if r.Success != false {
-		t.Error("unexpected result:", r.Success, "expected:", false)
-	}
-
-	r, err = service.ForceGroup(ctx, &services.TaskOrderGroupMsg{TaskGroup: "TEST", Odate: "ABCDEF"})
-	if err != nil {
-		t.Error("unexpected result:", err)
-	}
-	if r.Success != false {
-		t.Error("unexpected result:", r.Success, "expected:", false)
-	}
-
-	r, err = service.ForceGroup(ctx, &services.TaskOrderGroupMsg{TaskGroup: "", Odate: string(date.CurrentOdate())})
-	if err != nil {
-		t.Error("unexpected result:", err)
-	}
-	if r.Success != false {
-		t.Error("unexpected result:", r.Success, "expected:", false)
-	}
-
-	r, err = service.ForceGroup(ctx, &services.TaskOrderGroupMsg{TaskGroup: "ABCDED", Odate: ""})
-	if err != nil {
-		t.Error("unexpected result:", err)
-	}
-	if r.Success != false {
-		t.Error("unexpected result:", r.Success, "expected:", false)
-	}
-
-	r, err = service.ForceGroup(ctx, &services.TaskOrderGroupMsg{TaskGroup: "test", Odate: ""})
+	r, err := service.ForceGroup(ctx, &services.TaskOrderGroupMsg{TaskGroup: "test", Odate: ""})
 	if err != nil {
 		t.Error("unexpected result:", err)
 	}
@@ -311,14 +346,14 @@ func TestForceGroup(t *testing.T) {
 	}
 
 	// call method directly to skip setting the name of the user in a middleware handler
-	r, err = tsrvs.ForceGroup(ctx, &services.TaskOrderGroupMsg{TaskGroup: "test", Odate: ""})
+	_, err = tsrvs.ForceGroup(ctx, &services.TaskOrderGroupMsg{TaskGroup: "test", Odate: ""})
 
-	if err != nil {
+	if err == nil {
 		t.Error("unexpected result")
 	}
 
-	if r.Success != false || !strings.Contains(r.Message, "undefined user") {
-		t.Error("unexpected result:", r.Success, ";", r.Message)
+	if ok, code := matchExpectedStatusFromError(err, codes.Unauthenticated); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.Unauthenticated)
 	}
 
 }
@@ -335,12 +370,22 @@ func TestConfirmTask(t *testing.T) {
 
 	msg := strings.Split(r.Message, ":")
 
-	r, err = service.ConfirmTask(ctx, &services.TaskActionMsg{TaskID: "ABCD"})
-	if err != nil {
+	_, err = service.ConfirmTask(ctx, &services.TaskActionMsg{TaskID: "ABCD"})
+	if err == nil {
 		t.Error("unexpected result:", err)
 	}
-	if r.Success != false {
-		t.Error("unexpected result:", r.Success, "expected:", false)
+
+	if ok, code := matchExpectedStatusFromError(err, codes.InvalidArgument); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.InvalidArgument)
+	}
+
+	_, err = service.ConfirmTask(ctx, &services.TaskActionMsg{TaskID: "ABCDE"})
+	if err == nil {
+		t.Error("unexpected result:", err)
+	}
+
+	if ok, code := matchExpectedStatusFromError(err, codes.NotFound); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.NotFound)
 	}
 
 	r, err = service.ConfirmTask(ctx, &services.TaskActionMsg{TaskID: msg[1]})
@@ -353,14 +398,62 @@ func TestConfirmTask(t *testing.T) {
 	}
 
 	// call method directly to skip setting the name of the user in a middleware handler
-	r, err = tsrvs.ConfirmTask(ctx, &services.TaskActionMsg{TaskID: msg[1]})
+	_, err = tsrvs.ConfirmTask(ctx, &services.TaskActionMsg{TaskID: msg[1]})
 
-	if err != nil {
+	if err == nil {
 		t.Error("unexpected result")
 	}
 
-	if r.Success != false || !strings.Contains(r.Message, "undefined user") {
-		t.Error("unexpected result:", r.Success, ";", r.Message)
+	if ok, code := matchExpectedStatusFromError(err, codes.Unauthenticated); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.Unauthenticated)
+	}
+}
+
+func TestHoldFree_Errors_NotFound(t *testing.T) {
+	service := createTaskService(t)
+	ctx := context.Background()
+
+	_, err := service.HoldTask(ctx, &services.TaskActionMsg{TaskID: "ABCDE"})
+	if err == nil {
+		t.Error("unexpected result:", err)
+	}
+
+	if ok, code := matchExpectedStatusFromError(err, codes.NotFound); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.NotFound)
+	}
+
+	_, err = service.FreeTask(ctx, &services.TaskActionMsg{TaskID: "ABCDE"})
+	if err == nil {
+		t.Error("unexpected result:", err)
+	}
+
+	if ok, code := matchExpectedStatusFromError(err, codes.NotFound); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.NotFound)
+	}
+
+}
+
+func TestHoldFree_Errors_InvalidArgument(t *testing.T) {
+
+	service := createTaskService(t)
+	ctx := context.Background()
+
+	_, err := service.HoldTask(ctx, &services.TaskActionMsg{TaskID: "ABCD"})
+	if err == nil {
+		t.Error("unexpected result:", err)
+	}
+
+	if ok, code := matchExpectedStatusFromError(err, codes.InvalidArgument); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.InvalidArgument)
+	}
+
+	_, err = service.FreeTask(ctx, &services.TaskActionMsg{TaskID: "ABCD"})
+	if err == nil {
+		t.Error("unexpected result:", err)
+	}
+
+	if ok, code := matchExpectedStatusFromError(err, codes.InvalidArgument); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.InvalidArgument)
 	}
 }
 
@@ -376,22 +469,6 @@ func TestHoldFree(t *testing.T) {
 
 	msg := strings.Split(r.Message, ":")
 
-	r, err = service.HoldTask(ctx, &services.TaskActionMsg{TaskID: "ABCD"})
-	if err != nil {
-		t.Error("unexpected result:", err)
-	}
-	if r.Success != false {
-		t.Error("unexpected result:", r.Success, "expected:", false)
-	}
-
-	r, err = service.FreeTask(ctx, &services.TaskActionMsg{TaskID: "ABCD"})
-	if err != nil {
-		t.Error("unexpected result:", err)
-	}
-	if r.Success != false {
-		t.Error("unexpected result:", r.Success, "expected:", false)
-	}
-
 	r, err = service.HoldTask(ctx, &services.TaskActionMsg{TaskID: msg[1]})
 
 	if err != nil {
@@ -401,13 +478,14 @@ func TestHoldFree(t *testing.T) {
 		t.Error("unexpected result:", r.Success, "expected:", true)
 	}
 
-	r, err = service.HoldTask(ctx, &services.TaskActionMsg{TaskID: msg[1]})
+	_, err = service.HoldTask(ctx, &services.TaskActionMsg{TaskID: msg[1]})
 
-	if err != nil {
+	if err == nil {
 		t.Error("unexpected result:", err)
 	}
-	if r.Success != false {
-		t.Error("unexpected result:", r.Success, "expected:", false)
+
+	if ok, code := matchExpectedStatusFromError(err, codes.FailedPrecondition); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.FailedPrecondition)
 	}
 
 	r, err = service.FreeTask(ctx, &services.TaskActionMsg{TaskID: msg[1]})
@@ -420,24 +498,54 @@ func TestHoldFree(t *testing.T) {
 		t.Error("unexpected result:", r.Success, "expected:", true)
 	}
 
-	r, err = service.FreeTask(ctx, &services.TaskActionMsg{TaskID: msg[1]})
+	_, err = service.FreeTask(ctx, &services.TaskActionMsg{TaskID: msg[1]})
 
-	if err != nil {
+	if err == nil {
 		t.Error("unexpected result:", err)
 	}
-	if r.Success != false {
-		t.Error("unexpected result:", r.Success, "expected:", false)
+
+	if ok, code := matchExpectedStatusFromError(err, codes.FailedPrecondition); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.FailedPrecondition)
 	}
 
 	// call method directly to skip setting the name of the user in a middleware handler
-	r, err = tsrvs.FreeTask(ctx, &services.TaskActionMsg{TaskID: msg[1]})
+	_, err = tsrvs.FreeTask(ctx, &services.TaskActionMsg{TaskID: msg[1]})
 
-	if err != nil {
+	if err == nil {
 		t.Error("unexpected result")
 	}
 
-	if r.Success != false || !strings.Contains(r.Message, "undefined user") {
-		t.Error("unexpected result:", r.Success, ";", r.Message)
+	if ok, code := matchExpectedStatusFromError(err, codes.Unauthenticated); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.Unauthenticated)
+	}
+
+}
+
+func TestTaskLog_Errors(t *testing.T) {
+	service := createTaskService(t)
+	ctx := context.Background()
+
+	_, err := service.TaskLog(ctx, &services.TaskActionMsg{TaskID: "ABCD"})
+	if err == nil {
+		t.Error("unexpected result:", err)
+	}
+
+	if ok, code := matchExpectedStatusFromError(err, codes.InvalidArgument); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.InvalidArgument)
+	}
+}
+
+func TestTaskOutput_Errors(t *testing.T) {
+	service := createTaskService(t)
+	ctx := context.Background()
+
+	_, err := service.TaskOutput(ctx, &services.TaskActionMsg{TaskID: "ABCD"})
+	if err == nil {
+		t.Error("unexpected result:", err)
+	}
+
+	if ok, code := matchExpectedStatusFromError(err, codes.InvalidArgument); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.InvalidArgument)
 	}
 }
 
@@ -453,29 +561,13 @@ func TestTaskLogTaskOutput(t *testing.T) {
 
 	msg := strings.Split(r.Message, ":")
 
-	d, err := service.TaskLog(ctx, &services.TaskActionMsg{TaskID: "ABCD"})
-	if err != nil {
-		t.Error("unexpected result:", err)
-	}
-	if d.Success != false {
-		t.Error("unexpected result:", r.Success, "expected:", false)
-	}
-
-	d, err = service.TaskLog(ctx, &services.TaskActionMsg{TaskID: msg[1]})
+	d, err := service.TaskLog(ctx, &services.TaskActionMsg{TaskID: msg[1]})
 
 	if err != nil {
 		t.Error("unexpected result:", err)
 	}
 	if d.Success != true {
 		t.Error("unexpected result:", r.Success, "expected:", true)
-	}
-
-	d, err = service.TaskOutput(ctx, &services.TaskActionMsg{TaskID: "ABCD"})
-	if err != nil {
-		t.Error("unexpected result:", err)
-	}
-	if d.Success != false {
-		t.Error("unexpected result:", r.Success, "expected:", false)
 	}
 
 	d, err = service.TaskOutput(ctx, &services.TaskActionMsg{TaskID: msg[1]})
@@ -488,27 +580,36 @@ func TestTaskLogTaskOutput(t *testing.T) {
 	}
 }
 
-func TestTaskDetail(t *testing.T) {
+func TestTaskDetail_Errors(t *testing.T) {
 
 	service := createTaskService(t)
 	ctx := context.Background()
 
-	r, err := service.ForceTask(ctx, &services.TaskOrderMsg{TaskGroup: "test", Odate: string(date.CurrentOdate()), TaskName: "dummy_05"})
+	_, err := service.TaskDetail(ctx, &services.TaskActionMsg{TaskID: "ABCD1"})
+
+	if err == nil {
+		t.Error("unexpected result:", err)
+	}
+
+	if ok, code := matchExpectedStatusFromError(err, codes.NotFound); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.NotFound)
+	}
+}
+
+func TestTaskDetail(t *testing.T) {
+
+	service := createTaskService(t)
+	ctx := context.Background()
+	msg := &services.TaskOrderMsg{TaskGroup: "test", Odate: string(date.CurrentOdate()), TaskName: "dummy_05"}
+
+	r, err := service.ForceTask(ctx, msg)
 	if err != nil {
 		t.Error("unexpected result")
 	}
 
-	msg := strings.Split(r.Message, ":")
+	rmsg := strings.Split(r.Message, ":")
 
-	d, err := service.TaskDetail(ctx, &services.TaskActionMsg{TaskID: "ABCD"})
-	if err != nil {
-		t.Error("unexpected result:", err)
-	}
-	if d.Result.Success != false {
-		t.Error("unexpected result:", r.Success, "expected:", false)
-	}
-
-	d, err = service.TaskDetail(ctx, &services.TaskActionMsg{TaskID: msg[1]})
+	d, err := service.TaskDetail(ctx, &services.TaskActionMsg{TaskID: rmsg[1]})
 
 	if err != nil {
 		t.Error("unexpected result:", err)

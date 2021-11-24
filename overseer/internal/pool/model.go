@@ -16,6 +16,7 @@ type activeTaskModel struct {
 	Tickets    []taskInTicketModel  `json:"tickets" bson:"tickets"`
 	RunNumber  int32                `json:"rn" bson:"rn"`
 	Executions []taskExecutionModel `json:"exec" bson:"exec"`
+	Cycle      taskCycleModel       `json:"cycle" bson:"cycle"`
 	Waiting    string               `json:"waiting" bson:"waiting"`
 }
 
@@ -36,4 +37,13 @@ type taskExecutionModel struct {
 type taskPoolModel struct {
 	ID   string            `json:"_id" bson:"_id"`
 	Data []activeTaskModel `json:"data" bson:"data"`
+}
+
+type taskCycleModel struct {
+	IsCyclic bool   `json:"is" bson:"is"`
+	NextRun  string `json:"tm" bson:"tm"`
+	MaxRun   int    `json:"max" bson:"max"`
+	Current  int    `json:"cr" bson:"cr"`
+	RunFrom  string `json:"rf" bson:"rf"`
+	Interval int    `json:"in" bson:"in"`
 }

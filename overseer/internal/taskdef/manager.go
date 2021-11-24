@@ -41,7 +41,7 @@ type TaskDefinitionManager interface {
 	GetTask(task taskdata.GroupNameData) (TaskDefinition, error)
 	GetGroups() []string
 	GetTasksFromGroup(groups []string) ([]taskdata.GroupNameData, error)
-	GetTaskModelList(filter string) ([]taskdata.TaskNameModel, error)
+	GetTaskModelList(group taskdata.GroupData) ([]taskdata.TaskNameModel, error)
 	Lock(task taskdata.GroupNameData) (uint32, error)
 	Unlock(lockID uint32) error
 	Create(task TaskDefinition) error
@@ -56,7 +56,7 @@ func NewManager(path string, log logger.AppLogger) (TaskDefinitionManager, error
 
 	var t = new(taskManager)
 	t.dirPath = path
-	t.lockTab = make(map[uint32]lockData, 0)
+	t.lockTab = make(map[uint32]lockData)
 	t.log = log
 
 	return t, nil
@@ -97,12 +97,12 @@ func (m *taskManager) GetTasksFromGroup(groups []string) ([]taskdata.GroupNameDa
 		pth := filepath.Join(m.dirPath, grp)
 		info, err := ioutil.ReadDir(pth)
 		if err != nil {
-			return nil, errors.New("Can't find group with given name")
+			return nil, errors.New("can't find group with given name")
 		}
 
 		for _, nfo := range info {
 
-			if nfo.IsDir() == false {
+			if !nfo.IsDir() {
 
 				nameExt := strings.Split(nfo.Name(), ".")
 				result = append(result, taskdata.GroupNameData{GroupData: taskdata.GroupData{Group: grp}, Name: nameExt[0]})
@@ -112,21 +112,21 @@ func (m *taskManager) GetTasksFromGroup(groups []string) ([]taskdata.GroupNameDa
 
 	return result, nil
 }
-func (m *taskManager) GetTaskModelList(filter string) ([]taskdata.TaskNameModel, error) {
+func (m *taskManager) GetTaskModelList(group taskdata.GroupData) ([]taskdata.TaskNameModel, error) {
 
 	var info []os.FileInfo
 	var err error
 	var definition TaskDefinition
 	result := []taskdata.TaskNameModel{}
 
-	pth := filepath.Join(m.dirPath, filter)
+	pth := filepath.Join(m.dirPath, group.Group)
 	if info, err = ioutil.ReadDir(pth); err != nil {
 		return nil, err
 	}
 
 	for _, nfo := range info {
 
-		if nfo.IsDir() == false {
+		if !nfo.IsDir() {
 			fpath := filepath.Join(pth, nfo.Name())
 			if definition, err = FromDefinitionFile(fpath); err != nil {
 				continue
@@ -167,7 +167,7 @@ func (m *taskManager) Lock(task taskdata.GroupNameData) (uint32, error) {
 	for _, n := range m.lockTab {
 
 		if n.group == task.Group && n.name == task.Name {
-			return 0, errors.New("Unable to acquire lock")
+			return 0, errors.New("unable to acquire lock")
 		}
 	}
 	f, err := os.Open(filepath.Join(m.dirPath, task.Group, fmt.Sprintf("%v.json", task.Name)))
@@ -184,7 +184,7 @@ func (m *taskManager) Unlock(lockID uint32) error {
 	defer m.lock.Unlock()
 	m.lock.Lock()
 	d, x := m.lockTab[lockID]
-	if x == false {
+	if !x {
 		return ErrLockIDNotExists
 	}
 	d.file.Close()
@@ -229,7 +229,7 @@ func (m *taskManager) Update(lockID uint32, task TaskDefinition) error {
 	m.lock.Lock()
 
 	d, x := m.lockTab[lockID]
-	if x == false {
+	if !x {
 		return ErrLockIDNotExists
 	}
 
@@ -253,7 +253,7 @@ func (m *taskManager) Update(lockID uint32, task TaskDefinition) error {
 		nfile, _ := os.OpenFile(path, os.O_TRUNC|os.O_RDWR, 0640)
 
 		m.lockTab[lockID] = lockData{file: nfile, name: name, group: grp}
-		d, _ = m.lockTab[lockID]
+		d = m.lockTab[lockID]
 
 	}
 
@@ -284,7 +284,7 @@ func (m *taskManager) Delete(lockID uint32, task taskdata.GroupNameData) error {
 	m.lock.Lock()
 
 	d, x := m.lockTab[lockID]
-	if x == false {
+	if !x {
 		return ErrLockIDNotExists
 	}
 	if task.Name != d.name || task.Group != d.group {

@@ -1,0 +1,2233 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Overseer API Gateway",
+    "version": "1.0"
+  },
+  "tags": [
+    {
+      "name": "AuthenticateService"
+    },
+    {
+      "name": "ResourceService",
+      "description": "Resource Service"
+    },
+    {
+      "name": "TaskService"
+    },
+    {
+      "name": "DefinitionService"
+    },
+    {
+      "name": "AdministrationService"
+    },
+    {
+      "name": "StatusService"
+    }
+  ],
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/api/authorize": {
+      "post": {
+        "operationId": "AuthenticateService_Authenticate",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/protoActionResultMsg"
+            }
+          },
+          "401": {
+            "description": "An unauthenticated user",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authenticated"
+              }
+            }
+          },
+          "403": {
+            "description": "An unauthorized access",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authorized to perform this action"
+              }
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/protoAuthorizeActionMsg"
+            }
+          }
+        ],
+        "tags": [
+          "AuthenticateService"
+        ]
+      }
+    },
+    "/api/def/groups/{filter}": {
+      "get": {
+        "operationId": "DefinitionService_ListGroups",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/protoDefinitionListGroupResultMsg"
+            }
+          },
+          "401": {
+            "description": "An unauthenticated user",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authenticated"
+              }
+            }
+          },
+          "403": {
+            "description": "An unauthorized access",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authorized to perform this action"
+              }
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "filter",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "DefinitionService"
+        ]
+      }
+    },
+    "/api/def/{groupName}/definitions": {
+      "get": {
+        "operationId": "DefinitionService_ListDefinitionsFromGroup",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/protoDefinitionListResultMsg"
+            }
+          },
+          "401": {
+            "description": "An unauthenticated user",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authenticated"
+              }
+            }
+          },
+          "403": {
+            "description": "An unauthorized access",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authorized to perform this action"
+              }
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "groupName",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "DefinitionService"
+        ]
+      }
+    },
+    "/api/group/force": {
+      "put": {
+        "description": "Forcefully orders an entire group, without checking preconditions",
+        "operationId": "TaskService_ForceGroup",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/protoActionResultMsg"
+            }
+          },
+          "400": {
+            "description": "Processing request error",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "error message"
+              }
+            }
+          },
+          "401": {
+            "description": "An unauthenticated user",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authenticated"
+              }
+            }
+          },
+          "403": {
+            "description": "An unauthorized access",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authorized to perform this action"
+              }
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/protoTaskOrderGroupMsg"
+            }
+          }
+        ],
+        "tags": [
+          "TaskService"
+        ]
+      }
+    },
+    "/api/group/order": {
+      "put": {
+        "description": "Orders an entire group, checks if all preconditions are met",
+        "operationId": "TaskService_OrderGroup",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/protoActionResultMsg"
+            }
+          },
+          "400": {
+            "description": "Processing request error",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "error message"
+              }
+            }
+          },
+          "401": {
+            "description": "An unauthenticated user",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authenticated"
+              }
+            }
+          },
+          "403": {
+            "description": "An unauthorized access",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authorized to perform this action"
+              }
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/protoTaskOrderGroupMsg"
+            }
+          }
+        ],
+        "tags": [
+          "TaskService"
+        ]
+      }
+    },
+    "/api/resources/flag": {
+      "put": {
+        "description": "Sets a flag in a given state",
+        "operationId": "ResourceService_SetFlag",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/protoActionResultMsg"
+            }
+          },
+          "400": {
+            "description": "Processing request error",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "error message"
+              }
+            }
+          },
+          "401": {
+            "description": "An unauthenticated user",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authenticated"
+              }
+            }
+          },
+          "403": {
+            "description": "An unauthorized access",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authorized to perform this action"
+              }
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/protoFlagActionMsg"
+            }
+          }
+        ],
+        "tags": [
+          "ResourceService"
+        ]
+      }
+    },
+    "/api/resources/flag/{name}": {
+      "delete": {
+        "description": "Destroys a flag",
+        "operationId": "ResourceService_DestroyFlag",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/protoActionResultMsg"
+            }
+          },
+          "400": {
+            "description": "Processing request error",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "error message"
+              }
+            }
+          },
+          "401": {
+            "description": "An unauthenticated user",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authenticated"
+              }
+            }
+          },
+          "403": {
+            "description": "An unauthorized access",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authorized to perform this action"
+              }
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "ResourceService"
+        ]
+      }
+    },
+    "/api/resources/flags": {
+      "post": {
+        "description": "Lists flags",
+        "operationId": "ResourceService_ListFlags",
+        "responses": {
+          "200": {
+            "description": "A successful response.(streaming responses)",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "result": {
+                  "$ref": "#/definitions/protoFlagListResultMsg"
+                },
+                "error": {
+                  "$ref": "#/definitions/rpcStatus"
+                }
+              },
+              "title": "Stream result of protoFlagListResultMsg"
+            }
+          },
+          "400": {
+            "description": "Processing request error",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "error message"
+              }
+            }
+          },
+          "401": {
+            "description": "An unauthenticated user",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authenticated"
+              }
+            }
+          },
+          "403": {
+            "description": "An unauthorized access",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authorized to perform this action"
+              }
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/protoFlagActionMsg"
+            }
+          }
+        ],
+        "tags": [
+          "ResourceService"
+        ]
+      }
+    },
+    "/api/resources/ticket": {
+      "put": {
+        "description": "Adds a ticket to the resource pool",
+        "operationId": "ResourceService_AddTicket",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/protoActionResultMsg"
+            }
+          },
+          "400": {
+            "description": "Processing request error",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "error message"
+              }
+            }
+          },
+          "401": {
+            "description": "An unauthenticated user",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authenticated"
+              }
+            }
+          },
+          "403": {
+            "description": "An unauthorized access",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authorized to perform this action"
+              }
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/protoTicketActionMsg"
+            }
+          }
+        ],
+        "tags": [
+          "ResourceService"
+        ]
+      }
+    },
+    "/api/resources/ticket/{name}/{odate}": {
+      "get": {
+        "description": "Checks if given ticket exists",
+        "operationId": "ResourceService_CheckTicket",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/protoActionResultMsg"
+            }
+          },
+          "400": {
+            "description": "Processing request error",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "error message"
+              }
+            }
+          },
+          "401": {
+            "description": "An unauthenticated user",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authenticated"
+              }
+            }
+          },
+          "403": {
+            "description": "An unauthorized access",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authorized to perform this action"
+              }
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "odate",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ResourceService"
+        ]
+      },
+      "delete": {
+        "description": "Deletes a ticket from the resource pool",
+        "operationId": "ResourceService_DeleteTicket",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/protoActionResultMsg"
+            }
+          },
+          "400": {
+            "description": "Processing request error",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "error message"
+              }
+            }
+          },
+          "401": {
+            "description": "An unauthenticated user",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authenticated"
+              }
+            }
+          },
+          "403": {
+            "description": "An unauthorized access",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authorized to perform this action"
+              }
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "odate",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ResourceService"
+        ]
+      }
+    },
+    "/api/resources/tickets": {
+      "post": {
+        "description": "Returns a list of tickets",
+        "operationId": "ResourceService_ListTickets",
+        "responses": {
+          "200": {
+            "description": "A successful response.(streaming responses)",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "result": {
+                  "$ref": "#/definitions/protoTicketListResultMsg"
+                },
+                "error": {
+                  "$ref": "#/definitions/rpcStatus"
+                }
+              },
+              "title": "Stream result of protoTicketListResultMsg"
+            }
+          },
+          "400": {
+            "description": "Processing request error",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "error message"
+              }
+            }
+          },
+          "401": {
+            "description": "An unauthenticated user",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authenticated"
+              }
+            }
+          },
+          "403": {
+            "description": "An unauthorized access",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authorized to perform this action"
+              }
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/protoTicketActionMsg"
+            }
+          }
+        ],
+        "tags": [
+          "ResourceService"
+        ]
+      }
+    },
+    "/api/task/force": {
+      "put": {
+        "description": "Forcefully orders a new task, without checking preconditions",
+        "operationId": "TaskService_ForceTask",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/protoActionResultMsg"
+            }
+          },
+          "400": {
+            "description": "Processing request error",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "error message"
+              }
+            }
+          },
+          "401": {
+            "description": "An unauthenticated user",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authenticated"
+              }
+            }
+          },
+          "403": {
+            "description": "An unauthorized access",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authorized to perform this action"
+              }
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/protoTaskOrderMsg"
+            }
+          }
+        ],
+        "tags": [
+          "TaskService"
+        ]
+      }
+    },
+    "/api/task/order": {
+      "put": {
+        "description": "Orders a new task, Checks if all preconditions are met",
+        "operationId": "TaskService_OrderTask",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/protoActionResultMsg"
+            }
+          },
+          "400": {
+            "description": "Processing request error",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "error message"
+              }
+            }
+          },
+          "401": {
+            "description": "An unauthenticated user",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authenticated"
+              }
+            }
+          },
+          "403": {
+            "description": "An unauthorized access",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authorized to perform this action"
+              }
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/protoTaskOrderMsg"
+            }
+          }
+        ],
+        "tags": [
+          "TaskService"
+        ]
+      }
+    },
+    "/api/task/tasks": {
+      "post": {
+        "description": "Returns a list of active tasks",
+        "operationId": "TaskService_ListTasks",
+        "responses": {
+          "200": {
+            "description": "A successful response.(streaming responses)",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "result": {
+                  "$ref": "#/definitions/protoTaskListResultMsg"
+                },
+                "error": {
+                  "$ref": "#/definitions/rpcStatus"
+                }
+              },
+              "title": "Stream result of protoTaskListResultMsg"
+            }
+          },
+          "400": {
+            "description": "Processing request error",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "error message"
+              }
+            }
+          },
+          "401": {
+            "description": "An unauthenticated user",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authenticated"
+              }
+            }
+          },
+          "403": {
+            "description": "An unauthorized access",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authorized to perform this action"
+              }
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/protoTaskFilterMsg"
+            }
+          }
+        ],
+        "tags": [
+          "TaskService"
+        ]
+      }
+    },
+    "/api/task/{taskID}/confirm": {
+      "put": {
+        "description": "Confirms a task",
+        "operationId": "TaskService_ConfirmTask",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/protoActionResultMsg"
+            }
+          },
+          "400": {
+            "description": "Processing request error",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "error message"
+              }
+            }
+          },
+          "401": {
+            "description": "An unauthenticated user",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authenticated"
+              }
+            }
+          },
+          "403": {
+            "description": "An unauthorized access",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authorized to perform this action"
+              }
+            }
+          },
+          "404": {
+            "description": "The task with a given id was not found",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "error message"
+              }
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "taskID",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "TaskService"
+        ]
+      }
+    },
+    "/api/task/{taskID}/details": {
+      "get": {
+        "description": "Returns detailed information about a given task",
+        "operationId": "TaskService_TaskDetail",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/protoTaskDetailResultMsg"
+            }
+          },
+          "400": {
+            "description": "Processing request error",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "error message"
+              }
+            }
+          },
+          "401": {
+            "description": "An unauthenticated user",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authenticated"
+              }
+            }
+          },
+          "403": {
+            "description": "An unauthorized access",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authorized to perform this action"
+              }
+            }
+          },
+          "404": {
+            "description": "The task with a given id was not found",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "error message"
+              }
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "taskID",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "TaskService"
+        ]
+      }
+    },
+    "/api/task/{taskID}/enforce": {
+      "put": {
+        "description": "Forcibly executes a task",
+        "operationId": "TaskService_EnforceTask",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/protoActionResultMsg"
+            }
+          },
+          "400": {
+            "description": "Processing request error",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "error message"
+              }
+            }
+          },
+          "401": {
+            "description": "An unauthenticated user",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authenticated"
+              }
+            }
+          },
+          "403": {
+            "description": "An unauthorized access",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authorized to perform this action"
+              }
+            }
+          },
+          "404": {
+            "description": "The task with a given id was not found",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "error message"
+              }
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "taskID",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "TaskService"
+        ]
+      }
+    },
+    "/api/task/{taskID}/free": {
+      "put": {
+        "description": "Frees a given task",
+        "operationId": "TaskService_FreeTask",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/protoActionResultMsg"
+            }
+          },
+          "400": {
+            "description": "Processing request error",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "error message"
+              }
+            }
+          },
+          "401": {
+            "description": "An unauthenticated user",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authenticated"
+              }
+            }
+          },
+          "403": {
+            "description": "An unauthorized access",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authorized to perform this action"
+              }
+            }
+          },
+          "404": {
+            "description": "The task with a given id was not found",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "error message"
+              }
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "taskID",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "TaskService"
+        ]
+      }
+    },
+    "/api/task/{taskID}/hold": {
+      "put": {
+        "description": "Holds execution of a given task",
+        "operationId": "TaskService_HoldTask",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/protoActionResultMsg"
+            }
+          },
+          "400": {
+            "description": "Processing request error",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "error message"
+              }
+            }
+          },
+          "401": {
+            "description": "An unauthenticated user",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authenticated"
+              }
+            }
+          },
+          "403": {
+            "description": "An unauthorized access",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authorized to perform this action"
+              }
+            }
+          },
+          "404": {
+            "description": "The task with a given id was not found",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "error message"
+              }
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "taskID",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "TaskService"
+        ]
+      }
+    },
+    "/api/task/{taskID}/log": {
+      "get": {
+        "description": "Returns a history of a given task",
+        "operationId": "TaskService_TaskLog",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/protoTaskDataMsg"
+            }
+          },
+          "400": {
+            "description": "Processing request error",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "error message"
+              }
+            }
+          },
+          "401": {
+            "description": "An unauthenticated user",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authenticated"
+              }
+            }
+          },
+          "403": {
+            "description": "An unauthorized access",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authorized to perform this action"
+              }
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "taskID",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "TaskService"
+        ]
+      }
+    },
+    "/api/task/{taskID}/output": {
+      "get": {
+        "operationId": "TaskService_TaskOutput",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/protoTaskDataMsg"
+            }
+          },
+          "401": {
+            "description": "An unauthenticated user",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authenticated"
+              }
+            }
+          },
+          "403": {
+            "description": "An unauthorized access",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authorized to perform this action"
+              }
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "taskID",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "TaskService"
+        ]
+      }
+    },
+    "/api/task/{taskID}/rerun": {
+      "put": {
+        "description": "Reruns a task",
+        "operationId": "TaskService_RerunTask",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/protoActionResultMsg"
+            }
+          },
+          "400": {
+            "description": "Processing request error",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "error message"
+              }
+            }
+          },
+          "401": {
+            "description": "An unauthenticated user",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authenticated"
+              }
+            }
+          },
+          "403": {
+            "description": "An unauthorized access",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authorized to perform this action"
+              }
+            }
+          },
+          "404": {
+            "description": "The task with a given id was not found",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "error message"
+              }
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "taskID",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "TaskService"
+        ]
+      }
+    },
+    "/api/task/{taskID}/setok": {
+      "put": {
+        "description": "Forcibly changes a task's status to ok",
+        "operationId": "TaskService_SetToOk",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/protoActionResultMsg"
+            }
+          },
+          "400": {
+            "description": "Processing request error",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "error message"
+              }
+            }
+          },
+          "401": {
+            "description": "An unauthenticated user",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authenticated"
+              }
+            }
+          },
+          "403": {
+            "description": "An unauthorized access",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authorized to perform this action"
+              }
+            }
+          },
+          "404": {
+            "description": "The task with a given id was not found",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "error message"
+              }
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "taskID",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "TaskService"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "protoActionResultMsg": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "protoAuthorizeActionMsg": {
+      "type": "object",
+      "properties": {
+        "username": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        }
+      }
+    },
+    "protoDefinitionDetails": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "protoDefinitionListGroupResultMsg": {
+      "type": "object",
+      "properties": {
+        "groupName": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "protoDefinitionListMsg": {
+      "type": "object",
+      "properties": {
+        "groupName": {
+          "type": "string"
+        },
+        "taskName": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        }
+      }
+    },
+    "protoDefinitionListResultMsg": {
+      "type": "object",
+      "properties": {
+        "definitions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protoDefinitionListMsg"
+          }
+        }
+      }
+    },
+    "protoDefinitionMsg": {
+      "type": "object",
+      "properties": {
+        "groupName": {
+          "type": "string"
+        },
+        "taskName": {
+          "type": "string"
+        },
+        "lockID": {
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
+    "protoDefinitionResultMsg": {
+      "type": "object",
+      "properties": {
+        "definitionMsg": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protoDefinitionDetails"
+          }
+        }
+      }
+    },
+    "protoEntityMsg": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        }
+      }
+    },
+    "protoErrorResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Response message",
+          "title": "message"
+        }
+      }
+    },
+    "protoFlagActionMsg": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "state": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "protoFlagListResultMsg": {
+      "type": "object",
+      "properties": {
+        "flagName": {
+          "type": "string"
+        },
+        "state": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "protoListEntityResultMsg": {
+      "type": "object",
+      "properties": {
+        "entity": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protoEntityMsg"
+          }
+        }
+      }
+    },
+    "protoLockResult": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "lockID": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "protoLockResultMsg": {
+      "type": "object",
+      "properties": {
+        "lockResult": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protoLockResult"
+          }
+        }
+      }
+    },
+    "protoRoleDefinitionMsg": {
+      "type": "object",
+      "properties": {
+        "role": {
+          "$ref": "#/definitions/protoRoleMsg"
+        },
+        "description": {
+          "type": "string"
+        },
+        "administration": {
+          "type": "boolean"
+        },
+        "restart": {
+          "type": "boolean"
+        },
+        "setToOk": {
+          "type": "boolean"
+        },
+        "addTicket": {
+          "type": "boolean"
+        },
+        "removeTicket": {
+          "type": "boolean"
+        },
+        "setFlag": {
+          "type": "boolean"
+        },
+        "confirm": {
+          "type": "boolean"
+        },
+        "order": {
+          "type": "boolean"
+        },
+        "force": {
+          "type": "boolean"
+        },
+        "definition": {
+          "type": "boolean"
+        },
+        "hold": {
+          "type": "boolean"
+        },
+        "free": {
+          "type": "boolean"
+        },
+        "bypass": {
+          "type": "boolean"
+        }
+      }
+    },
+    "protoRoleMsg": {
+      "type": "object",
+      "properties": {
+        "rolename": {
+          "type": "string"
+        }
+      }
+    },
+    "protoRoleResultMsg": {
+      "type": "object",
+      "properties": {
+        "role": {
+          "$ref": "#/definitions/protoRoleDefinitionMsg"
+        }
+      }
+    },
+    "protoTaskDataMsg": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        },
+        "output": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "protoTaskDetailResultMsg": {
+      "type": "object",
+      "properties": {
+        "result": {
+          "$ref": "#/definitions/protoActionResultMsg"
+        },
+        "baseData": {
+          "$ref": "#/definitions/protoTaskListResultMsg"
+        },
+        "description": {
+          "type": "string"
+        },
+        "from": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        },
+        "startTime": {
+          "type": "string"
+        },
+        "endTime": {
+          "type": "string"
+        },
+        "worker": {
+          "type": "string"
+        },
+        "resources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protoTaskResourcesMsg"
+          }
+        }
+      }
+    },
+    "protoTaskFilterMsg": {
+      "type": "object",
+      "properties": {
+        "group": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "taskID": {
+          "type": "string"
+        },
+        "odateFrom": {
+          "type": "string"
+        },
+        "odateTo": {
+          "type": "string"
+        },
+        "status": {
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
+    "protoTaskListResultMsg": {
+      "type": "object",
+      "properties": {
+        "groupName": {
+          "type": "string"
+        },
+        "taskName": {
+          "type": "string"
+        },
+        "taskId": {
+          "type": "string"
+        },
+        "orderDate": {
+          "type": "string"
+        },
+        "taskStatus": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "runNumber": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "waiting": {
+          "type": "string"
+        },
+        "held": {
+          "type": "boolean"
+        },
+        "confirmed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "protoTaskOrderGroupMsg": {
+      "type": "object",
+      "properties": {
+        "taskGroup": {
+          "type": "string"
+        },
+        "odate": {
+          "type": "string"
+        }
+      }
+    },
+    "protoTaskOrderMsg": {
+      "type": "object",
+      "properties": {
+        "taskGroup": {
+          "type": "string"
+        },
+        "taskName": {
+          "type": "string"
+        },
+        "odate": {
+          "type": "string"
+        }
+      }
+    },
+    "protoTaskResourcesMsg": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "odate": {
+          "type": "string"
+        },
+        "satisfied": {
+          "type": "boolean"
+        }
+      }
+    },
+    "protoTicketActionMsg": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "odate": {
+          "type": "string"
+        }
+      }
+    },
+    "protoTicketListResultMsg": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "odate": {
+          "type": "string"
+        }
+      }
+    },
+    "protoUserAccount": {
+      "type": "object",
+      "properties": {
+        "username": {
+          "type": "string"
+        },
+        "fullname": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "protoUserResultMsg": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "$ref": "#/definitions/protoUserAccount"
+        }
+      }
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {}
+    },
+    "rpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    }
+  },
+  "securityDefinitions": {
+    "ApiKeyAuth": {
+      "type": "apiKey",
+      "name": "Authorization",
+      "in": "header"
+    }
+  },
+  "security": [
+    {
+      "ApiKeyAuth": []
+    }
+  ]
+}

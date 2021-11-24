@@ -10,6 +10,9 @@ import (
 	"overseer/overseer/internal/resources"
 	"overseer/proto/services"
 	"strings"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type ovsResourceService struct {
@@ -28,29 +31,24 @@ func (srv *ovsResourceService) AddTicket(ctx context.Context, msg *services.Tick
 
 	response := &services.ActionResultMsg{}
 	var respmsg string
-	var success bool
 
 	odate := date.Odate(msg.Odate)
 	name := msg.GetName()
 
 	if err := validateTicketFields(name, odate); err != nil {
-		response.Success = false
-		response.Message = err.Error()
-		return response, nil
+		return response, status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	result, err := srv.resManager.Add(name, odate)
 	srv.log.Info(result)
 
-	if err != nil {
+	respmsg = fmt.Sprintf("ticket: %s with odate:%s added", msg.GetName(), msg.GetOdate())
+	if !result {
 		respmsg = fmt.Sprintf("%s, ticket: %s odate:%s", err, msg.GetName(), msg.GetOdate())
-		success = false
-	} else {
-		respmsg = fmt.Sprintf("ticket: %s with odate:%s added", msg.GetName(), msg.GetOdate())
-		success = true
+		return response, status.Error(codes.FailedPrecondition, respmsg)
 	}
 
-	response.Success = success
+	response.Success = result
 	response.Message = respmsg
 
 	return response, nil
@@ -63,18 +61,17 @@ func (srv *ovsResourceService) DeleteTicket(ctx context.Context, msg *services.T
 	name := msg.GetName()
 
 	if err := validateTicketFields(name, odate); err != nil {
-		response.Success = false
-		response.Message = err.Error()
-		return response, nil
+		return response, status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	result, _ := srv.resManager.Delete(name, odate)
 	srv.log.Info(result)
 
-	respmsg := fmt.Sprintf("ticket: %s with odate:%s does not exists", msg.GetName(), msg.GetOdate())
+	respmsg := fmt.Sprintf("ticket: %s with odate:%s deleted", msg.GetName(), msg.GetOdate())
 
-	if result == true {
-		respmsg = fmt.Sprintf("ticket: %s with odate:%s deleted", msg.GetName(), msg.GetOdate())
+	if !result {
+		respmsg = fmt.Sprintf("ticket: %s with odate:%s does not exists", msg.GetName(), msg.GetOdate())
+		return response, status.Error(codes.FailedPrecondition, respmsg)
 	}
 
 	response.Success = result
@@ -90,9 +87,7 @@ func (srv *ovsResourceService) CheckTicket(ctx context.Context, msg *services.Ti
 	name := msg.GetName()
 
 	if err := validateTicketFields(name, odate); err != nil {
-		response.Success = false
-		response.Message = err.Error()
-		return response, nil
+		return response, status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	result := srv.resManager.Check(name, odate)
@@ -100,7 +95,7 @@ func (srv *ovsResourceService) CheckTicket(ctx context.Context, msg *services.Ti
 	respmsg := fmt.Sprintf("ticket: %s with odate:%s does not exists", msg.GetName(), msg.GetOdate())
 	srv.log.Info(result)
 
-	if result == true {
+	if result {
 		respmsg = fmt.Sprintf("ticket: %s with odate:%s exists", msg.GetName(), msg.GetOdate())
 	}
 
@@ -140,15 +135,11 @@ func (srv *ovsResourceService) SetFlag(ctx context.Context, msg *services.FlagAc
 	name := msg.GetName()
 
 	if err := validateResourceName(name); err != nil {
-		response.Success = false
-		response.Message = err.Error()
-		return response, nil
+		return response, status.Error(codes.InvalidArgument, err.Error())
 
 	}
 	if msg.State < 0 || msg.State > 1 {
-		response.Success = false
-		response.Message = "invalid flag state"
-		return response, nil
+		return response, status.Error(codes.InvalidArgument, "invalid flag state")
 
 	}
 
@@ -161,9 +152,7 @@ func (srv *ovsResourceService) SetFlag(ctx context.Context, msg *services.FlagAc
 
 	ok, err := srv.resManager.Set(msg.Name, resources.FlagResourcePolicy(msg.State))
 	if err != nil {
-		response.Success = false
-		response.Message = err.Error()
-		return response, nil
+		return response, status.Error(codes.FailedPrecondition, err.Error())
 	}
 
 	response.Success = ok
@@ -178,17 +167,13 @@ func (srv *ovsResourceService) DestroyFlag(ctx context.Context, msg *services.Fl
 	name := msg.GetName()
 
 	if err := validateResourceName(name); err != nil {
-		response.Success = false
-		response.Message = err.Error()
-		return response, nil
+		return response, status.Error(codes.InvalidArgument, err.Error())
 
 	}
 
 	ok, err := srv.resManager.DestroyFlag(msg.Name)
 	if err != nil {
-		response.Success = false
-		response.Message = err.Error()
-		return response, nil
+		return response, status.Error(codes.NotFound, err.Error())
 	}
 
 	response.Success = ok
@@ -203,7 +188,7 @@ func (srv *ovsResourceService) ListFlags(msg *services.FlagActionMsg, lflags ser
 
 	err := validateResourceName(name)
 	if err != nil {
-		return nil
+		return status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	data := srv.resManager.ListFlags(name)
@@ -211,7 +196,6 @@ func (srv *ovsResourceService) ListFlags(msg *services.FlagActionMsg, lflags ser
 	for _, d := range data {
 		msg := services.FlagListResultMsg{FlagName: d.Name, State: int32(d.Policy)}
 		lflags.Send(&msg)
-
 	}
 
 	return nil
@@ -220,11 +204,11 @@ func (srv *ovsResourceService) ListFlags(msg *services.FlagActionMsg, lflags ser
 func validateTicketFields(name string, odate date.Odate) error {
 
 	if err := validator.Valid.Validate(odate); err != nil {
-		return err
+		return status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	if err := validateResourceName(name); err != nil {
-		return err
+		return status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	return nil

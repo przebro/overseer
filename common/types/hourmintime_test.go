@@ -1,6 +1,9 @@
 package types
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+)
 
 func TestToString(t *testing.T) {
 
@@ -16,5 +19,10 @@ func TestAsTime(t *testing.T) {
 	if h != 10 || m != 30 {
 		t.Error("Unexpected values", 10, 30)
 	}
+}
 
+func TestNow(t *testing.T) {
+
+	r := Now()
+	fmt.Println(r)
 }

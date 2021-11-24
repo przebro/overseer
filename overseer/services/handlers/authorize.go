@@ -17,14 +17,14 @@ import (
 )
 
 const bearer = "Bearer "
-const authorization = "Authorization"
-const usernameKey = "username"
-const anonymousKey = "<ANONYMOUS>"
+const authorization string = "authorization"
+const usernameKey string = "username"
+const anonymousKey string = "<ANONYMOUS>"
 
 var (
-	ErrUnauthorizedAccess = "unauthorized access"
-	ErrInvalidToken       = errors.New("invalid token")
-	ErrUserNotAuthorized  = errors.New("user not authorized to perform this action")
+	ErrUnauthenticatedAccess = errors.New("user not authenticated")
+	ErrInvalidToken          = errors.New("invalid token")
+	ErrUserNotAuthorized     = errors.New("user not authorized to perform this action")
 )
 
 //AccessRestricter - restricts access to services
@@ -71,20 +71,21 @@ func (ap *ServiceAuthorizeHandler) Authorize(ctx context.Context, req interface{
 		return handler(ctx, req)
 	}
 
-	if token = ap.getTokenFromContext(ctx); token == "" && ap.allowAnonymous == false {
-		return nil, status.Error(codes.Unauthenticated, ErrUnauthorizedAccess)
+	if token = ap.getTokenFromContext(ctx); token == "" && !ap.allowAnonymous {
+		return nil, status.Error(codes.Unauthenticated, ErrUnauthenticatedAccess.Error())
 	}
 
-	if token == "" && ap.allowAnonymous == true {
-		nctx := context.WithValue(ctx, interface{}(usernameKey), anonymousKey)
+	if token == "" && ap.allowAnonymous {
+		ap.log.Info("anonymous access, setting anonymous user:", anonymousKey)
+		nctx := context.WithValue(ctx, usernameKey, anonymousKey)
 		return handler(nctx, req)
 	}
 
 	if username, err = ap.verifyAccess(ctx, restrictedService, token, info.FullMethod); err != nil {
-		return nil, status.Error(codes.Unauthenticated, ErrUnauthorizedAccess)
+		return nil, status.Error(codes.PermissionDenied, err.Error())
 	}
 
-	nctx := context.WithValue(ctx, interface{}(usernameKey), username)
+	nctx := context.WithValue(ctx, usernameKey, username)
 
 	return handler(nctx, req)
 }
@@ -102,19 +103,23 @@ func (ap *ServiceAuthorizeHandler) StreamAuthorize(srv interface{}, ss grpc.Serv
 		return handler(srv, ss)
 	}
 
-	if token = ap.getTokenFromContext(ss.Context()); token == "" && ap.allowAnonymous == false {
-		return status.Error(codes.Unauthenticated, ErrUnauthorizedAccess)
+	if token = ap.getTokenFromContext(ss.Context()); token == "" && !ap.allowAnonymous {
+		return status.Error(codes.Unauthenticated, ErrUnauthenticatedAccess.Error())
 	}
 
-	if token == "" && ap.allowAnonymous == true {
-		return handler(srv, ss)
+	if token == "" && ap.allowAnonymous {
+		nctx := context.WithValue(ss.Context(), usernameKey, anonymousKey)
+		wrapped := wrapServerStream(ss)
+		wrapped.WrappedContext = nctx
+
+		return handler(srv, wrapped)
 	}
 
-	if username, err = ap.verifyAccess(ss.Context(), restrictedService, "", info.FullMethod); err != nil {
-		return err
+	if username, err = ap.verifyAccess(ss.Context(), restrictedService, token, info.FullMethod); err != nil {
+		return status.Error(codes.PermissionDenied, err.Error())
 	}
 
-	nctx := context.WithValue(ss.Context(), interface{}(usernameKey), username)
+	nctx := context.WithValue(ss.Context(), usernameKey, username)
 	wrapped := wrapServerStream(ss)
 	wrapped.WrappedContext = nctx
 
@@ -142,7 +147,7 @@ func (ap *ServiceAuthorizeHandler) verifyAccess(ctx context.Context, rservice Ac
 		return "", ErrInvalidToken
 	}
 
-	if result, err = ap.authman.VerifyAction(ctx, rservice.GetAllowedAction(method), username); err != nil || result == false {
+	if result, err = ap.authman.VerifyAction(ctx, rservice.GetAllowedAction(method), username); err != nil || !result {
 		return "", ErrUserNotAuthorized
 	}
 

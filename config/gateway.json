@@ -1,0 +1,16 @@
+{
+    "gateAddress": "127.0.0.1",
+    "gatePort" : 7054,
+    "overseerAddress" :"127.0.0.1",
+    "overseerPort" :7053,
+    "tls" : false,
+    "cert" : "docker/cert/overseer_srv.crt",
+    "key" : "docker/cert/overseer_srv.key",
+    "LogConfiguration" :{
+        "logLevel" : 1,
+        "sizeLimit" : 2048, 
+        "logDirectory" : "./logs",
+        "prefix" :""
+    }
+
+}

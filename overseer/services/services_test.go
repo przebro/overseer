@@ -12,10 +12,11 @@ import (
 	"overseer/overseer/internal/pool"
 	"overseer/overseer/internal/resources"
 	"overseer/overseer/internal/taskdef"
-	"overseer/overseer/internal/unique"
 	"path/filepath"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type mockDispacher struct {
@@ -29,16 +30,6 @@ func (m *mockDispacher) Subscribe(route events.RouteName, participant events.Eve
 }
 func (m *mockDispacher) Unsubscribe(route events.RouteName, participant events.EventParticipant) {
 
-}
-
-type mockSequence struct {
-	val int
-}
-
-func (m *mockSequence) Next() unique.TaskOrderID {
-
-	m.val++
-	return unique.TaskOrderID(fmt.Sprintf("%05d", m.val))
 }
 
 type mockBuffconnServer struct {
@@ -154,7 +145,7 @@ var rescfg = config.ResourcesConfigurartion{
 	TicketSource: config.ResourceEntry{Sync: 3600, Collection: "resources"},
 	FlagSource:   config.ResourceEntry{Sync: 3600, Collection: "resources"},
 }
-var seq = &mockSequence{val: 1}
+
 var testCollectionName = "tasks"
 var taskPoolConfig config.ActivePoolConfiguration = config.ActivePoolConfiguration{
 	ForceNewDayProc: true, MaxOkReturnCode: 4,
@@ -216,4 +207,20 @@ func init() {
 
 func initTaskPool() {
 	taskPoolT, _ = pool.NewTaskPool(&dispatcher, taskPoolConfig, provider, true, logger.NewTestLogger())
+}
+
+func matchExpectedStatusFromError(err error, expected codes.Code) (bool, codes.Code) {
+
+	var sts *status.Status
+	var ok bool
+
+	if sts, ok = status.FromError(err); !ok {
+		return ok, codes.Code(9999)
+	}
+
+	if sts.Code() != expected {
+		return false, sts.Code()
+	}
+
+	return true, sts.Code()
 }

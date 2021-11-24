@@ -132,21 +132,24 @@ func (srv *ovsDefinitionService) ListGroups(ctx context.Context, filter *service
 	srv.log.Info("Request for group")
 	groups := srv.defManager.GetGroups()
 
-	for _, grp := range groups {
-		result.GroupName = append(result.GroupName, grp)
-	}
+	result.GroupName = append(result.GroupName, groups...)
 
 	return result, nil
 }
-func (srv *ovsDefinitionService) ListDefinitionsFromGroup(ctx context.Context, filter *services.FilterMsg) (*services.DefinitionListResultMsg, error) {
+func (srv *ovsDefinitionService) ListDefinitionsFromGroup(ctx context.Context, groupmsg *services.GroupNameMsg) (*services.DefinitionListResultMsg, error) {
 
 	result := &services.DefinitionListResultMsg{Definitions: []*services.DefinitionListMsg{}}
 
-	if err := validator.Valid.ValidateTag(filter.Filter, "resname"); err != nil {
+	if err := validator.Valid.ValidateTag(groupmsg.GroupName, "resname"); err != nil {
 		return nil, err
 	}
 
-	tasks, err := srv.defManager.GetTaskModelList(filter.Filter)
+	tdata := taskdata.GroupData{Group: groupmsg.GroupName}
+	if err := validator.Valid.Validate(tdata); err != nil {
+		return nil, err
+	}
+
+	tasks, err := srv.defManager.GetTaskModelList(tdata)
 	if err != nil {
 		return nil, err
 	}

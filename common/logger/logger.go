@@ -8,6 +8,14 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+//LogConfiguration - configuration for logger
+type LoggerConfiguration struct {
+	LogLevel     int    `json:"logLevel" validate:"min=0,max=5"`
+	SizeLimit    int    `json:"sizeLimit" validate:"gte=1024"`
+	LogDirectory string `json:"logDirectory"`
+	FilePrefix   string `json:"prefix"`
+}
+
 //AppLogger - Logger interface
 type AppLogger interface {
 	Error(a ...interface{})
@@ -78,5 +86,21 @@ func NewLogger(conf LogConfiguration) (*zap.SugaredLogger, error) {
 	lg = zap.New(core, zap.AddCaller())
 
 	return lg.Sugar(), nil
+
+}
+
+func (l LoggerConfiguration) Level() int {
+	return l.LogLevel
+}
+func (l LoggerConfiguration) Directory() string {
+
+	return l.LogDirectory
+}
+func (l LoggerConfiguration) Prefix() string {
+	return l.FilePrefix
+
+}
+func (l LoggerConfiguration) Limit() int {
+	return l.SizeLimit
 
 }

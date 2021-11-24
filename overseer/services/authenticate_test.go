@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/test/bufconn"
 )
 
@@ -73,36 +74,36 @@ func TestAuthenticateUser(t *testing.T) {
 
 	asrvc.allowAnonymous = false
 
-	r, err = client.Authenticate(context.Background(), msg)
-	if err != nil {
+	_, err = client.Authenticate(context.Background(), msg)
+	if err == nil {
 		t.Error("unexpected result:", err)
 	}
 
-	if r.Success != false {
-		t.Error("unexpected result:", r.Success, "expected:", false)
+	if ok, code := matchExpectedStatusFromError(err, codes.Unauthenticated); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.Unauthenticated)
 	}
 
 	msg.Username = "testuser1"
 
-	r, err = client.Authenticate(context.Background(), msg)
-	if err != nil {
+	_, err = client.Authenticate(context.Background(), msg)
+	if err == nil {
 		t.Error("unexpected result:", err)
 	}
 
-	if r.Success != false {
-		t.Error("unexpected result:", r.Success, "expected:", false)
+	if ok, code := matchExpectedStatusFromError(err, codes.Unauthenticated); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.Unauthenticated)
 	}
 
 	msg.Username = "testuser1"
 	msg.Password = "invalid_password"
 
-	r, err = client.Authenticate(context.Background(), msg)
-	if err != nil {
+	_, err = client.Authenticate(context.Background(), msg)
+	if err == nil {
 		t.Error("unexpected result:", err)
 	}
 
-	if r.Success != false {
-		t.Error("unexpected result:", r.Success, "expected:", false)
+	if ok, code := matchExpectedStatusFromError(err, codes.Unauthenticated); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.Unauthenticated)
 	}
 
 	msg.Username = "testuser1"

@@ -1,0 +1,35 @@
+{
+    "type" : "os",
+    "name" :"cyclic_01",
+    "group" : "samples",
+    "description" :"sample long runnnig task",
+    "inticket" : [
+        {"name" : "IN-CYCLIC01","odate" : "ODATE" }
+    ],
+    "relation" :"AND",
+    "flags" : [],
+    "variables" : [
+        {"name": "%%ABEND","value":"Y"},
+        {"name": "%%TIMEOUT","value":"10"}
+    ],
+    "outticket" :[
+        {"name" : "OUT-CYCLIC01","odate" : "ODATE" ,"action":"ADD"}
+    ],
+    "schedule" :{
+        "type" : "daily",
+        "from" : "",
+        "to" : "",
+        "months" :[1,2,3,4,5,6,7,8,9,10,11,12],
+        "values" :[]
+    },
+    "cyclic":{
+        "cycle" : true,
+        "runs" : 6,
+        "from" :"start",
+        "every" : 5
+    },
+    "spec" :{
+        "type" : "command","command" :"./chkprg argument"
+    }
+
+}

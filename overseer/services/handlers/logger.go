@@ -68,14 +68,15 @@ func (lp *ServiceLoggerHandler) GetStreamHandler() grpc.StreamServerInterceptor 
 
 func wrapLogServerStream(stream grpc.ServerStream, log logger.AppLogger, method string) *wrappedLogServerStream {
 
-	return &wrappedLogServerStream{ServerStream: stream, log: log, method: method}
+	return &wrappedLogServerStream{ServerStream: stream, log: log, method: method, WrappedContext: stream.Context()}
 
 }
 
 type wrappedLogServerStream struct {
 	grpc.ServerStream
-	log    logger.AppLogger
-	method string
+	log            logger.AppLogger
+	method         string
+	WrappedContext context.Context
 }
 
 func (w *wrappedLogServerStream) SendMsg(m interface{}) error {
@@ -102,7 +103,7 @@ func (w *wrappedLogServerStream) RecvMsg(m interface{}) error {
 }
 
 func (w *wrappedLogServerStream) Context() context.Context {
-	return w.Context()
+	return w.WrappedContext
 }
 
 func getLoggerWithFlds(log logger.AppLogger, method string) *zap.Logger {

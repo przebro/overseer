@@ -19,9 +19,11 @@ var (
 	//ErrUnableFindDef - a definition was not found
 	ErrUnableFindDef = errors.New("unable to find definition")
 	//ErrInvalidStatus - invalid status
-	ErrInvalidStatus = errors.New("Invalid status")
+	ErrInvalidStatus = errors.New("invalid status")
 	//ErrUnableFindGroup - a group was not found
-	ErrUnableFindGroup = errors.New("unable to find definition")
+	ErrUnableFindGroup = errors.New("unable to find group")
+	//ErrUnableFindTask
+	ErrUnableFindTask = errors.New("unable to find task")
 )
 
 //ActiveTaskPoolManager - Manages tasks in Active task pool
@@ -88,7 +90,10 @@ func (manager *ActiveTaskPoolManager) OrderGroup(groupdata taskdata.GroupData, o
 
 	for _, d := range grps {
 
-		definition, _ = manager.tdm.GetTask(d)
+		if definition, err = manager.tdm.GetTask(d); err != nil {
+			manager.log.Error("get task definition", d, err)
+			continue
+		}
 
 		orderID, descr := manager.orderDefinition(definition, odate, username)
 		if descr != "" {
@@ -150,7 +155,7 @@ func (manager *ActiveTaskPoolManager) Rerun(id unique.TaskOrderID, username stri
 
 	task, err := manager.pool.task(id)
 	if err != nil {
-		return fmt.Sprintf("task with id:%s does not exists", id), err
+		return fmt.Sprintf("task with id:%s does not exists", id), ErrUnableFindTask
 	}
 
 	state := task.State()
@@ -170,7 +175,7 @@ func (manager *ActiveTaskPoolManager) Enforce(id unique.TaskOrderID, username st
 
 	task, err := manager.pool.task(id)
 	if err != nil {
-		return fmt.Sprintf("task with id:%s does not exists", id), err
+		return fmt.Sprintf("task with id:%s does not exists", id), ErrUnableFindTask
 	}
 
 	state := task.State()
@@ -190,7 +195,7 @@ func (manager *ActiveTaskPoolManager) SetOk(id unique.TaskOrderID, username stri
 
 	task, err := manager.pool.task(id)
 	if err != nil {
-		return fmt.Sprintf("task with id:%s does not exists", id), err
+		return fmt.Sprintf("task with id:%s does not exists", id), ErrUnableFindTask
 	}
 
 	state := task.State()
@@ -209,7 +214,7 @@ func (manager *ActiveTaskPoolManager) Hold(id unique.TaskOrderID, username strin
 
 	task, err := manager.pool.task(id)
 	if err != nil {
-		return fmt.Sprintf("task with id:%s does not exists", id), err
+		return fmt.Sprintf("task with id:%s does not exists", id), ErrUnableFindTask
 	}
 
 	if task.IsHeld() {
@@ -227,7 +232,7 @@ func (manager *ActiveTaskPoolManager) Free(id unique.TaskOrderID, username strin
 
 	task, err := manager.pool.task(id)
 	if err != nil {
-		return fmt.Sprintf("task with id:%s does not exists", id), err
+		return fmt.Sprintf("task with id:%s does not exists", id), ErrUnableFindTask
 	}
 
 	if !task.IsHeld() {
@@ -245,12 +250,12 @@ func (manager *ActiveTaskPoolManager) Confirm(id unique.TaskOrderID, username st
 
 	task, err := manager.pool.task(id)
 	if err != nil {
-		return fmt.Sprintf("task with id:%s does not exists", id), err
+		return fmt.Sprintf("task with id:%s does not exists", id), ErrUnableFindTask
 	}
 
 	result := task.SetConfirm()
-	if result == false {
-		return fmt.Sprintf("task with id:%s already confirmed", id), fmt.Errorf("task confirmed")
+	if !result {
+		return fmt.Sprintf("task with id:%s already confirmed", id), ErrInvalidStatus
 	}
 
 	pushJournalMessage(manager.pool.dispatcher, task.OrderID(), task.CurrentExecutionID(), time.Now(), fmt.Sprintf(journal.TaskConfirmed, username))
@@ -284,7 +289,7 @@ func (manager *ActiveTaskPoolManager) orderNewTasks() int {
 //this method performs all checks
 func (manager *ActiveTaskPoolManager) orderDefinition(def taskdef.TaskDefinition, odate date.Odate, username string) (unique.TaskOrderID, string) {
 
-	manager.log.Debug("order:", def, ":", odate)
+	manager.log.Info("order:", def, ":", odate)
 
 	ctx := TaskOrderContext{def: def,
 		ignoreCalendar:   false,
@@ -301,7 +306,7 @@ func (manager *ActiveTaskPoolManager) orderDefinition(def taskdef.TaskDefinition
 
 	}
 
-	if ctx.isSubmited == false {
+	if !ctx.isSubmited {
 		return "", strings.Join(ctx.reason, ",")
 
 	}
@@ -338,7 +343,7 @@ func (manager *ActiveTaskPoolManager) forceDefinition(def taskdef.TaskDefinition
 
 	}
 
-	if ctx.isSubmited == false {
+	if !ctx.isSubmited {
 		return "", strings.Join(ctx.reason, ",")
 
 	}

@@ -2,7 +2,6 @@ package taskdef
 
 import (
 	"overseer/common/types"
-	_ "overseer/common/types"
 	"overseer/common/validator"
 	"testing"
 	"time"

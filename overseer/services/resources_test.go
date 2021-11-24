@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/test/bufconn"
 )
 
@@ -53,61 +54,85 @@ func createResourceClient(t *testing.T) services.ResourceServiceClient {
 
 }
 
-func TestAddTicket(t *testing.T) {
+func TestAddTicket_Errors(t *testing.T) {
 	client := createResourceClient(t)
 	msg := &services.TicketActionMsg{}
 
-	r, err := client.AddTicket(context.Background(), msg)
+	_, err := client.AddTicket(context.Background(), msg)
 
-	if err != nil {
+	if err == nil {
 		t.Error(err)
 	}
 
-	if r.Success != false {
-		t.Error("unexpected result:", r.Success, "expected:", false)
+	if ok, code := matchExpectedStatusFromError(err, codes.InvalidArgument); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.InvalidArgument)
 	}
 
 	msg.Odate = "20201120"
 
-	r, err = client.AddTicket(context.Background(), msg)
+	_, err = client.AddTicket(context.Background(), msg)
 
-	if err != nil {
+	if err == nil {
 		t.Error(err)
 	}
 
-	if r.Success != false {
-		t.Error("unexpected result:", r.Success, "expected:", false)
+	if ok, code := matchExpectedStatusFromError(err, codes.InvalidArgument); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.InvalidArgument)
 	}
 
 	msg.Odate = "ABCDEF"
 	msg.Name = "test"
 
-	r, err = client.AddTicket(context.Background(), msg)
+	_, err = client.AddTicket(context.Background(), msg)
 
-	if err != nil {
+	if err == nil {
 		t.Error(err)
 	}
 
-	if r.Success != false {
-		t.Error("unexpected result:", r.Success, "expected:", false)
+	if ok, code := matchExpectedStatusFromError(err, codes.InvalidArgument); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.InvalidArgument)
 	}
 
 	msg.Name = "ticket_with_very_long_name_that_exceeds_32_characters"
 	msg.Odate = "20201115"
 
-	r, err = client.AddTicket(context.Background(), msg)
+	_, err = client.AddTicket(context.Background(), msg)
+
+	if err == nil {
+		t.Error(err)
+	}
+
+	if ok, code := matchExpectedStatusFromError(err, codes.InvalidArgument); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.InvalidArgument)
+	}
+}
+
+func TestAddTicket_Exists_Errors(t *testing.T) {
+	client := createResourceClient(t)
+	msg := &services.TicketActionMsg{Name: "service_add_ticket_AB"}
+
+	_, err := client.AddTicket(context.Background(), msg)
 
 	if err != nil {
 		t.Error(err)
 	}
 
-	if r.Success != false {
-		t.Error("unexpected result:", r.Success, "expected:", false)
+	_, err = client.AddTicket(context.Background(), msg)
+
+	if err == nil {
+		t.Error(err)
 	}
 
-	msg.Name = "service_test_1"
+	if ok, code := matchExpectedStatusFromError(err, codes.FailedPrecondition); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.FailedPrecondition)
+	}
+}
 
-	r, err = client.AddTicket(context.Background(), msg)
+func TestAddTicket(t *testing.T) {
+	client := createResourceClient(t)
+	msg := &services.TicketActionMsg{Name: "service_add_ticket_01"}
+
+	r, err := client.AddTicket(context.Background(), msg)
 
 	if err != nil {
 		t.Error(err)
@@ -116,32 +141,21 @@ func TestAddTicket(t *testing.T) {
 	if r.Success != true {
 		t.Error("unexpected result:", r.Success, "expected:", true)
 	}
-
-	msg.Name = "service_test_1"
-
-	r, err = client.AddTicket(context.Background(), msg)
-
-	if err != nil {
-		t.Error(err)
-	}
-
-	if r.Success != false {
-		t.Error("unexpected result:", r.Success, "expected:", false)
-	}
 }
 
-func TestDeleteTicket(t *testing.T) {
+func TestDeleteTicket_Errors(t *testing.T) {
+
 	client := createResourceClient(t)
 	msg := &services.TicketActionMsg{Name: "service_test_2", Odate: ""}
 
-	r, err := client.AddTicket(context.Background(), msg)
+	_, err := client.AddTicket(context.Background(), msg)
 	if err != nil {
 		t.Error(err)
 	}
 
 	msg = &services.TicketActionMsg{Name: "service_test_3", Odate: "20201120"}
 
-	r, err = client.AddTicket(context.Background(), msg)
+	_, err = client.AddTicket(context.Background(), msg)
 	if err != nil {
 		t.Error(err)
 	}
@@ -149,116 +163,140 @@ func TestDeleteTicket(t *testing.T) {
 	msg.Name = "very_long_name_that_exceeds_32_characters"
 	msg.Odate = ""
 
-	r, err = client.DeleteTicket(context.Background(), msg)
+	_, err = client.DeleteTicket(context.Background(), msg)
 
-	if err != nil {
-		t.Error(err)
+	if err == nil {
+		t.Error("unexpected result:", err)
 	}
 
-	if r.Success != false {
-		t.Error("unexpected result:", r.Success, "expected:", false)
+	if ok, code := matchExpectedStatusFromError(err, codes.InvalidArgument); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.InvalidArgument)
 	}
 
 	msg.Name = "service_test_2"
 	msg.Odate = "ABCDEDF"
 
-	r, err = client.DeleteTicket(context.Background(), msg)
+	_, err = client.DeleteTicket(context.Background(), msg)
 
-	if err != nil {
-		t.Error(err)
+	if err == nil {
+		t.Error("unexpected result:", err)
 	}
 
-	if r.Success != false {
-		t.Error("unexpected result:", r.Success, "expected:", false)
+	if ok, code := matchExpectedStatusFromError(err, codes.InvalidArgument); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.InvalidArgument)
 	}
 
 	msg.Name = "service_test_2"
 	msg.Odate = ""
 
-	r, err = client.DeleteTicket(context.Background(), msg)
+	r, err := client.DeleteTicket(context.Background(), msg)
 
 	if err != nil {
-		t.Error(err)
+		t.Error("unexpected result:", err)
 	}
 
-	if r.Success != true {
+	if !r.Success {
 		t.Error("unexpected result:", r.Success, "expected:", true)
 	}
 
 	msg.Name = "service_test_2"
 	msg.Odate = ""
 
-	r, err = client.DeleteTicket(context.Background(), msg)
+	_, err = client.DeleteTicket(context.Background(), msg)
+
+	if err == nil {
+		t.Error("unexpected result:", err)
+	}
+
+	if ok, code := matchExpectedStatusFromError(err, codes.FailedPrecondition); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.FailedPrecondition)
+	}
+
+}
+func TestDeleteTicket(t *testing.T) {
+
+	client := createResourceClient(t)
+	msg := &services.TicketActionMsg{Name: "service_test_DEL_03", Odate: "20201120"}
+
+	_, err := client.AddTicket(context.Background(), msg)
 
 	if err != nil {
 		t.Error(err)
 	}
 
-	if r.Success != false {
-		t.Error("unexpected result:", r.Success, "expected:", false)
-	}
-
-	msg.Name = "service_test_3"
-	msg.Odate = "20201120"
-
-	r, err = client.DeleteTicket(context.Background(), msg)
+	r, err := client.DeleteTicket(context.Background(), msg)
 
 	if err != nil {
-		t.Error(err)
+		t.Error("unexpected result:", err)
 	}
 
-	if r.Success != true {
+	if !r.Success {
 		t.Error("unexpected result:", r.Success, "expected:", true)
 	}
 
 }
+func TestCheckTicket_Errors(t *testing.T) {
+	client := createResourceClient(t)
+	msg := &services.TicketActionMsg{Name: "very_long_name_that_exceeds_32_characters", Odate: ""}
 
+	_, err := client.CheckTicket(context.Background(), msg)
+
+	if err == nil {
+		t.Error(err)
+	}
+
+	if ok, code := matchExpectedStatusFromError(err, codes.InvalidArgument); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.InvalidArgument)
+	}
+
+	msg.Name = "service_test_4"
+	msg.Odate = "ABCDEF"
+
+	_, err = client.CheckTicket(context.Background(), msg)
+
+	if err == nil {
+		t.Error(err)
+	}
+
+	if ok, code := matchExpectedStatusFromError(err, codes.InvalidArgument); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.InvalidArgument)
+	}
+
+	msg.Name = ""
+	msg.Odate = "20210101"
+
+	_, err = client.CheckTicket(context.Background(), msg)
+
+	if err == nil {
+		t.Error(err)
+	}
+
+	if ok, code := matchExpectedStatusFromError(err, codes.InvalidArgument); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.InvalidArgument)
+	}
+
+}
 func TestCheckTicket(t *testing.T) {
 
 	client := createResourceClient(t)
 	msg := &services.TicketActionMsg{Name: "service_test_4", Odate: ""}
-	r, err := client.AddTicket(context.Background(), msg)
+
+	_, err := client.AddTicket(context.Background(), msg)
 
 	if err != nil {
 		t.Error(err)
 	}
 
 	msg = &services.TicketActionMsg{Name: "service_test_4", Odate: "20201124"}
-	r, err = client.AddTicket(context.Background(), msg)
+	_, err = client.AddTicket(context.Background(), msg)
 	if err != nil {
 		t.Error(err)
-	}
-
-	msg.Name = "very_long_name_that_exceeds_32_characters"
-	msg.Odate = ""
-
-	r, err = client.CheckTicket(context.Background(), msg)
-
-	if err != nil {
-		t.Error(err)
-	}
-
-	if r.Success != false {
-		t.Error("unexpected result:", r.Success, "expected:", false)
-	}
-
-	msg.Name = "service_test_4"
-	msg.Odate = "ABCDEF"
-
-	r, err = client.CheckTicket(context.Background(), msg)
-
-	if err != nil {
-		t.Error(err)
-	}
-
-	if r.Success != false {
-		t.Error("unexpected result:", r.Success, "expected:", false)
 	}
 
 	msg.Name = "service_test_4"
 	msg.Odate = ""
 
-	r, err = client.CheckTicket(context.Background(), msg)
+	r, err := client.CheckTicket(context.Background(), msg)
 
 	if err != nil {
 		t.Error(err)
@@ -336,58 +374,67 @@ func TestListTicket(t *testing.T) {
 	}
 
 }
-
-func TestSetFlag(t *testing.T) {
+func TestSetFlag_Errors(t *testing.T) {
 
 	client := createResourceClient(t)
 	msg := &services.FlagActionMsg{Name: "very_long_resource_name_that_exceeds_32_chracters"}
+
+	_, err := client.SetFlag(context.Background(), msg)
+
+	if err == nil {
+		t.Error("unexpected result:", err)
+	}
+
+	if ok, code := matchExpectedStatusFromError(err, codes.InvalidArgument); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.InvalidArgument)
+	}
+
+	msg.Name = "test_flag_02"
+	msg.State = 2
+	_, err = client.SetFlag(context.Background(), msg)
+
+	if err == nil {
+		t.Error("unexpected result:", err)
+	}
+
+	if ok, code := matchExpectedStatusFromError(err, codes.InvalidArgument); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.InvalidArgument)
+	}
+}
+func TestSetFlag_InvalidState(t *testing.T) {
+
+	client := createResourceClient(t)
+	msg := &services.FlagActionMsg{Name: "test_flag_002A", State: 0}
 
 	r, err := client.SetFlag(context.Background(), msg)
 
 	if err != nil {
 		t.Error("unexpected result:", err)
 	}
-	if r.Success != false {
-		t.Error("unexpected result:", r.Success, "expected:", false)
-	}
-
-	msg.Name = "test_flag_2"
-	msg.State = 2
-	r, err = client.SetFlag(context.Background(), msg)
-
-	if err != nil {
-		t.Error("unexpected result:", err)
-	}
-	if r.Success != false {
-		t.Error("unexpected result:", r.Success, "expected:", false)
-	}
-
-	msg.Name = "test_flag_1"
-	msg.State = 0
-	r, err = client.SetFlag(context.Background(), msg)
-
-	if err != nil {
-		t.Error("unexpected result:", err)
-	}
 	if r.Success != true {
 		t.Error("unexpected result:", r.Success, "expected:", true)
 	}
 
-	msg.Name = "test_flag_1"
+	msg.Name = "test_flag_002A"
 	msg.State = 1
-	//flag is already set to shared so, setting to exclusive is not allowed
-	r, err = client.SetFlag(context.Background(), msg)
 
-	if err != nil {
+	//flag is already set to shared so, setting to exclusive is not allowed
+	_, err = client.SetFlag(context.Background(), msg)
+
+	if err == nil {
 		t.Error("unexpected result:", err)
 	}
-	if r.Success != false {
-		t.Error("unexpected result:", r.Success, "expected:", false)
-	}
 
-	msg.Name = "test_flag_2"
-	msg.State = 1
-	r, err = client.SetFlag(context.Background(), msg)
+	if ok, code := matchExpectedStatusFromError(err, codes.FailedPrecondition); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.FailedPrecondition)
+	}
+}
+func TestSetFlag(t *testing.T) {
+
+	client := createResourceClient(t)
+	msg := &services.FlagActionMsg{Name: "test_flag_002C", State: 1}
+
+	r, err := client.SetFlag(context.Background(), msg)
 
 	if err != nil {
 		t.Error("unexpected result:", err)
@@ -397,65 +444,96 @@ func TestSetFlag(t *testing.T) {
 	}
 }
 
-func TestListFlags(t *testing.T) {
+func TestListFlags_Errors(t *testing.T) {
 
 	client := createResourceClient(t)
+
 	msg := &services.FlagActionMsg{Name: "very_long_resource_name_that_exceeds_32_chracters"}
 	result, err := client.ListFlags(context.Background(), msg)
 
 	if err != nil {
 		t.Error("unexpected result:", err)
 	}
-	if _, err := result.Recv(); err == nil {
+
+	_, err = result.Recv()
+	if err == nil {
 		t.Error("unexpected result")
 	}
 
+	if ok, code := matchExpectedStatusFromError(err, codes.InvalidArgument); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.InvalidArgument)
+	}
+
+}
+func TestListFlags(t *testing.T) {
+
+	client := createResourceClient(t)
+
+	msg := &services.FlagActionMsg{Name: "test_flag_05A", State: 1}
+	_, err := client.SetFlag(context.Background(), msg)
+
+	if err != nil {
+		t.Error("unexpected result:", err)
+	}
+
 	msg.Name = "test_flag*"
-	result, err = client.ListFlags(context.Background(), msg)
+	result, err := client.ListFlags(context.Background(), msg)
 
 	if err != nil {
 		t.Error("unexpected result:", err)
 	}
 
 	_, err = result.Recv()
-
 	if err != nil {
 		t.Error("unexpected result:", err)
 	}
 
 }
 
-func TestDestroyFlag(t *testing.T) {
+func TestDestroyFlag_Errors(t *testing.T) {
 
 	client := createResourceClient(t)
 	msg := &services.FlagActionMsg{Name: "very_long_resource_name_that_exceeds_32_chracters"}
+	_, err := client.DestroyFlag(context.Background(), msg)
+
+	if err == nil {
+		t.Error("unexpected result:", err)
+	}
+
+	if ok, code := matchExpectedStatusFromError(err, codes.InvalidArgument); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.InvalidArgument)
+	}
+
+	msg.Name = "test_flag_1N"
+	_, err = client.DestroyFlag(context.Background(), msg)
+
+	if err == nil {
+		t.Error("unexpected result:", err)
+	}
+
+	if ok, code := matchExpectedStatusFromError(err, codes.NotFound); !ok {
+		t.Error("unexpected result:", code, "expected:", codes.NotFound)
+	}
+
+}
+func TestDestroyFlag(t *testing.T) {
+
+	client := createResourceClient(t)
+	msg := &services.FlagActionMsg{Name: "test_flag_05", State: 1}
+	_, err := client.SetFlag(context.Background(), msg)
+
+	if err != nil {
+		t.Error("unexpected result:", err)
+	}
+
+	msg.Name = "test_flag_05"
 	r, err := client.DestroyFlag(context.Background(), msg)
 
 	if err != nil {
-		t.Error("unexpected result:", err)
+		t.Error("unexpected result:", err, "expected:nil")
 	}
-	if r.Success != false {
-		t.Error("unexpected result:", r.Success, "expected:", false)
-	}
-
-	msg.Name = "test_flag_1"
-	r, err = client.DestroyFlag(context.Background(), msg)
-
-	if err != nil {
-		t.Error("unexpected result:", err)
-	}
-	if r.Success != true {
+	if !r.Success {
 		t.Error("unexpected result:", r.Success, "expected:", true)
-	}
-
-	msg.Name = "test_flag_1"
-	r, err = client.DestroyFlag(context.Background(), msg)
-
-	if err != nil {
-		t.Error("unexpected result:", err)
-	}
-	if r.Success != false {
-		t.Error("unexpected result:", r.Success, "expected:", false)
 	}
 
 }

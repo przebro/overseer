@@ -15,6 +15,7 @@ type TaskBuilder interface {
 	WithOutTickets(out []OutTicketData) TaskBuilder
 	WithFlags(flags []FlagData) TaskBuilder
 	WithConfirm() TaskBuilder
+	WithCyclic(data CyclicTaskData) TaskBuilder
 	WithVariables(vars []VariableData) TaskBuilder
 	WithRetention(days int) TaskBuilder
 	Build() (TaskDefinition, error)
@@ -55,6 +56,8 @@ func (builder *DummyTaskBuilder) FromTemplate(templ TaskDefinition) TaskBuilder 
 	builder.def.Schedule.OrderType = templ.OrderType()
 	builder.def.Schedule.Months = make([]time.Month, len(templ.Months()))
 	copy(builder.def.Schedule.Months, templ.Months())
+
+	builder.def.Cyclics = templ.Cyclic()
 
 	builder.def.Schedule.Dayvalues = make([]int, len(templ.Days()))
 	copy(builder.def.Schedule.Dayvalues, templ.Days())
@@ -128,6 +131,13 @@ func (builder *DummyTaskBuilder) WithRetention(days int) TaskBuilder {
 
 	builder.def.DataRetention = days
 
+	return builder
+}
+
+//WithCyclic - Adds cyclic settings to the task
+func (builder *DummyTaskBuilder) WithCyclic(data CyclicTaskData) TaskBuilder {
+
+	builder.def.Cyclics = data
 	return builder
 }
 

@@ -6,14 +6,13 @@ import (
 	"overseer/common/logger"
 	"overseer/common/types"
 	"overseer/common/types/date"
+	"overseer/common/validator"
 	"overseer/overseer/taskdata"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 )
-
-var log logger.AppLogger = logger.NewTestLogger()
 
 var expect TaskDefinition = &baseTaskDefinition{
 	Name: "dummy_01", Group: "", Description: "sample dummy task definition", ConfirmFlag: false, TaskType: "dummy",
@@ -24,20 +23,6 @@ var expect TaskDefinition = &baseTaskDefinition{
 	Schedule: SchedulingData{
 		OrderType: "weekday",
 		FromTime:  "11:30",
-		ToTime:    "",
-		Months:    []time.Month{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
-		Dayvalues: []int{1, 3, 5},
-	},
-}
-var expect2 TaskDefinition = &baseTaskDefinition{
-	Name: "dummy_02", Group: "", Description: "sample modified dummy task definition", ConfirmFlag: false, TaskType: "dummy",
-	InTickets:  []InTicketData{{Name: "OK-COND-01", Odate: date.OdateValueDate}},
-	InRelation: InTicketAND,
-	OutTickets: []OutTicketData{{Name: "OK-COND-02", Action: OutActionAdd, Odate: date.OdateValueDate}},
-	FlagsTab:   []FlagData{{Name: "flag01", Type: FlagShared}},
-	Schedule: SchedulingData{
-		OrderType: "weekday",
-		FromTime:  "15:30",
 		ToTime:    "",
 		Months:    []time.Month{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
 		Dayvalues: []int{1, 3, 5},
@@ -62,14 +47,12 @@ var expect3 TaskDefinition = &baseTaskDefinition{
 }
 
 var expectOutTicket string = `"outticket":[{"name":"OK-COND-02","odate":"ODATE","action":"ADD"}]`
-var expectSchedule string = `"schedule":{"type":"weekday","from":"15:30","to":"","months":[1,2,3,4,5,6,7,8,9,10,11,12],"values":["1","3","5"]}`
 
 func TestInit(t *testing.T) {
 
 }
 
 func TestLoad(t *testing.T) {
-
 	t.Log(expect)
 }
 
@@ -214,7 +197,7 @@ func TestManagerLock(t *testing.T) {
 
 	//acquiring a new lock for a task that is already locked isn't possible
 	_, err = manager.Lock(taskdata.GroupNameData{GroupData: taskdata.GroupData{Group: "test"}, Name: "dummy_01"})
-	if !strings.Contains(err.Error(), "Unable to acquire lock") {
+	if !strings.Contains(err.Error(), "unable to acquire lock") {
 		t.Error("Lock error, object already locked")
 	}
 
@@ -298,7 +281,7 @@ func TestManagerCreateDelete(t *testing.T) {
 
 	}
 
-	lockID, err := manager.Lock(taskdata.GroupNameData{Name: "dummy_01", GroupData: taskdata.GroupData{Group: "test"}})
+	lockID, _ := manager.Lock(taskdata.GroupNameData{Name: "dummy_01", GroupData: taskdata.GroupData{Group: "test"}})
 
 	err = manager.Delete(lockID, taskdata.GroupNameData{Name: "", GroupData: taskdata.GroupData{Group: "test"}})
 	if !strings.Contains(err.Error(), "group and name does not match with lockID") {
@@ -325,7 +308,7 @@ func TestManagerCreateDelete(t *testing.T) {
 
 	}
 
-	lockID, err = manager.Lock(taskdata.GroupNameData{Name: "dummy_AA", GroupData: taskdata.GroupData{Group: "test"}})
+	lockID, _ = manager.Lock(taskdata.GroupNameData{Name: "dummy_AA", GroupData: taskdata.GroupData{Group: "test"}})
 
 	err = manager.Delete(lockID, taskdata.GroupNameData{Name: "dummy_AA", GroupData: taskdata.GroupData{Group: "test"}})
 	if err != nil {
@@ -368,11 +351,11 @@ func TestListTaskModel(t *testing.T) {
 		t.Fatal("unable to intialize manager")
 	}
 
-	if _, err := manager.GetTaskModelList("dir_not_exists"); err == nil {
+	if _, err := manager.GetTaskModelList(taskdata.GroupData{Group: "dir_not_exists"}); err == nil {
 		t.Error("unexpected result")
 	}
 
-	list, err := manager.GetTaskModelList("test")
+	list, err := manager.GetTaskModelList(taskdata.GroupData{Group: "test"})
 	if err != nil {
 		t.Error("unexpected result:", err)
 	}
@@ -433,6 +416,86 @@ func TestGetTimeSpan(t *testing.T) {
 	if from.String() != "10:30" || to.String() != "11:30" {
 		t.Error("Unexpected values:", from, to)
 	}
+}
+
+func TestCyclicData(t *testing.T) {
+
+	path, _ := filepath.Abs("../../../def/")
+	manager, err := NewManager(path, logger.NewTestLogger())
+	if err != nil {
+		t.Fatal("unable to intialize manager")
+	}
+
+	def, err := manager.GetTask(taskdata.GroupNameData{GroupData: taskdata.GroupData{Group: "test"}, Name: "cyclic_01"})
+	if err != nil {
+		t.Error(err)
+	}
+	fmt.Println(def.GetInfo())
+
+}
+
+func TestValidateCyclicData(t *testing.T) {
+
+	var ctd CyclicTaskData
+	var err error
+	ctd = CyclicTaskData{}
+
+	if err = validator.Valid.Validate(ctd); err != nil {
+		t.Error("unexpected result:", err)
+	}
+
+	ctd.TimeInterval = -1
+
+	if err = validator.Valid.Validate(ctd); err == nil {
+		t.Error("unexpected result:")
+	}
+
+	ctd.TimeInterval = 1441
+
+	if err = validator.Valid.Validate(ctd); err == nil {
+		t.Error("unexpected result:")
+	}
+
+	ctd.TimeInterval = 5
+	ctd.MaxRuns = -1
+
+	if err = validator.Valid.Validate(ctd); err == nil {
+		t.Error("unexpected result:")
+	}
+
+	ctd.MaxRuns = 1000
+
+	if err = validator.Valid.Validate(ctd); err == nil {
+		t.Error("unexpected result:")
+	}
+
+	ctd.MaxRuns = 5
+	ctd.RunFrom = "start"
+
+	if err = validator.Valid.Validate(ctd); err != nil {
+		t.Error("unexpected result:")
+	}
+
+	ctd.RunFrom = "end"
+
+	if err = validator.Valid.Validate(ctd); err != nil {
+		t.Error("unexpected result:")
+	}
+
+	ctd.RunFrom = "schedule"
+
+	if err = validator.Valid.Validate(ctd); err != nil {
+		t.Error("unexpected result:")
+	}
+
+	ctd.RunFrom = "unknown"
+
+	if err = validator.Valid.Validate(ctd); err == nil {
+		t.Error("unexpected result:")
+	}
+
+	fmt.Println(ctd)
+
 }
 
 func TestGetAction(t *testing.T) {

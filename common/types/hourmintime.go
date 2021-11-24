@@ -1,8 +1,10 @@
 package types
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
+	"time"
 )
 
 //HourMinTime - represents formatted time value
@@ -19,4 +21,15 @@ func (h HourMinTime) AsTime() (hour, min int) {
 	hour, _ = strconv.Atoi(res[0])
 	min, _ = strconv.Atoi(res[1])
 	return
+}
+
+func Now() HourMinTime {
+
+	hmt := time.Now()
+	return HourMinTime(fmt.Sprintf("%02d:%02d", hmt.Hour(), hmt.Minute()))
+}
+
+func FromTime(tm time.Time) HourMinTime {
+
+	return HourMinTime(fmt.Sprintf("%02d:%02d", tm.Hour(), tm.Minute()))
 }

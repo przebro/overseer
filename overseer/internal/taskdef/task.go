@@ -26,6 +26,18 @@ type SchedulingOption string
 //Possible values are ADD,REM
 type OutAction string
 
+//CycleFromOption -
+type CycleFromOption string
+
+var (
+	//CycleFromStart - computes next time based on start time
+	CycleFromStart CycleFromOption = "start"
+	//CycleFromEnd - computes next time based on end time
+	CycleFromEnd CycleFromOption = "end"
+	//CycleFromSchedule - computes next time based on new day proc
+	CycleFromSchedule CycleFromOption = "schedule"
+)
+
 //InTicketData - Holds information about the required tickets to start a task
 type InTicketData struct {
 	Name  string          `json:"name" validate:"required,max=32,resname"`
@@ -69,6 +81,14 @@ type SchedulingData struct {
 	Dayvalues    []int             `json:"days"  validate:"unique"`
 }
 
+//CyclicTaskData -
+type CyclicTaskData struct {
+	IsCycle      bool            `json:"cycle"`
+	MaxRuns      int             `json:"runs" validate:"min=0,max=999"`
+	RunFrom      CycleFromOption `json:"from" validate:"omitempty,oneof=start end schedule"`
+	TimeInterval int             `json:"every" validate:"min=0,max=1440"`
+}
+
 type baseTaskDefinition struct {
 	TaskType      types.TaskType   `json:"type" validate:"oneof=dummy os"`
 	Name          string           `json:"name" validate:"required,max=32,resname"`
@@ -77,6 +97,7 @@ type baseTaskDefinition struct {
 	ConfirmFlag   bool             `json:"confirm"`
 	DataRetention int              `json:"retention" validate:"min=0,max=14"`
 	Schedule      SchedulingData   `json:"schedule" validate:"omitempty"`
+	Cyclics       CyclicTaskData   `json:"cyclic" validate:"omitempty"`
 	InTickets     []InTicketData   `json:"inticket" validate:"omitempty,dive"`
 	InRelation    InTicketRelation `json:"relation" validate:"required_with=InTickets,omitempty,oneof=AND OR"`
 	FlagsTab      []FlagData       `json:"flags"  validate:"omitempty,dive"`
@@ -206,10 +227,20 @@ func (task *baseTaskDefinition) Flags() []FlagData {
 	return task.FlagsTab
 }
 
+//TaskCycling - Provides information about tasks cycle
+type TaskCycling interface {
+	Cyclic() CyclicTaskData
+}
+
+func (task *baseTaskDefinition) Cyclic() CyclicTaskData {
+	return task.Cyclics
+}
+
 //TaskDefinition - Definition of an active task.
 type TaskDefinition interface {
 	BaseInfo
 	TaskScheduling
+	TaskCycling
 	TaskInTicket
 	TaskOutTicket
 	TaskFlag

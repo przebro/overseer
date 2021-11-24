@@ -125,7 +125,7 @@ func (cli *OverseerClient) DelTicket(name, odate string) (string, error) {
 		return "", fmt.Errorf("client not connected,connect first")
 	}
 
-	ctx := metadata.AppendToOutgoingContext(context.Background(), "Authorization", cli.token)
+	ctx := metadata.AppendToOutgoingContext(context.Background(), "authorization", cli.token)
 	service := services.NewResourceServiceClient(cli.conn)
 
 	result, err := service.DeleteTicket(ctx, &services.TicketActionMsg{Name: name, Odate: odate})

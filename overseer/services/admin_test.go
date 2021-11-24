@@ -93,13 +93,13 @@ func TestGetUser(t *testing.T) {
 
 	client := createAdminCLient(t)
 
-	r, err := client.GetUser(context.Background(), &services.UserMsg{Username: "user_not_exists"})
+	_, err := client.GetUser(context.Background(), &services.UserMsg{Username: "user_not_exists"})
 
 	if err == nil {
 		t.Error("unexpected result")
 
 	}
-	r, err = client.GetUser(context.Background(), &services.UserMsg{Username: "testuser1"})
+	r, err := client.GetUser(context.Background(), &services.UserMsg{Username: "testuser1"})
 
 	if err != nil {
 		t.Error("unexpected result:", err)
@@ -325,13 +325,13 @@ func TestGetRole(t *testing.T) {
 
 	client := createAdminCLient(t)
 
-	r, err := client.GetRole(context.Background(), &services.RoleMsg{Rolename: "role_not_exists"})
+	_, err := client.GetRole(context.Background(), &services.RoleMsg{Rolename: "role_not_exists"})
 
 	if err == nil {
 		t.Error("unexpected result")
 
 	}
-	r, err = client.GetRole(context.Background(), &services.RoleMsg{Rolename: "testrole1"})
+	r, err := client.GetRole(context.Background(), &services.RoleMsg{Rolename: "testrole1"})
 
 	if err != nil {
 		t.Error("unexpected result:", err)

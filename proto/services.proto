@@ -1,46 +1,721 @@
 syntax = "proto3";
 import "google/protobuf/empty.proto";
+import "google/api/annotations.proto";
+import "openapiv2/options/annotations.proto";
 
 package proto;
 option go_package = "proto/services";
 
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+	info: {
+		title: "Overseer API Gateway";
+		version: "1.0";
+	};
+
+    schemes: HTTP;
+    schemes: HTTPS;
+    consumes: "application/json";
+
+    security_definitions: {
+        security: {
+            key: "ApiKeyAuth";
+            value: {
+                type: TYPE_API_KEY;
+                in: IN_HEADER;
+                name: "Authorization";
+            }
+        }
+    }
+
+    security: {
+		security_requirement: {
+			key: "ApiKeyAuth";
+			value: {};
+		}
+	}
+
+    responses :{
+        key: "401"
+        value: {
+            description :"An unauthenticated user"
+            examples: {
+                key: "application/json"
+                value: '{"error":  "user not authenticated"}'
+            }
+            schema:{
+                json_schema:{
+                    title : "service error response"
+                    ref : ".proto.ErrorResponse"
+                }
+            }    
+        }
+    }
+    responses :{
+        key: "403"
+        value: {
+            description :"An unauthorized access"
+            examples: {
+                key: "application/json"
+                value: '{"error":  "user not authorized to perform this action"}'
+            }
+            schema:{
+                json_schema:{
+                    title : "service error response"
+                    ref : ".proto.ErrorResponse"
+                }
+            }    
+        }
+    }
+};
+
+message ErrorResponse{
+    string error = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+		title: "message",
+		description: "Response message"
+	}];
+}
 
 service AuthenticateService{
-    rpc Authenticate(AuthorizeActionMsg) returns (ActionResultMsg){}
+    rpc Authenticate(AuthorizeActionMsg) returns (ActionResultMsg){
+        option (google.api.http) = {
+            post : "/api/authorize"
+            body : "*"
+        };
+    }
 }
 
-service ResourceService{
-    rpc AddTicket(TicketActionMsg) returns (ActionResultMsg){}
-    rpc DeleteTicket(TicketActionMsg) returns (ActionResultMsg){}
-    rpc CheckTicket(TicketActionMsg) returns (ActionResultMsg){}
-    rpc ListTickets(TicketActionMsg) returns (stream TicketListResultMsg){}
-    rpc SetFlag(FlagActionMsg) returns (ActionResultMsg){}
-    rpc DestroyFlag(FlagActionMsg) returns (ActionResultMsg){}
-    rpc ListFlags(FlagActionMsg) returns (stream FlagListResultMsg){}
+service ResourceService {
+
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_tag) = {
+        description : "Resource Service"
+    };
+
+    rpc AddTicket(TicketActionMsg) returns (ActionResultMsg){
+        option (google.api.http) = {
+            put : "/api/resources/ticket"
+            body : "*"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            description : "Adds a ticket to the resource pool"
+            responses :{
+                key: "400"
+				value: {
+                    description :"Processing request error"
+					examples: {
+						key: "application/json"
+						value: '{"error":  "error message"}'
+					}
+                    schema:{
+                        json_schema:{
+                            title : "service error response"
+                            ref : ".proto.ErrorResponse"
+                        }
+                    }    
+				}
+			}
+        };
+    }
+
+    rpc DeleteTicket(TicketActionMsg) returns (ActionResultMsg){
+        option (google.api.http) = {
+            delete : "/api/resources/ticket/{name}/{odate}"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            description : "Deletes a ticket from the resource pool"
+            responses :{
+                key: "400"
+				value: {
+                    description :"Processing request error"
+					examples: {
+						key: "application/json"
+						value: '{"error":  "error message"}'
+					}
+                    schema:{
+                        json_schema:{
+                            title : "service error response"
+                            ref : ".proto.ErrorResponse"
+                        }
+                    }    
+				}
+			}
+        };
+    }
+    rpc CheckTicket(TicketActionMsg) returns (ActionResultMsg){
+        option (google.api.http) = {
+            get : "/api/resources/ticket/{name}/{odate}"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            description : "Checks if given ticket exists"
+            responses :{
+                key: "400"
+				value: {
+                    description :"Processing request error"
+					examples: {
+						key: "application/json"
+						value: '{"error":  "error message"}'
+					}
+                    schema:{
+                        json_schema:{
+                            title : "service error response"
+                            ref : ".proto.ErrorResponse"
+                        }
+                    }    
+				}
+			}
+        };
+    }
+    rpc ListTickets(TicketActionMsg) returns (stream TicketListResultMsg){
+        option (google.api.http) = {
+            post : "/api/resources/tickets"
+            body : "*"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            description : "Returns a list of tickets"
+            responses :{
+                key: "400"
+				value: {
+                    description :"Processing request error"
+					examples: {
+						key: "application/json"
+						value: '{"error":  "error message"}'
+					}
+                    schema:{
+                        json_schema:{
+                            title : "service error response"
+                            ref : ".proto.ErrorResponse"
+                        }
+                    }    
+				}
+			}
+        };
+    }
+    rpc SetFlag(FlagActionMsg) returns (ActionResultMsg){
+        option (google.api.http) = {
+            put : "/api/resources/flag"
+            body : "*"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            description : "Sets a flag in a given state"
+            responses :{
+                key: "400"
+				value: {
+                    description :"Processing request error"
+					examples: {
+						key: "application/json"
+						value: '{"error":  "error message"}'
+					}
+                    schema:{
+                        json_schema:{
+                            title : "service error response"
+                            ref : ".proto.ErrorResponse"
+                        }
+                    }    
+				}
+			}
+        };
+    }
+    rpc DestroyFlag(FlagActionMsg) returns (ActionResultMsg){
+        option (google.api.http) = {
+            delete : "/api/resources/flag/{name}"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            description : "Destroys a flag"
+            responses :{
+                key: "400"
+				value: {
+                    description :"Processing request error"
+					examples: {
+						key: "application/json"
+						value: '{"error":  "error message"}'
+					}
+                    schema:{
+                        json_schema:{
+                            title : "service error response"
+                            ref : ".proto.ErrorResponse"
+                        }
+                    }    
+				}
+			}
+        };
+    }
+    rpc ListFlags(FlagActionMsg) returns (stream FlagListResultMsg){
+        option (google.api.http) = {
+            post : "/api/resources/flags"
+            body : "*"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            description : "Lists flags"
+            responses :{
+                key: "400"
+				value: {
+                    description :"Processing request error"
+					examples: {
+						key: "application/json"
+						value: '{"error":  "error message"}'
+					}
+                    schema:{
+                        json_schema:{
+                            title : "service error response"
+                            ref : ".proto.ErrorResponse"
+                        }
+                    }    
+				}
+			}
+        };
+    }
 }
 service TaskService{
-    rpc OrderTask(TaskOrderMsg) returns (ActionResultMsg){}
-    rpc ForceTask(TaskOrderMsg) returns (ActionResultMsg){}
-    rpc OrderGroup(TaskOrderGroupMsg) returns (ActionResultMsg){}
-    rpc ForceGroup(TaskOrderGroupMsg) returns (ActionResultMsg){}
-    rpc EnforceTask(TaskActionMsg) returns (ActionResultMsg){}
-    rpc RerunTask(TaskActionMsg) returns (ActionResultMsg){}
-    rpc HoldTask(TaskActionMsg) returns (ActionResultMsg){}
-    rpc FreeTask(TaskActionMsg) returns (ActionResultMsg){}
-    rpc SetToOk(TaskActionMsg) returns (ActionResultMsg){}
-    rpc ConfirmTask(TaskActionMsg) returns (ActionResultMsg){}
-    rpc ListTasks(TaskFilterMsg) returns (stream TaskListResultMsg){}
-    rpc TaskDetail(TaskActionMsg) returns (TaskDetailResultMsg){}
-    rpc TaskOutput(TaskActionMsg) returns (TaskDataMsg){}
-    rpc TaskLog(TaskActionMsg) returns (TaskDataMsg){}
+    
+    rpc OrderTask(TaskOrderMsg) returns (ActionResultMsg){
+        option (google.api.http) = {
+            put : "/api/task/order"
+            body : "*"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            description : "Orders a new task, Checks if all preconditions are met"
+            responses :{
+                key: "400"
+				value: {
+                    description :"Processing request error"
+					examples: {
+						key: "application/json"
+						value: '{"error":  "error message"}'
+					}
+                    schema:{
+                        json_schema:{
+                            title : "service error response"
+                            ref : ".proto.ErrorResponse"
+                        }
+                    }    
+				}
+			}
+        };
+    }
+    rpc ForceTask(TaskOrderMsg) returns (ActionResultMsg){
+        option (google.api.http) = {
+            put : "/api/task/force"
+            body : "*"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            description : "Forcefully orders a new task, without checking preconditions"
+            responses :{
+                key: "400"
+				value: {
+                    description :"Processing request error"
+					examples: {
+						key: "application/json"
+						value: '{"error":  "error message"}'
+					}
+                    schema:{
+                        json_schema:{
+                            title : "service error response"
+                            ref : ".proto.ErrorResponse"
+                        }
+                    }    
+				}
+			}
+        };
+    }
+    rpc OrderGroup(TaskOrderGroupMsg) returns (ActionResultMsg){
+        option (google.api.http) = {
+            put : "/api/group/order"
+            body : "*"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            description : "Orders an entire group, checks if all preconditions are met"
+            responses :{
+                key: "400"
+				value: {
+                    description :"Processing request error"
+					examples: {
+						key: "application/json"
+						value: '{"error":  "error message"}'
+					}
+                    schema:{
+                        json_schema:{
+                            title : "service error response"
+                            ref : ".proto.ErrorResponse"
+                        }
+                    }    
+				}
+			}
+        };
+    }
+    rpc ForceGroup(TaskOrderGroupMsg) returns (ActionResultMsg){
+        option (google.api.http) = {
+            put : "/api/group/force"
+            body : "*"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            description : "Forcefully orders an entire group, without checking preconditions"
+            responses :{
+                key: "400"
+				value: {
+                    description :"Processing request error"
+					examples: {
+						key: "application/json"
+						value: '{"error":  "error message"}'
+					}
+                    schema:{
+                        json_schema:{
+                            title : "service error response"
+                            ref : ".proto.ErrorResponse"
+                        }
+                    }    
+				}
+			}
+        };
+    }
+    rpc EnforceTask(TaskActionMsg) returns (ActionResultMsg){
+        option (google.api.http) = {
+            put : "/api/task/{taskID}/enforce"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            description : "Forcibly executes a task"
+            responses :{
+                key: "400"
+				value: {
+                    description :"Processing request error"
+					examples: {
+						key: "application/json"
+						value: '{"error":  "error message"}'
+					}
+                    schema:{
+                        json_schema:{
+                            title : "service error response"
+                            ref : ".proto.ErrorResponse"
+                        }
+                    }    
+				}
+			}
+            responses :{
+                key: "404"
+				value: {
+                    description :"The task with a given id was not found"
+					examples: {
+						key: "application/json"
+						value: '{"error":  "error message"}'
+					}
+                    schema:{
+                        json_schema:{
+                            title : "service error response"
+                            ref : ".proto.ErrorResponse"
+                        }
+                    }    
+				}
+			}
+        };
+    }
+    rpc RerunTask(TaskActionMsg) returns (ActionResultMsg){
+        option (google.api.http) = {
+            put : "/api/task/{taskID}/rerun"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            description : "Reruns a task"
+            responses :{
+                key: "400"
+				value: {
+                    description :"Processing request error"
+					examples: {
+						key: "application/json"
+						value: '{"error":  "error message"}'
+					}
+                    schema:{
+                        json_schema:{
+                            title : "service error response"
+                            ref : ".proto.ErrorResponse"
+                        }
+                    }    
+				}
+			}
+            responses :{
+                key: "404"
+				value: {
+                    description :"The task with a given id was not found"
+					examples: {
+						key: "application/json"
+						value: '{"error":  "error message"}'
+					}
+                    schema:{
+                        json_schema:{
+                            title : "service error response"
+                            ref : ".proto.ErrorResponse"
+                        }
+                    }    
+				}
+			}
+        };
+    }
+    rpc HoldTask(TaskActionMsg) returns (ActionResultMsg){
+        option (google.api.http) = {
+            put : "/api/task/{taskID}/hold"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            description : "Holds execution of a given task"
+            responses :{
+                key: "400"
+				value: {
+                    description :"Processing request error"
+					examples: {
+						key: "application/json"
+						value: '{"error":  "error message"}'
+					}
+                    schema:{
+                        json_schema:{
+                            title : "service error response"
+                            ref : ".proto.ErrorResponse"
+                        }
+                    }    
+				}
+			}
+            responses :{
+                key: "404"
+				value: {
+                    description :"The task with a given id was not found"
+					examples: {
+						key: "application/json"
+						value: '{"error":  "error message"}'
+					}
+                    schema:{
+                        json_schema:{
+                            title : "service error response"
+                            ref : ".proto.ErrorResponse"
+                        }
+                    }    
+				}
+			}
+        };
+    }
+    rpc FreeTask(TaskActionMsg) returns (ActionResultMsg){
+        option (google.api.http) = {
+            put : "/api/task/{taskID}/free"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            description : "Frees a given task"
+            responses :{
+                key: "400"
+				value: {
+                    description :"Processing request error"
+					examples: {
+						key: "application/json"
+						value: '{"error":  "error message"}'
+					}
+                    schema:{
+                        json_schema:{
+                            title : "service error response"
+                            ref : ".proto.ErrorResponse"
+                        }
+                    }    
+				}
+			}
+            responses :{
+                key: "404"
+				value: {
+                    description :"The task with a given id was not found"
+					examples: {
+						key: "application/json"
+						value: '{"error":  "error message"}'
+					}
+                    schema:{
+                        json_schema:{
+                            title : "service error response"
+                            ref : ".proto.ErrorResponse"
+                        }
+                    }    
+				}
+			}
+        };
+    }
+    rpc SetToOk(TaskActionMsg) returns (ActionResultMsg){
+        option (google.api.http) = {
+            put : "/api/task/{taskID}/setok"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            description : "Forcibly changes a task's status to ok"
+            responses :{
+                key: "400"
+				value: {
+                    description :"Processing request error"
+					examples: {
+						key: "application/json"
+						value: '{"error":  "error message"}'
+					}
+                    schema:{
+                        json_schema:{
+                            title : "service error response"
+                            ref : ".proto.ErrorResponse"
+                        }
+                    }    
+				}
+			}
+            responses :{
+                key: "404"
+				value: {
+                    description :"The task with a given id was not found"
+					examples: {
+						key: "application/json"
+						value: '{"error":  "error message"}'
+					}
+                    schema:{
+                        json_schema:{
+                            title : "service error response"
+                            ref : ".proto.ErrorResponse"
+                        }
+                    }    
+				}
+			}
+        };
+    }
+    rpc ConfirmTask(TaskActionMsg) returns (ActionResultMsg){
+        option (google.api.http) = {
+            put : "/api/task/{taskID}/confirm"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            description : "Confirms a task"
+            responses :{
+                key: "400"
+				value: {
+                    description :"Processing request error"
+					examples: {
+						key: "application/json"
+						value: '{"error":  "error message"}'
+					}
+                    schema:{
+                        json_schema:{
+                            title : "service error response"
+                            ref : ".proto.ErrorResponse"
+                        }
+                    }    
+				}
+			}
+            responses :{
+                key: "404"
+				value: {
+                    description :"The task with a given id was not found"
+					examples: {
+						key: "application/json"
+						value: '{"error":  "error message"}'
+					}
+                    schema:{
+                        json_schema:{
+                            title : "service error response"
+                            ref : ".proto.ErrorResponse"
+                        }
+                    }    
+				}
+			}
+        };
+    }
+    rpc ListTasks(TaskFilterMsg) returns (stream TaskListResultMsg){
+        option (google.api.http) = {
+            post : "/api/task/tasks"
+            body : "*"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            description : "Returns a list of active tasks"
+            responses :{
+                key: "400"
+				value: {
+                    description :"Processing request error"
+					examples: {
+						key: "application/json"
+						value: '{"error":  "error message"}'
+					}
+                    schema:{
+                        json_schema:{
+                            title : "service error response"
+                            ref : ".proto.ErrorResponse"
+                        }
+                    }    
+				}
+			}
+        };
+    }
+    rpc TaskDetail(TaskActionMsg) returns (TaskDetailResultMsg){
+        option (google.api.http) = {
+            get : "/api/task/{taskID}/details"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            description : "Returns detailed information about a given task"
+            responses :{
+                key: "400"
+				value: {
+                    description :"Processing request error"
+					examples: {
+						key: "application/json"
+						value: '{"error":  "error message"}'
+					}
+                    schema:{
+                        json_schema:{
+                            title : "service error response"
+                            ref : ".proto.ErrorResponse"
+                        }
+                    }    
+				}
+			}
+            responses :{
+                key: "404"
+				value: {
+                    description :"The task with a given id was not found"
+					examples: {
+						key: "application/json"
+						value: '{"error":  "error message"}'
+					}
+                    schema:{
+                        json_schema:{
+                            title : "service error response"
+                            ref : ".proto.ErrorResponse"
+                        }
+                    }    
+				}
+			}
+        };
+    }
+    rpc TaskOutput(TaskActionMsg) returns (TaskDataMsg){
+        option (google.api.http) = {
+            get : "/api/task/{taskID}/output"
+        };
+    }
+    rpc TaskLog(TaskActionMsg) returns (TaskDataMsg){
+        option (google.api.http) = {
+            get : "/api/task/{taskID}/log"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            description : "Returns a history of a given task"
+            responses :{
+                key: "400"
+				value: {
+                    description :"Processing request error"
+					examples: {
+						key: "application/json"
+						value: '{"error":  "error message"}'
+					}
+                    schema:{
+                        json_schema:{
+                            title : "service error response"
+                            ref : ".proto.ErrorResponse"
+                        }
+                    }    
+				}
+			}
+        };
+    }
 }
 
 service DefinitionService{
     rpc GetDefinition(DefinitionActionMsg) returns (DefinitionResultMsg){}
     rpc LockDefinition(DefinitionActionMsg) returns (LockResultMsg){}
     rpc UnlockDefinition(DefinitionActionMsg) returns (LockResultMsg){}
-    rpc ListGroups(FilterMsg) returns (DefinitionListGroupResultMsg){}
-    rpc ListDefinitionsFromGroup(FilterMsg) returns (DefinitionListResultMsg){}
+    rpc ListGroups(FilterMsg) returns (DefinitionListGroupResultMsg){
+        option (google.api.http) = {
+            get : "/api/def/groups/{filter}"
+        };
+    }
+    rpc ListDefinitionsFromGroup(GroupNameMsg) returns (DefinitionListResultMsg){
+        option (google.api.http) = {
+            get : "/api/def/{groupName}/definitions"
+        };
+    }
 }
 
 service AdministrationService{
@@ -61,6 +736,10 @@ service AdministrationService{
 
 service StatusService {
     rpc OverseerStatus(google.protobuf.Empty) returns (ActionResultMsg){}
+}
+
+message GroupNameMsg{
+    string groupName = 1;
 }
 
 message FilterMsg{

@@ -1,6 +1,7 @@
 package pool
 
 import (
+	"overseer/common/types"
 	"overseer/common/types/date"
 	"overseer/overseer/internal/taskdef"
 	"overseer/overseer/internal/unique"
@@ -35,6 +36,16 @@ type taskExecution struct {
 	End         time.Time
 	state       TaskState
 }
+
+type taskCycle struct {
+	IsCyclic         bool
+	NextRun          types.HourMinTime
+	RunFrom          string
+	MaxRun           int
+	CurrentRunNumber int
+	RunInterval      int
+}
+
 type activeTask struct {
 	taskdef.TaskDefinition
 	holded     bool
@@ -44,6 +55,7 @@ type activeTask struct {
 	tickets    []taskInTicket
 	runNumber  int32
 	executions []taskExecution
+	cycle      taskCycle
 	waiting    string
 	lock       sync.RWMutex
 	collected  []taskInTicket
@@ -66,12 +78,19 @@ func newActiveTask(orderID unique.TaskOrderID, odate date.Odate, definition task
 		return true
 	}()
 
+	cdata := definition.Cyclic()
+	cycle := taskCycle{IsCyclic: cdata.IsCycle, MaxRun: cdata.MaxRuns, CurrentRunNumber: 0, RunFrom: string(cdata.RunFrom), RunInterval: cdata.TimeInterval}
+	if cycle.IsCyclic {
+		cycle.NextRun = types.Now()
+	}
+
 	task := &activeTask{orderID: orderID,
 		TaskDefinition: definition,
 		orderDate:      odate,
 		runNumber:      0,
 		executions:     []taskExecution{{ExecutionID: unique.NewID().Hex(), state: TaskStateWaiting}},
 		tickets:        tickets,
+		cycle:          cycle,
 		lock:           sync.RWMutex{},
 		confirmed:      isconfirmed,
 	}
@@ -99,6 +118,13 @@ func fromModel(model activeTaskModel) (*activeTask, error) {
 		execs = append(execs, taskExecution{ExecutionID: n.ID, Start: n.StartTime, End: n.EndTime, Worker: n.Worker, state: n.State})
 	}
 
+	cycle := taskCycle{IsCyclic: model.Cycle.IsCyclic,
+		NextRun:          types.HourMinTime(model.Cycle.NextRun),
+		MaxRun:           model.Cycle.MaxRun,
+		CurrentRunNumber: model.Cycle.Current,
+		RunFrom:          model.Cycle.RunFrom,
+	}
+
 	task := &activeTask{
 		orderID:        unique.TaskOrderID(model.OrderID),
 		TaskDefinition: def,
@@ -108,6 +134,7 @@ func fromModel(model activeTaskModel) (*activeTask, error) {
 		lock:           sync.RWMutex{},
 		confirmed:      model.Confirmed,
 		holded:         model.Holded,
+		cycle:          cycle,
 		waiting:        model.Waiting,
 		runNumber:      model.RunNumber,
 		collected:      []taskInTicket{},
@@ -255,10 +282,33 @@ func (task *activeTask) IsHeld() bool {
 	return task.holded
 }
 
+func (task *activeTask) IsCyclic() bool {
+	defer task.lock.RUnlock()
+	task.lock.RLock()
+
+	return task.cycle.IsCyclic
+}
+
+func (task *activeTask) CycleData() taskCycle {
+	defer task.lock.RUnlock()
+	task.lock.RLock()
+
+	return task.cycle
+}
+
 func (task *activeTask) getModel() activeTaskModel {
 	defer task.lock.RUnlock()
 	task.lock.RLock()
 	def, _ := taskdef.SerializeDefinition(task.TaskDefinition)
+
+	cycle := taskCycleModel{
+		IsCyclic: task.cycle.IsCyclic,
+		NextRun:  string(task.cycle.NextRun),
+		MaxRun:   task.cycle.MaxRun,
+		Current:  task.cycle.CurrentRunNumber,
+		RunFrom:  task.cycle.RunFrom,
+	}
+
 	t := activeTaskModel{
 		Definition: []byte(def),
 		Holded:     task.holded,
@@ -269,6 +319,7 @@ func (task *activeTask) getModel() activeTaskModel {
 		RunNumber:  task.runNumber,
 		Waiting:    task.waiting,
 		Executions: []taskExecutionModel{},
+		Cycle:      cycle,
 	}
 	for _, n := range task.tickets {
 		t.Tickets = append(t.Tickets, taskInTicketModel{Name: n.name, Odate: n.odate, Fulfilled: n.fulfilled})
