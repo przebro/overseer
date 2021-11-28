@@ -82,6 +82,8 @@ func (g *OverseerGateway) setupHandlers(mux *http.ServeMux, gwmux *runtime.Serve
 
 	ui := http.FileServer(http.Dir("./www/utils"))
 	mux.Handle("/utils/", http.StripPrefix("/utils/", ui))
+	mux.Handle("/css/", ui)
+	mux.Handle("/js/", ui)
 
 }
 func initializeServices(ctx context.Context, mux *runtime.ServeMux, conn *grpc.ClientConn) error {

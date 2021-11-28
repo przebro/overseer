@@ -5,6 +5,7 @@ import (
 	"overseer/common/logger"
 	"overseer/common/types"
 	"overseer/common/types/date"
+	"overseer/overseer/internal/events"
 	"overseer/overseer/internal/taskdef"
 
 	"testing"
@@ -307,7 +308,7 @@ func TestStateCheckCond(t *testing.T) {
 	}
 
 	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition)
-	mDispatcher.Tickets = make(map[string]string, 0)
+	mDispatcher.Tickets = make(map[string]string)
 	ctx.dispatcher = mDispatcher
 
 	result = state.processState(&ctx)
@@ -337,6 +338,161 @@ func TestStateCheckCond(t *testing.T) {
 	}
 
 }
+
+func TestNewCyclicTask(t *testing.T) {
+
+	builder := taskdef.DummyTaskBuilder{}
+	definition, err := builder.WithBase("test", "cyclic_test_01", "test task").
+		WithCyclic(taskdef.CyclicTaskData{
+			IsCycle:      true,
+			MaxRuns:      3,
+			RunFrom:      taskdef.CycleFromStart,
+			TimeInterval: 1,
+		}).WithSchedule(taskdef.SchedulingData{
+		OrderType: taskdef.OrderingDaily,
+	}).Build()
+
+	if err != nil {
+		t.Log(err)
+	}
+
+	task := newActiveTask(seq.Next(), date.CurrentOdate(), definition)
+	cycle := task.CycleData()
+
+	if !cycle.IsCyclic {
+		t.Error("unexpected value:", cycle.IsCyclic, "expected:", false)
+	}
+	if cycle.MaxRun != 3 {
+		t.Error("unexpected value:", cycle.MaxRun, "expected:", 3)
+	}
+
+	if cycle.RunInterval != 1 {
+		t.Error("unexpected value:", cycle.RunInterval, "expected:", 1)
+	}
+
+	if cycle.RunFrom != string(taskdef.CycleFromStart) {
+		t.Error("unexpected value:", cycle.RunFrom, "expected:", taskdef.CycleFromStart)
+	}
+
+	ctx := TaskExecutionContext{
+		log:        log,
+		odate:      date.CurrentOdate(),
+		dispatcher: mDispatcher,
+		time:       time.Now(),
+	}
+
+	ctx.task = task
+	ctx.isEnforced = true
+	state := ostatePostProcessing{}
+	result := state.processState(&ctx)
+	fmt.Println(result)
+
+}
+
+func TestCyclicState_Enforced(t *testing.T) {
+
+	builder := taskdef.DummyTaskBuilder{}
+	definition, err := builder.WithBase("test", "cyclic_test_01", "test task").
+		WithCyclic(taskdef.CyclicTaskData{
+			IsCycle:      true,
+			MaxRuns:      3,
+			RunFrom:      taskdef.CycleFromStart,
+			TimeInterval: 1,
+		}).WithSchedule(taskdef.SchedulingData{
+		OrderType: taskdef.OrderingDaily,
+	}).Build()
+
+	if err != nil {
+		t.Log(err)
+	}
+
+	task := newActiveTask(seq.Next(), date.CurrentOdate(), definition)
+
+	ctx := TaskExecutionContext{
+		log:        log,
+		odate:      date.CurrentOdate(),
+		dispatcher: mDispatcher,
+		time:       time.Now(),
+	}
+
+	ctx.task = task
+	ctx.isEnforced = true
+	state := ostateCheckCyclic{}
+	result := state.processState(&ctx)
+	if !result {
+		t.Error("unexpected result:", result, "expected:", true)
+	}
+
+}
+
+func TestCyclicState_Normal(t *testing.T) {
+
+	builder := taskdef.DummyTaskBuilder{}
+	definition, err := builder.WithBase("test", "cyclic_test_01", "test task").
+		WithSchedule(taskdef.SchedulingData{
+			OrderType: taskdef.OrderingDaily,
+		}).Build()
+
+	if err != nil {
+		t.Log(err)
+	}
+
+	task := newActiveTask(seq.Next(), date.CurrentOdate(), definition)
+
+	ctx := TaskExecutionContext{
+		log:        log,
+		odate:      date.CurrentOdate(),
+		dispatcher: mDispatcher,
+		time:       time.Now(),
+	}
+
+	ctx.task = task
+	ctx.isEnforced = false
+	state := ostateCheckCyclic{}
+	result := state.processState(&ctx)
+	if !result {
+		t.Error("unexpected result:", result, "expected:", true)
+	}
+}
+
+func TestCyclicState_BeforeNextRun(t *testing.T) {
+
+	builder := taskdef.DummyTaskBuilder{}
+	definition, err := builder.WithBase("test", "cyclic_test_01", "test task").
+		WithCyclic(taskdef.CyclicTaskData{
+			IsCycle:      true,
+			MaxRuns:      3,
+			RunFrom:      taskdef.CycleFromStart,
+			TimeInterval: 1,
+		}).WithSchedule(taskdef.SchedulingData{
+		OrderType: taskdef.OrderingDaily,
+	}).Build()
+
+	if err != nil {
+		t.Log(err)
+	}
+
+	task := newActiveTask(seq.Next(), date.CurrentOdate(), definition)
+	now := time.Now().Add(2 * time.Minute)
+	task.cycle.NextRun = types.FromTime(now)
+
+	ctx := TaskExecutionContext{
+		log:        log,
+		odate:      date.CurrentOdate(),
+		dispatcher: mDispatcher,
+		time:       time.Now(),
+	}
+
+	ctx.task = task
+	ctx.isEnforced = false
+	state := ostateCheckCyclic{}
+	result := state.processState(&ctx)
+	if result {
+		t.Error("unexpected result:", result, "expected:", false)
+	}
+
+}
+
 func TestStateOrderState(t *testing.T) {
 
 	var result bool
@@ -406,7 +562,7 @@ func TestStateConfirm(t *testing.T) {
 
 	result := state.processState(&ctx)
 
-	if result != false {
+	if result == true {
 		t.Error("expected result: ", false, " actual:", result)
 	}
 
@@ -1247,4 +1403,171 @@ func TestGetFirstDay(t *testing.T) {
 	dd := date.Odate("20210401")
 	getStartOfWeek(dd, 0)
 
+}
+
+func Test_prepareNextCycle_From_Start(t *testing.T) {
+
+	interval := 2
+	builder := taskdef.DummyTaskBuilder{}
+	definition, err := builder.WithBase("test", "cyclic_test_01", "test task").
+		WithCyclic(taskdef.CyclicTaskData{
+			IsCycle:      true,
+			MaxRuns:      3,
+			RunFrom:      taskdef.CycleFromStart,
+			TimeInterval: interval,
+		}).WithSchedule(taskdef.SchedulingData{
+		OrderType: taskdef.OrderingDaily,
+	}).Build()
+
+	if err != nil {
+		t.Log(err)
+	}
+
+	task := newActiveTask(seq.Next(), date.CurrentOdate(), definition)
+
+	tm := task.SetStartTime()
+	expect := tm.Add(time.Duration(interval) * time.Minute)
+	task.SetEndTime()
+
+	task.prepareNextCycle()
+
+	if task.CycleData().NextRun != types.FromTime(expect) {
+		t.Error("unexpected value:", task.CycleData().NextRun, "expected:", types.FromTime(expect))
+	}
+}
+
+func Test_prepareNextCycle_From_End(t *testing.T) {
+
+	interval := 2
+	builder := taskdef.DummyTaskBuilder{}
+	definition, err := builder.WithBase("test", "cyclic_test_01", "test task").
+		WithCyclic(taskdef.CyclicTaskData{
+			IsCycle:      true,
+			MaxRuns:      3,
+			RunFrom:      taskdef.CycleFromEnd,
+			TimeInterval: interval,
+		}).WithSchedule(taskdef.SchedulingData{
+		OrderType: taskdef.OrderingDaily,
+	}).Build()
+
+	if err != nil {
+		t.Log(err)
+	}
+
+	task := newActiveTask(seq.Next(), date.CurrentOdate(), definition)
+
+	task.SetStartTime()
+	tm := task.SetEndTime()
+	expect := tm.Add(time.Duration(interval) * time.Minute)
+
+	task.prepareNextCycle()
+
+	if task.CycleData().NextRun != types.FromTime(expect) {
+		t.Error("unexpected value:", task.CycleData().NextRun, "expected:", types.FromTime(expect))
+	}
+}
+
+func Test_prepareNextCycle_From_Schedule(t *testing.T) {
+
+	interval := 2
+	builder := taskdef.DummyTaskBuilder{}
+	definition, err := builder.WithBase("test", "cyclic_test_01", "test task").
+		WithCyclic(taskdef.CyclicTaskData{
+			IsCycle:      true,
+			MaxRuns:      3,
+			RunFrom:      taskdef.CycleFromSchedule,
+			TimeInterval: interval,
+		}).WithSchedule(taskdef.SchedulingData{
+		OrderType: taskdef.OrderingDaily,
+	}).Build()
+
+	if err != nil {
+		t.Log(err)
+	}
+
+	task := newActiveTask(seq.Next(), date.CurrentOdate(), definition)
+
+	task.SetStartTime()
+	tm := task.SetEndTime()
+	expect := tm.Add(time.Duration(interval) * time.Minute)
+
+	task.prepareNextCycle()
+
+	if task.CycleData().NextRun != types.FromTime(expect) {
+		t.Error("unexpected value:", task.CycleData().NextRun, "expected:", types.FromTime(expect))
+	}
+}
+
+func Test_prepareNextCycle_MaxRuns(t *testing.T) {
+
+	interval := 2
+	maxRuns := 3
+	builder := taskdef.DummyTaskBuilder{}
+	definition, err := builder.WithBase("test", "cyclic_test_01", "test task").
+		WithCyclic(taskdef.CyclicTaskData{
+			IsCycle:      true,
+			MaxRuns:      maxRuns,
+			RunFrom:      taskdef.CycleFromStart,
+			TimeInterval: interval,
+		}).WithSchedule(taskdef.SchedulingData{
+		OrderType: taskdef.OrderingDaily,
+	}).Build()
+
+	if err != nil {
+		t.Log(err)
+	}
+
+	task := newActiveTask(seq.Next(), date.CurrentOdate(), definition)
+
+	for i := 1; i <= maxRuns; i++ {
+
+		task.SetStartTime()
+		task.SetEndTime()
+		result := task.prepareNextCycle()
+		if !result && i < maxRuns {
+			t.Error("unexpected value:", result, "expected:", true)
+		}
+
+		if result && i == maxRuns {
+			t.Error("unexpected value:", result, "expected:", false)
+		}
+
+		task.SetExecutionID()
+	}
+}
+
+func Test_buildFlagMsg_Error(t *testing.T) {
+
+	result := buildFlagMsg(nil)
+	if result != nil {
+		t.Error("unexpected result:", result, "expected:", nil)
+	}
+
+	data := []taskdef.FlagData{}
+	result = buildFlagMsg(data)
+	if result != nil {
+		t.Error("unexpected result:", result, "expected:", nil)
+	}
+}
+
+func Test_buildFlagMsg(t *testing.T) {
+
+	data := []taskdef.FlagData{
+		{Name: "ABC", Type: taskdef.FlagShared},
+		{Name: "ABCD", Type: taskdef.FlagExclusive},
+		{Name: "ABCE", Type: taskdef.FlagShared},
+	}
+
+	result := buildFlagMsg(data)
+	if result == nil {
+		t.Error("unexpected result:", result, "expected:", nil)
+	}
+	msg, ok := result.Message().(events.RouteFlagAcquireMsg)
+	if ok != true {
+		t.Error("unexpected result:", ok, "expected:", true)
+	}
+
+	if len(msg.Flags) != len(data) {
+		t.Error("unexpected result:", len(msg.Flags), "expected:", len(data))
+	}
 }

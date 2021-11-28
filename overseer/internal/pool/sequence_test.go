@@ -10,7 +10,7 @@ func TestSequence(t *testing.T) {
 
 	var seq SequenceGenerator
 	var err error
-	if seq, err = NewSequenceGenerator("seq_not_exists", provider); err == nil {
+	if _, err = NewSequenceGenerator("seq_not_exists", provider); err == nil {
 		t.Error("unexpected result:", err)
 	}
 

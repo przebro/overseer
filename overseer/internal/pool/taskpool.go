@@ -63,7 +63,7 @@ func NewTaskPool(dispatcher events.Dispatcher, cfg config.ActivePoolConfiguratio
 		dispatcher.Subscribe(events.RouteTimeOut, pool)
 	}
 
-	if pool.isProcActive == true {
+	if pool.isProcActive {
 		pool.log.Info("Starting in ACTIVE mode")
 	} else {
 		pool.log.Info("Starting in QUIESCE mode")
@@ -198,6 +198,17 @@ func (pool *ActiveTaskPool) Detail(orderID unique.TaskOrderID) (events.TaskDetai
 	result.RunNumber = int32(t.RunNumber())
 	result.WaitingInfo = t.WaitingInfo()
 	result.Worker = t.WorkerName()
+
+	if c := t.CycleData(); c.IsCyclic {
+
+		result.TaskCycleMsg = events.TaskCycleMsg{
+			IsCyclic:    c.IsCyclic,
+			NextRun:     c.NextRun,
+			RunFrom:     c.RunFrom,
+			MaxRun:      c.MaxRun,
+			RunInterval: c.RunInterval,
+		}
+	}
 	result.From, result.To = func(f, t types.HourMinTime) (string, string) { return string(f), string(t) }(t.TimeSpan())
 
 	result.Tickets = make([]struct {

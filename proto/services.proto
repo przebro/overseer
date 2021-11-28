@@ -698,6 +698,22 @@ service TaskService{
                     }    
 				}
 			}
+            responses :{
+                key: "404"
+				value: {
+                    description :"The task with a given id was not found"
+					examples: {
+						key: "application/json"
+						value: '{"error":  "error message"}'
+					}
+                    schema:{
+                        json_schema:{
+                            title : "service error response"
+                            ref : ".proto.ErrorResponse"
+                        }
+                    }    
+				}
+			}
         };
     }
 }
@@ -842,6 +858,14 @@ message TaskResourcesMsg {
 
 }
 
+message TaskCyclicResultMsg{
+    bool isCyclic = 1;
+	string nextRun = 2;
+	string runFrom = 3;
+	int32 maxRun = 4;
+	int32 interval = 5;
+}
+
 message TaskDetailResultMsg{
     ActionResultMsg    result = 1;
     TaskListResultMsg  baseData = 2;
@@ -852,12 +876,11 @@ message TaskDetailResultMsg{
     string endTime = 7;
     string worker = 8;
     repeated TaskResourcesMsg resources = 9;
+    TaskCyclicResultMsg cyclicData = 10;
     
 }
 message TaskDataMsg{
-    bool success = 1;
-    string message  = 2;  
-    repeated string output = 3;
+    repeated string output = 1;
 }
 
 message DefinitionListGroupResultMsg{

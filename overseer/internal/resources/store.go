@@ -4,8 +4,6 @@ import (
 	"errors"
 	"sync"
 	"time"
-
-	"github.com/przebro/databazaar/collection"
 )
 
 var (
@@ -19,7 +17,6 @@ type resourceStore struct {
 	items  map[string]interface{}
 	lock   sync.RWMutex
 	stime  int
-	col    collection.DataCollection
 	done   <-chan struct{}
 	shtdwn chan struct{}
 }
@@ -45,7 +42,6 @@ func (s *resourceStore) watch(tm int, shutdown <-chan struct{}) <-chan struct{} 
 			<-sc
 			s.sync()
 			close(inf)
-			return
 
 		}(shutdown, inform)
 
@@ -120,7 +116,7 @@ func (s *resourceStore) All() []interface{} {
 
 	defer s.lock.RUnlock()
 	s.lock.RLock()
-	col := make([]interface{}, len(s.items), len(s.items))
+	col := make([]interface{}, len(s.items))
 	i := 0
 	for _, v := range s.items {
 		col[i] = v

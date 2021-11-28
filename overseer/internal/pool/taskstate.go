@@ -60,6 +60,9 @@ type ostateConfirm struct{}
 //ostateCheckTime -  Task is confirmed but waits for the time window
 type ostateCheckTime struct{}
 
+//ostateCheckCyclic -  Task is confirmed if it is a cyclic task check
+type ostateCheckCyclic struct{}
+
 //ostateCheckConditions - Task is already in time window but waits for conditions
 type ostateCheckConditions struct{}
 
@@ -83,10 +86,6 @@ type taskExecutionState interface {
 	processState(order *TaskExecutionContext) bool
 }
 
-type taskProcessingContext interface {
-	State() taskOrderState
-}
-
 func (state ostateCheckOtype) processState(ctx *TaskOrderContext) bool {
 
 	ctx.state = &ostateCheckCalendar{}
@@ -98,7 +97,7 @@ func (state ostateCheckCalendar) processState(ctx *TaskOrderContext) bool {
 	canceledState := &ostateNotSubmitted{}
 	ctx.state = canceledState
 
-	if ctx.ignoreCalendar == true {
+	if ctx.ignoreCalendar {
 		ctx.log.Debug("state check calendar processed")
 		ctx.state = &ostateCheckSubmission{}
 	} else {
@@ -152,11 +151,11 @@ func (state ostateCheckCalendar) processState(ctx *TaskOrderContext) bool {
 func (state ostateCheckSubmission) processState(ctx *TaskOrderContext) bool {
 
 	ctx.log.Debug()
-	if ctx.ignoreSubmission == true {
+	if ctx.ignoreSubmission {
 		ctx.log.Debug("check submission ingored")
 		ctx.state = &ostateOrdered{}
 	} else {
-		if ctx.def.AllowPast() == false && date.IsBeforeCurrent(ctx.odate, ctx.currentOdate) {
+		if !ctx.def.AllowPast() && date.IsBeforeCurrent(ctx.odate, ctx.currentOdate) {
 			ctx.log.Debug("check submission allow past")
 			ctx.reason = append(ctx.reason, "Task cannot be ordered before current day")
 			ctx.state = &ostateNotSubmitted{}
@@ -187,9 +186,31 @@ func (state ostateConfirm) processState(ctx *TaskExecutionContext) bool {
 		return false
 	}
 
-	ctx.state = &ostateCheckTime{}
+	ctx.state = &ostateCheckCyclic{}
 
 	return true
+}
+func (state ostateCheckCyclic) processState(ctx *TaskExecutionContext) bool {
+
+	if ctx.isEnforced {
+		ctx.state = &ostateCheckTime{}
+		return true
+	}
+
+	if !ctx.task.IsCyclic() {
+		ctx.state = &ostateCheckTime{}
+		return true
+	}
+
+	next := ctx.task.CycleData().NextRun
+	h, m := next.AsTime()
+
+	if !ctx.time.Before(time.Date(ctx.time.Year(), ctx.time.Month(), ctx.time.Day(), h, m, 0, 0, ctx.time.Location())) {
+		ctx.state = &ostateCheckTime{}
+		return true
+	}
+
+	return false
 }
 func (state ostateCheckTime) processState(ctx *TaskExecutionContext) bool {
 
@@ -376,7 +397,6 @@ func (state ostateStarting) processState(ctx *TaskExecutionContext) bool {
 	}
 
 	ctx.task.SetWaitingInfo("")
-	ctx.task.SetRunNumber()
 	stime := ctx.task.SetStartTime()
 
 	pushJournalMessage(ctx.dispatcher, ctx.task.OrderID(), ctx.task.CurrentExecutionID(), stime, fmt.Sprintf(journal.TaskStartingRN, ctx.task.RunNumber()))
@@ -473,20 +493,24 @@ func (state ostatePostProcessing) processState(ctx *TaskExecutionContext) bool {
 
 		pushJournalMessage(ctx.dispatcher, ctx.task.OrderID(), ctx.task.CurrentExecutionID(), time.Now(), journal.TaskPostProc)
 		ctx.log.Info("Task post processing ends")
-		return false
 
+		if !ctx.task.IsCyclic() {
+			return false
+		}
+
+	} else {
+
+		outticket := ctx.task.TicketsOut()
+		ticketMsg := buildTicketMsg(ctx.task, outticket)
+
+		ctx.dispatcher.PushEvent(nil, events.RouteTicketIn, events.NewMsg(ticketMsg))
+		pushJournalMessage(ctx.dispatcher, ctx.task.OrderID(), ctx.task.CurrentExecutionID(), time.Now(), journal.TaskPostProc)
+
+		ctx.log.Info("Task post processing ends")
 	}
 
-	outticket := ctx.task.TicketsOut()
-	ticketMsg := buildTicketMsg(ctx.task, outticket)
-
-	ctx.dispatcher.PushEvent(nil, events.RouteTicketIn, events.NewMsg(ticketMsg))
-	pushJournalMessage(ctx.dispatcher, ctx.task.OrderID(), ctx.task.CurrentExecutionID(), time.Now(), journal.TaskPostProc)
-
-	ctx.log.Info("Task post processing ends")
-
-	if ctx.task.IsCyclic() {
-		updateCyclicTask(ctx.task)
+	if ctx.task.prepareNextCycle() {
+		ctx.task.SetExecutionID()
 	}
 
 	return false
@@ -494,7 +518,7 @@ func (state ostatePostProcessing) processState(ctx *TaskExecutionContext) bool {
 
 func getProcessState(state TaskState, isHeld bool) taskExecutionState {
 
-	if isHeld == true {
+	if isHeld {
 		return nil
 	}
 
@@ -818,7 +842,7 @@ func getNextMonthYear(mths map[time.Month]bool, current date.Odate, expect date.
 		nval *= -1
 	}
 
-	if incl == false {
+	if !incl {
 		cm += nval
 	}
 
@@ -831,7 +855,7 @@ func getNextMonthYear(mths map[time.Month]bool, current date.Odate, expect date.
 		cy++
 	}
 
-	for mths[time.Month(cm)] != true {
+	for !mths[time.Month(cm)] {
 		cm += nval
 
 		if cm < 1 {
@@ -875,11 +899,11 @@ func prepareVaribles(task *activeTask, odate date.Odate) []taskdef.VariableData 
 	n, _, _ := task.GetInfo()
 	cID := task.CurrentExecutionID()
 
-	variables = append(variables, taskdef.VariableData{Name: "%%ORDERID", Value: fmt.Sprintf("%s", task.orderID)})
+	variables = append(variables, taskdef.VariableData{Name: "%%ORDERID", Value: string(task.orderID)})
 	variables = append(variables, taskdef.VariableData{Name: "%%RN", Value: fmt.Sprintf("%d", task.RunNumber())})
-	variables = append(variables, taskdef.VariableData{Name: "%%EXECID", Value: fmt.Sprintf("%s", cID)})
-	variables = append(variables, taskdef.VariableData{Name: "%%ODATE", Value: fmt.Sprintf("%s", odate.ODATE())})
-	variables = append(variables, taskdef.VariableData{Name: "%%TASKNAME", Value: fmt.Sprintf("%s", n)})
+	variables = append(variables, taskdef.VariableData{Name: "%%EXECID", Value: cID})
+	variables = append(variables, taskdef.VariableData{Name: "%%ODATE", Value: odate.ODATE()})
+	variables = append(variables, taskdef.VariableData{Name: "%%TASKNAME", Value: n})
 
 	variables = append(variables, task.Variables()...)
 
@@ -905,9 +929,10 @@ func buildFlagMsg(data []taskdef.FlagData) events.DispatchedMessage {
 	}
 
 	flags := []events.FlagActionData{}
-	policy := int8(0)
 
 	for _, rs := range data {
+
+		policy := int8(0)
 
 		if rs.Type == taskdef.FlagExclusive {
 			policy = 1
@@ -937,33 +962,4 @@ func buildTicketMsg(task *activeTask, outticket []taskdef.OutTicketData) events.
 	}
 
 	return ticketMsg
-}
-
-func updateCyclicTask(task *activeTask) {
-
-	cdata := task.CycleData()
-	if cdata.CurrentRunNumber == cdata.MaxRun {
-		return
-	}
-
-	var tm time.Time
-
-	switch cdata.RunFrom {
-	case "start":
-		{
-			tm = task.StartTime().Add(time.Duration(cdata.RunInterval) * time.Minute)
-		}
-	case "end":
-		{
-			tm = task.EndTime().Add(time.Duration(cdata.RunInterval) * time.Minute)
-		}
-	case "schedule":
-		{
-			//:TODO for now it acts like from end
-			tm = task.EndTime().Add(time.Duration(cdata.RunInterval) * time.Minute)
-		}
-	}
-
-	cdata.NextRun = types.FromTime(tm)
-
 }

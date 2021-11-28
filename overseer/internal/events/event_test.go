@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"overseer/common/logger"
 	"overseer/common/types"
+	"overseer/common/types/date"
+	"overseer/overseer/internal/taskdef"
 	"overseer/overseer/internal/unique"
 	"testing"
 	"time"
@@ -289,6 +291,64 @@ func TestChangeTaskStateReceiver(t *testing.T) {
 	}()
 
 	data, err = wlr.WaitForResult()
+
+	if err == nil {
+		t.Error("Unexpected result")
+	}
+	if err != ErrUnrecognizedMsgFormat {
+		t.Error("Unexpected result", err, "expected:", ErrUnrecognizedMsgFormat)
+	}
+
+	customError := errors.New("Custom error")
+
+	go func() {
+
+		ResponseToReceiver(wlr, customError)
+	}()
+
+	data, err = wlr.WaitForResult()
+
+	if err == nil {
+		t.Error("Unexpected result")
+	}
+	if err != customError {
+		t.Error("Unexpected result", err, "expected:", customError)
+	}
+
+}
+
+func TestTicketInReceiver(t *testing.T) {
+
+	wlr := NewTicketInReceiver()
+
+	go func() {
+
+		msg := RouteTicketInMsgFormat{Tickets: []struct {
+			Name   string
+			Odate  date.Odate
+			Action taskdef.OutAction
+		}{
+			{Name: "TICKET_01", Action: taskdef.OutActionAdd},
+		}}
+		ResponseToReceiver(wlr, msg)
+	}()
+
+	data, err := wlr.WaitForResult()
+
+	if err != nil {
+		t.Error("Unexpected result", err)
+	}
+
+	if len(data.Tickets) != 1 {
+		t.Error("Unexpected result,expected", 1)
+	}
+
+	go func() {
+
+		ResponseToReceiver(wlr, "invalid value")
+	}()
+
+	_, err = wlr.WaitForResult()
 
 	if err == nil {
 		t.Error("Unexpected result")

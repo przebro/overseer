@@ -37,7 +37,7 @@ func (m *eventDipspatcher) PushEvent(receiver EventReceiver, routename RouteName
 
 	if !exists {
 		m.log.Error("Route not defined:", routename)
-		return errors.New("Route not defined")
+		return errors.New("route not defined")
 	}
 
 	go route.PushMessage(receiver, msg)

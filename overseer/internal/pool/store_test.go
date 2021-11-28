@@ -1,6 +1,8 @@
 package pool
 
 import (
+	"overseer/common/types/date"
+	"overseer/overseer/internal/taskdef"
 	"overseer/overseer/internal/unique"
 	"sync"
 	"testing"
@@ -163,4 +165,31 @@ func TestStoreForEach(t *testing.T) {
 		}
 	}
 
+}
+
+func TestStore_StoreTask(t *testing.T) {
+
+	store, _ := NewStore(testStoreTaskName, log, 0, provider)
+	if store == nil {
+		t.Error("Store not created")
+	}
+
+	builder := taskdef.DummyTaskBuilder{}
+	definition, err := builder.WithBase("test", "dummy_04", "test task").
+		WithSchedule(taskdef.SchedulingData{FromTime: "", ToTime: "", OrderType: taskdef.OrderingManual}).
+		Build()
+	if err != nil {
+		t.Fatal("Unable to construct task")
+	}
+
+	active := newActiveTask(seq.Next(), date.CurrentOdate(), definition)
+
+	store.add(active.orderID, active)
+
+	if store.len() != 1 {
+		t.Error("unexpected result:", store.len(), "expected : 1")
+	}
+	//:TODO rewrite test
+	store.storeTasks()
+	store.restoreTasks()
 }

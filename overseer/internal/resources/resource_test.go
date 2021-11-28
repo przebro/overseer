@@ -4,11 +4,9 @@ import (
 	"encoding/json"
 	"os"
 	"overseer/common/logger"
-	"overseer/common/types/date"
 	"overseer/datastore"
 	"overseer/overseer/config"
 	"overseer/overseer/internal/events"
-	"overseer/overseer/internal/taskdef"
 	"testing"
 )
 
@@ -74,48 +72,8 @@ func init() {
 	if err != nil {
 		panic("fatal error, unable to load store")
 	}
-
-}
-
-func TestNewManager(t *testing.T) {
-
-	var err error
 	tlog := logger.NewTestLogger()
-	manager, err = NewManager(&dispatcher, tlog, resConfig, provider)
-	if err != nil {
-		t.Error("unexpected error:", err)
-	}
-
-	invalidConfig := config.ResourcesConfigurartion{
-		TicketSource: config.ResourceEntry{Sync: 1, Collection: "resources"},
-		FlagSource:   config.ResourceEntry{Sync: 1, Collection: "invalid"},
-	}
-
-	_, err = NewManager(&dispatcher, tlog, invalidConfig, provider)
-
-	if err == nil {
-		t.Error("unexpected error")
-	}
-	invalidConfig.TicketSource.Collection = "invalid"
-
-	_, err = NewManager(&dispatcher, tlog, invalidConfig, provider)
-
-	if err == nil {
-		t.Error("unexpected error")
-	}
-
-}
-
-func TestStartShutdown(t *testing.T) {
-
-	tlog := logger.NewTestLogger()
-	m, err := NewManager(&dispatcher, tlog, resConfig, provider)
-	if err != nil {
-		t.Error("unexpected error:", err)
-	}
-	m.Start()
-	m.Shutdown()
-
+	manager, _ = NewManager(&dispatcher, tlog, resConfig, provider)
 }
 
 func TestAddCondition(t *testing.T) {
@@ -396,96 +354,6 @@ func TestFlags(t *testing.T) {
 	}
 
 }
-func TestDispatch(t *testing.T) {
-
-	var e error
-	testman := &resourceManager{}
-	testman.dispatcher = &dispatcher
-
-	testman.log = logger.NewTestLogger()
-
-	trw, err := newTicketReadWriter("resources", "tickets", provider)
-	if err != nil {
-		t.Fatal(e)
-	}
-
-	testman.tstore, e = newStore(trw, 3600)
-
-	if e != nil {
-		t.Fatal(e)
-	}
-
-	frw, err := newFlagReadWriter("resources", "flags", provider)
-	if err != nil {
-		t.Fatal(e)
-	}
-
-	testman.fstore, e = newStore(frw, 3600)
-
-	if e != nil {
-		t.Fatal(e)
-	}
-
-	receiver := events.NewTicketCheckReceiver()
-
-	go testman.Process(receiver, "ROUTE_NOT_EXISTS", events.NewMsg(""))
-
-	_, err = receiver.WaitForResult()
-	if err == nil {
-		t.Error("Invalid route name")
-	}
-
-	msg := events.RouteTicketCheckMsgFormat{}
-	msg.Tickets = []struct {
-		Name      string
-		Odate     string
-		Fulfilled bool
-	}{
-		{Name: "CCCCC", Odate: "20200202", Fulfilled: false},
-	}
-
-	go testman.Process(receiver, events.RouteTicketCheck, events.NewMsg(msg))
-	result, err := receiver.WaitForResult()
-	if err != nil {
-		t.Error("expected response")
-	}
-	if len(result.Tickets) != 1 {
-		t.Error("unexpected data")
-	}
-
-	go testman.Process(receiver, events.RouteTicketCheck, events.NewMsg("msg"))
-	result, err = receiver.WaitForResult()
-	if err == nil {
-		t.Error("expected response")
-	}
-	if err != events.ErrUnrecognizedMsgFormat {
-		t.Error("unexpected data")
-	}
-
-	ticketMsg := events.RouteTicketInMsgFormat{Tickets: make([]struct {
-		Name   string
-		Odate  date.Odate
-		Action taskdef.OutAction
-	}, 2)}
-
-	ticketMsg.Tickets[0].Action = taskdef.OutActionRemove
-	ticketMsg.Tickets[0].Name = "ADDTEST01"
-	ticketMsg.Tickets[0].Odate = "ODAT"
-
-	ticketMsg.Tickets[1].Action = taskdef.OutActionAdd
-	ticketMsg.Tickets[1].Name = "ADDTEST02"
-	ticketMsg.Tickets[1].Odate = "ODAT"
-
-	go testman.Process(nil, events.RouteTicketIn, events.NewMsg(ticketMsg))
-
-	go testman.Process(receiver, events.RouteTicketIn, events.NewMsg(""))
-
-	_, err = receiver.WaitForResult()
-	if err == nil {
-		t.Error("unexpected data expected error actual nil")
-	}
-
-}
 
 func TestCreateReadWriter(t *testing.T) {
 
@@ -509,5 +377,39 @@ func TestCreateReadWriter(t *testing.T) {
 
 	if err != nil {
 		t.Error("unexpected result:", err)
+	}
+}
+
+func TestSortSwap(t *testing.T) {
+	sorter := ticketSorter{list: make([]TicketResource, 0)}
+	sorter.list = append(sorter.list, TicketResource{Name: "TEST01"},
+		TicketResource{Name: "TEST02"},
+		TicketResource{Name: "TEST03"},
+	)
+
+	sorter.Swap(0, 2)
+	if sorter.list[0].Name != "TEST03" && sorter.list[2].Name != "TEST01" {
+		t.Error("unexpected result")
+
+	}
+}
+
+func TestSortLess(t *testing.T) {
+	sorter := ticketSorter{list: make([]TicketResource, 0)}
+	sorter.list = append(sorter.list, TicketResource{Name: "TEST01"},
+		TicketResource{Name: "TEST02"},
+		TicketResource{Name: "TEST03"},
+	)
+
+	result := sorter.Less(0, 1)
+	if !result {
+		t.Error("unexpected result")
+
+	}
+
+	result = sorter.Less(1, 0)
+	if result {
+		t.Error("unexpected result")
+
 	}
 }

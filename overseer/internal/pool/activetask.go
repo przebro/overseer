@@ -38,12 +38,11 @@ type taskExecution struct {
 }
 
 type taskCycle struct {
-	IsCyclic         bool
-	NextRun          types.HourMinTime
-	RunFrom          string
-	MaxRun           int
-	CurrentRunNumber int
-	RunInterval      int
+	IsCyclic    bool
+	NextRun     types.HourMinTime
+	RunFrom     string
+	MaxRun      int
+	RunInterval int
 }
 
 type activeTask struct {
@@ -53,7 +52,6 @@ type activeTask struct {
 	orderID    unique.TaskOrderID
 	orderDate  date.Odate
 	tickets    []taskInTicket
-	runNumber  int32
 	executions []taskExecution
 	cycle      taskCycle
 	waiting    string
@@ -71,15 +69,10 @@ func newActiveTask(orderID unique.TaskOrderID, odate date.Odate, definition task
 		tickets = append(tickets, taskInTicket{odate: string(realOdat), name: e.Name, fulfilled: false})
 	}
 
-	isconfirmed := func() bool {
-		if definition.Confirm() {
-			return false
-		}
-		return true
-	}()
+	isconfirmed := !definition.Confirm()
 
 	cdata := definition.Cyclic()
-	cycle := taskCycle{IsCyclic: cdata.IsCycle, MaxRun: cdata.MaxRuns, CurrentRunNumber: 0, RunFrom: string(cdata.RunFrom), RunInterval: cdata.TimeInterval}
+	cycle := taskCycle{IsCyclic: cdata.IsCycle, MaxRun: cdata.MaxRuns, RunFrom: string(cdata.RunFrom), RunInterval: cdata.TimeInterval}
 	if cycle.IsCyclic {
 		cycle.NextRun = types.Now()
 	}
@@ -87,7 +80,6 @@ func newActiveTask(orderID unique.TaskOrderID, odate date.Odate, definition task
 	task := &activeTask{orderID: orderID,
 		TaskDefinition: definition,
 		orderDate:      odate,
-		runNumber:      0,
 		executions:     []taskExecution{{ExecutionID: unique.NewID().Hex(), state: TaskStateWaiting}},
 		tickets:        tickets,
 		cycle:          cycle,
@@ -119,10 +111,9 @@ func fromModel(model activeTaskModel) (*activeTask, error) {
 	}
 
 	cycle := taskCycle{IsCyclic: model.Cycle.IsCyclic,
-		NextRun:          types.HourMinTime(model.Cycle.NextRun),
-		MaxRun:           model.Cycle.MaxRun,
-		CurrentRunNumber: model.Cycle.Current,
-		RunFrom:          model.Cycle.RunFrom,
+		NextRun: types.HourMinTime(model.Cycle.NextRun),
+		MaxRun:  model.Cycle.MaxRun,
+		RunFrom: model.Cycle.RunFrom,
 	}
 
 	task := &activeTask{
@@ -136,7 +127,6 @@ func fromModel(model activeTaskModel) (*activeTask, error) {
 		holded:         model.Holded,
 		cycle:          cycle,
 		waiting:        model.Waiting,
-		runNumber:      model.RunNumber,
 		collected:      []taskInTicket{},
 	}
 
@@ -154,12 +144,7 @@ func (task *activeTask) SetState(state TaskState) {
 	task.executions[len(task.executions)-1].state = state
 
 }
-func (task *activeTask) SetRunNumber() {
-	defer task.lock.Unlock()
-	task.lock.Lock()
-	task.runNumber++
 
-}
 func (task *activeTask) SetExecutionID() {
 	defer task.lock.Unlock()
 	task.lock.Lock()
@@ -193,9 +178,18 @@ func (task *activeTask) OrderDate() date.Odate {
 func (task *activeTask) RunNumber() int32 {
 	defer task.lock.RUnlock()
 	task.lock.RLock()
-
-	return task.runNumber
+	return task.getRunNumber()
 }
+
+func (task *activeTask) getRunNumber() int32 {
+	execInfo := task.executions[len(task.executions)-1]
+	if execInfo.Start.IsZero() {
+		return int32(len(task.executions) - 1)
+	}
+
+	return int32(len(task.executions))
+}
+
 func (task *activeTask) CurrentExecutionID() string {
 	defer task.lock.RUnlock()
 	task.lock.RLock()
@@ -212,7 +206,7 @@ func (task *activeTask) SetConfirm() bool {
 	defer task.lock.RUnlock()
 	task.lock.RLock()
 
-	if task.confirmed == true {
+	if task.confirmed {
 		return false
 	}
 
@@ -292,8 +286,44 @@ func (task *activeTask) IsCyclic() bool {
 func (task *activeTask) CycleData() taskCycle {
 	defer task.lock.RUnlock()
 	task.lock.RLock()
-
 	return task.cycle
+}
+
+func (task *activeTask) prepareNextCycle() bool {
+
+	defer task.lock.Unlock()
+	task.lock.Lock()
+
+	if !task.cycle.IsCyclic {
+		return false
+	}
+
+	if int(task.getRunNumber()) >= task.cycle.MaxRun {
+		return false
+	}
+
+	var tm time.Time
+
+	switch task.cycle.RunFrom {
+	case "start":
+		{
+
+			tm = task.executions[len(task.executions)-1].Start.Add(time.Duration(task.cycle.RunInterval) * time.Minute)
+		}
+	case "end":
+		{
+			tm = task.executions[len(task.executions)-1].End.Add(time.Duration(task.cycle.RunInterval) * time.Minute)
+		}
+	case "schedule":
+		{
+			//:TODO for now it acts like from end
+			tm = task.executions[len(task.executions)-1].End.Add(time.Duration(task.cycle.RunInterval) * time.Minute)
+		}
+	}
+
+	task.cycle.NextRun = types.FromTime(tm)
+
+	return true
 }
 
 func (task *activeTask) getModel() activeTaskModel {
@@ -305,7 +335,6 @@ func (task *activeTask) getModel() activeTaskModel {
 		IsCyclic: task.cycle.IsCyclic,
 		NextRun:  string(task.cycle.NextRun),
 		MaxRun:   task.cycle.MaxRun,
-		Current:  task.cycle.CurrentRunNumber,
 		RunFrom:  task.cycle.RunFrom,
 	}
 
@@ -316,7 +345,6 @@ func (task *activeTask) getModel() activeTaskModel {
 		OrderID:    string(task.orderID),
 		OrderDate:  task.orderDate,
 		Tickets:    []taskInTicketModel{},
-		RunNumber:  task.runNumber,
 		Waiting:    task.waiting,
 		Executions: []taskExecutionModel{},
 		Cycle:      cycle,

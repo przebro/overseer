@@ -109,6 +109,45 @@ func (r *ticketCheckReciever) WaitForResult() (RouteTicketCheckMsgFormat, error)
 	return result, err
 }
 
+//TicketInReciever - Receiver for a RouteTicketIn
+type TicketInReciever interface {
+	EventReceiver
+	WaitForResult() (RouteTicketInMsgFormat, error)
+}
+type ticketInReciever struct {
+	eventReceiver
+}
+
+//NewTicketInReceiver - Creates a new TicketCheckReciever
+func NewTicketInReceiver() TicketInReciever {
+	l := &ticketInReciever{}
+	l.done = make(chan interface{})
+	return l
+}
+
+func (r *ticketInReciever) WaitForResult() (RouteTicketInMsgFormat, error) {
+
+	var result RouteTicketInMsgFormat
+	var err error = nil
+
+	x := <-r.done
+	switch val := x.(type) {
+	case RouteTicketInMsgFormat:
+		{
+			result = val
+		}
+	case error:
+		{
+			err = val
+		}
+	default:
+		{
+			err = ErrUnrecognizedMsgFormat
+		}
+	}
+	return result, err
+}
+
 //WorkLaunchReceiver - Receiver for a RouteWorkLaunch
 type WorkLaunchReceiver interface {
 	EventReceiver

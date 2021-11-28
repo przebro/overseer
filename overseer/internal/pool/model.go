@@ -43,7 +43,6 @@ type taskCycleModel struct {
 	IsCyclic bool   `json:"is" bson:"is"`
 	NextRun  string `json:"tm" bson:"tm"`
 	MaxRun   int    `json:"max" bson:"max"`
-	Current  int    `json:"cr" bson:"cr"`
 	RunFrom  string `json:"rf" bson:"rf"`
 	Interval int    `json:"in" bson:"in"`
 }

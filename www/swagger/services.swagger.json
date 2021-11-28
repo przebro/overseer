@@ -1508,6 +1508,18 @@
               }
             }
           },
+          "404": {
+            "description": "The task with a given id was not found",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "error message"
+              }
+            }
+          },
           "default": {
             "description": "An unexpected error response.",
             "schema": {
@@ -1985,15 +1997,31 @@
         }
       }
     },
+    "protoTaskCyclicResultMsg": {
+      "type": "object",
+      "properties": {
+        "isCyclic": {
+          "type": "boolean"
+        },
+        "nextRun": {
+          "type": "string"
+        },
+        "runFrom": {
+          "type": "string"
+        },
+        "maxRun": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "interval": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
     "protoTaskDataMsg": {
       "type": "object",
       "properties": {
-        "success": {
-          "type": "boolean"
-        },
-        "message": {
-          "type": "string"
-        },
         "output": {
           "type": "array",
           "items": {
@@ -2034,6 +2062,9 @@
           "items": {
             "$ref": "#/definitions/protoTaskResourcesMsg"
           }
+        },
+        "cyclicData": {
+          "$ref": "#/definitions/protoTaskCyclicResultMsg"
         }
       }
     },

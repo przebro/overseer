@@ -561,23 +561,18 @@ func TestTaskLogTaskOutput(t *testing.T) {
 
 	msg := strings.Split(r.Message, ":")
 
-	d, err := service.TaskLog(ctx, &services.TaskActionMsg{TaskID: msg[1]})
+	_, err = service.TaskLog(ctx, &services.TaskActionMsg{TaskID: msg[1]})
 
 	if err != nil {
 		t.Error("unexpected result:", err)
 	}
-	if d.Success != true {
-		t.Error("unexpected result:", r.Success, "expected:", true)
-	}
 
-	d, err = service.TaskOutput(ctx, &services.TaskActionMsg{TaskID: msg[1]})
+	_, err = service.TaskOutput(ctx, &services.TaskActionMsg{TaskID: msg[1]})
 
 	if err != nil {
 		t.Error("unexpected result:", err)
 	}
-	if d.Success != true || d.Message != "Not implemented" {
-		t.Error("unexpected result:", r.Success, "expected:", true)
-	}
+
 }
 
 func TestTaskDetail_Errors(t *testing.T) {

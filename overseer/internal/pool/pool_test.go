@@ -146,17 +146,24 @@ func (m *mockDispatcher) Unsubscribe(route events.RouteName, participant events.
 
 }
 
+const (
+	testCollectionName = "tasks"
+	testStoreTaskName  = "storetasks"
+	testSequenceName   = "sequence"
+)
+
 var storeConfig config.StoreProviderConfiguration = config.StoreProviderConfiguration{
 	Store: []config.StoreConfiguration{
 		{ID: "teststore", ConnectionString: "local;/../../../data/tests"},
+		{ID: "teststoretasks", ConnectionString: "local;/../../../data/tests?updatesync=true"},
 	},
 	Collections: []config.CollectionConfiguration{
-		{Name: "tasks", StoreID: "teststore"},
-		{Name: "sequence", StoreID: "teststore"},
+		{Name: testCollectionName, StoreID: "teststore"},
+		{Name: testStoreTaskName, StoreID: "teststoretasks"},
+		{Name: testSequenceName, StoreID: "teststore"},
 	},
 }
 
-var testCollectionName = "tasks"
 var taskPoolConfig config.ActivePoolConfiguration = config.ActivePoolConfiguration{
 	ForceNewDayProc: true, MaxOkReturnCode: 4,
 	NewDayProc: "00:30",
@@ -179,7 +186,7 @@ var seq = &mockSequence{val: 1}
 var provider *datastore.Provider
 
 var definitionManagerT taskdef.TaskDefinitionManager
-var mDispatcher = &mockDispatcher{Tickets: make(map[string]string, 0)}
+var mDispatcher = &mockDispatcher{Tickets: make(map[string]string)}
 var taskPoolT *ActiveTaskPool
 var activeTaskManagerT *ActiveTaskPoolManager
 var log logger.AppLogger = logger.NewTestLogger()
@@ -187,11 +194,15 @@ var mockJournalT = &mockJournal{timeout: 3, collected: make(chan events.RouteJou
 
 func init() {
 
-	f, _ := os.Create("../../../data/tests/tasks.json")
+	f, _ := os.Create(fmt.Sprintf("../../../data/tests/%s.json", testCollectionName))
 	f.Write([]byte("{}"))
 	f.Close()
 
-	f2, _ := os.Create("../../../data/tests/sequence.json")
+	f1, _ := os.Create(fmt.Sprintf("../../../data/tests/%s.json", testStoreTaskName))
+	f1.Write([]byte("{}"))
+	f1.Close()
+
+	f2, _ := os.Create(fmt.Sprintf("../../../data/tests/%s.json", testCollectionName))
 	f2.Write([]byte(`{}`))
 	f2.Close()
 

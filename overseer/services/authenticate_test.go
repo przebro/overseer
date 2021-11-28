@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 	"overseer/common/logger"
+	"overseer/datastore"
 	"overseer/proto/services"
 	"testing"
 
@@ -58,23 +59,38 @@ func createAuthClient(t *testing.T) services.AuthenticateServiceClient {
 
 }
 
-func TestAuthenticateUser(t *testing.T) {
+func TestCreateNewAuthenticateService_Error(t *testing.T) {
 
+	prov := &datastore.Provider{}
+	_, err := NewAuthenticateService(authcfg, nil, prov, logger.NewTestLogger())
+	if err == nil {
+		t.Error("unexpected result:", nil, "expected: not nil")
+	}
+
+}
+func TestAuthenticate_Anonymous_User_Success(t *testing.T) {
 	client := createAuthClient(t)
 
 	msg := &services.AuthorizeActionMsg{Username: "", Password: ""}
 	r, err := client.Authenticate(context.Background(), msg)
+
 	if err != nil {
 		t.Error("unexpected result:", err)
 	}
 
-	if r.Success != true {
-		t.Error("unexpected result:", r.Success, "expected:", true)
+	if r.Message != "anonymous access" {
+		t.Error("unexpected result:", r.Message, "expected:", "anonymous access")
 	}
+
+}
+func TestAuthenticate_Anonymous_User_Fail(t *testing.T) {
+	client := createAuthClient(t)
+
+	msg := &services.AuthorizeActionMsg{Username: "", Password: ""}
 
 	asrvc.allowAnonymous = false
 
-	_, err = client.Authenticate(context.Background(), msg)
+	_, err := client.Authenticate(context.Background(), msg)
 	if err == nil {
 		t.Error("unexpected result:", err)
 	}
@@ -83,9 +99,15 @@ func TestAuthenticateUser(t *testing.T) {
 		t.Error("unexpected result:", code, "expected:", codes.Unauthenticated)
 	}
 
-	msg.Username = "testuser1"
+}
+func TestAuthenticate_User_Fail(t *testing.T) {
 
-	_, err = client.Authenticate(context.Background(), msg)
+	client := createAuthClient(t)
+	asrvc.allowAnonymous = false
+
+	msg := &services.AuthorizeActionMsg{Username: "testuser1", Password: ""}
+
+	_, err := client.Authenticate(context.Background(), msg)
 	if err == nil {
 		t.Error("unexpected result:", err)
 	}
@@ -105,11 +127,15 @@ func TestAuthenticateUser(t *testing.T) {
 	if ok, code := matchExpectedStatusFromError(err, codes.Unauthenticated); !ok {
 		t.Error("unexpected result:", code, "expected:", codes.Unauthenticated)
 	}
+}
+func TestAuthenticate_User_Success(t *testing.T) {
 
-	msg.Username = "testuser1"
-	msg.Password = "notsecure"
+	client := createAuthClient(t)
+	asrvc.allowAnonymous = false
 
-	r, err = client.Authenticate(context.Background(), msg)
+	msg := &services.AuthorizeActionMsg{Username: "testuser1", Password: "notsecure"}
+
+	r, err := client.Authenticate(context.Background(), msg)
 	if err != nil {
 		t.Error("unexpected result:", err)
 	}

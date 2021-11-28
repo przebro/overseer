@@ -193,7 +193,7 @@ func (rm *resourceManager) Unset(name string) (bool, error) {
 	var ok bool
 
 	if v, ok = rm.fstore.Get(name); !ok {
-		return false, errors.New("Flag with given name does not exists")
+		return false, errors.New("flag with given name does not exists")
 	}
 
 	flag := v.(FlagResource)
@@ -219,7 +219,7 @@ func (rm *resourceManager) DestroyFlag(name string) (bool, error) {
 	var ok bool
 
 	if _, ok = rm.fstore.Get(name); !ok {
-		return false, errors.New("Flag with given name does not exists")
+		return false, errors.New("flag with given name does not exists")
 	}
 
 	rm.fstore.Delete(name)
@@ -447,6 +447,8 @@ func buildDateExpr(value string) string {
 		return `[\d]*|^$`
 	}
 
+	expr += "^"
+
 	for _, c := range value {
 
 		if c == '*' {
@@ -460,6 +462,8 @@ func buildDateExpr(value string) string {
 
 		expr += string(c)
 	}
+
+	expr += "$"
 
 	return expr
 }

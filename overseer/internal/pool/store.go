@@ -27,7 +27,7 @@ func NewStore(collectionName string, log logger.AppLogger, synctime int, provide
 	var col collection.DataCollection
 
 	if col, err = provider.GetCollection(collectionName); err != nil {
-		log.Error("unable to load collection:", collectionName)
+		log.Error("unable to load collection:", collectionName, "error:", err)
 		return nil, err
 	}
 
@@ -108,7 +108,7 @@ func (s *Store) watch(quiesce <-chan bool, shutdown <-chan struct{}) <-chan stru
 			select {
 			case <-time.After(time.Duration(tm) * time.Second):
 				{
-					if isActive == false {
+					if !isActive {
 						continue
 					}
 					s.storeTasks()

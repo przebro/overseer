@@ -69,9 +69,18 @@ type TaskInfoResultMsg struct {
 	WaitingInfo string
 }
 
+type TaskCycleMsg struct {
+	IsCyclic    bool
+	NextRun     types.HourMinTime
+	RunFrom     string
+	MaxRun      int
+	RunInterval int
+}
+
 //TaskDetailResultMsg - Result for a request for detailed information
 type TaskDetailResultMsg struct {
 	TaskInfoResultMsg
+	TaskCycleMsg
 	From        string
 	To          string
 	StartTime   string

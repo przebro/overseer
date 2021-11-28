@@ -398,6 +398,14 @@ func (srv *ovsActiveTaskService) TaskDetail(ctx context.Context, in *services.Ta
 		RunNumber:  result.RunNumber,
 	}
 
+	response.CyclicData = &services.TaskCyclicResultMsg{
+		IsCyclic: result.IsCyclic,
+		NextRun:  result.NextRun.String(),
+		MaxRun:   int32(result.MaxRun),
+		RunFrom:  result.RunFrom,
+		Interval: int32(result.RunInterval),
+	}
+
 	response.Description = result.Description
 	response.EndTime = result.EndTime
 	response.StartTime = result.StartTime
@@ -430,9 +438,6 @@ func (srv *ovsActiveTaskService) TaskOutput(ctx context.Context, in *services.Ta
 		return response, status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	response.Message = "Not implemented"
-	response.Success = true
-
 	return response, nil
 
 }
@@ -449,7 +454,6 @@ func (srv *ovsActiveTaskService) TaskLog(ctx context.Context, in *services.TaskA
 	for _, n := range entries {
 		response.Output = append(response.Output, fmt.Sprintf("%s:%s", n.Time.Format("2006-01-02 15:04:05.000000"), n.Message))
 	}
-	response.Success = true
 
 	return response, nil
 }

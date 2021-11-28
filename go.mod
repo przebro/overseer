@@ -29,11 +29,9 @@ require (
 require (
 	github.com/aws/aws-sdk-go v1.36.19 // indirect
 	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e // indirect
-	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-playground/locales v0.13.0 // indirect
 	github.com/go-playground/universal-translator v0.17.0 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
-	github.com/golang/glog v1.0.0 // indirect
 	github.com/golang/snappy v0.0.2 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
@@ -47,5 +45,4 @@ require (
 	go.uber.org/atomic v1.7.0 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
 	golang.org/x/text v0.3.5 // indirect
-	gopkg.in/yaml.v2 v2.2.8 // indirect
 )

@@ -103,7 +103,7 @@ func NewSequenceGenerator(colname string, provider *datastore.Provider) (Sequenc
 	}
 	value = uint16(model.Value)
 
-	if create == true {
+	if create {
 		col.Create(context.Background(), &model)
 	} else {
 		col.Update(context.Background(), &model)
