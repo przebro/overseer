@@ -202,7 +202,7 @@ func init() {
 	f1.Write([]byte("{}"))
 	f1.Close()
 
-	f2, _ := os.Create(fmt.Sprintf("../../../data/tests/%s.json", testCollectionName))
+	f2, _ := os.Create(fmt.Sprintf("../../../data/tests/%s.json", testSequenceName))
 	f2.Write([]byte(`{}`))
 	f2.Close()
 
