@@ -1,14 +1,15 @@
 package pool
 
 import (
-	"encoding/json"
 	"overseer/common/types/date"
 	"time"
 )
 
 type activeTaskModel struct {
 	OrderID    string               `json:"_id" bson:"_id"`
-	Definition json.RawMessage      `json:"def" bson:"def"`
+	Name       string               `json:"name" bson:"name"`
+	Group      string               `json:"group" bson:"group"`
+	Reference  string               `json:"_ref" bson:"_ref"`
 	State      TaskState            `json:"state" bson:"state"`
 	Holded     bool                 `json:"holded" bson:"holded"`
 	Confirmed  bool                 `json:"confirm" bson:"confirm"`

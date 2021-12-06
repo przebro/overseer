@@ -72,7 +72,15 @@ func (c *OsTaskActionConverter) Convert(data interface{}, variables []taskdef.Va
 			}
 		}
 
-		cmd := &actions.OsTaskAction{CommandLine: cmdLine, Runas: result.RunAs, Type: string(result.ActionType)}
+		var taskType actions.OsTaskAction_OsType
+
+		if result.ActionType == taskdef.OsActionTypeCommand {
+			taskType = actions.OsTaskAction_command
+		} else {
+			taskType = actions.OsTaskAction_script
+		}
+
+		cmd := &actions.OsTaskAction{CommandLine: cmdLine, Runas: result.RunAs, Type: taskType}
 		if act, err := proto.Marshal(cmd); err == nil {
 
 			msg := &any.Any{TypeUrl: string(cmd.ProtoReflect().Descriptor().FullName()), Value: act}

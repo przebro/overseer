@@ -7,6 +7,7 @@ import (
 	"overseer/common/types"
 	"overseer/common/types/date"
 	"overseer/common/validator"
+	"overseer/overseer/internal/unique"
 	"path/filepath"
 	"strings"
 	"time"
@@ -90,7 +91,8 @@ type CyclicTaskData struct {
 }
 
 type baseTaskDefinition struct {
-	TaskType      types.TaskType   `json:"type" validate:"oneof=dummy os"`
+	Revision      string           `json:"rev"`
+	TaskType      types.TaskType   `json:"type" validate:"oneof=dummy os aws filewatch"`
 	Name          string           `json:"name" validate:"required,max=32,resname"`
 	Group         string           `json:"group" validate:"required,max=20,resname"`
 	Description   string           `json:"description" validate:"lte=200"`
@@ -185,11 +187,20 @@ func (task *baseTaskDefinition) Days() []int {
 type BaseInfo interface {
 	//GetInfo - gets base informations about task: Name,group and description
 	GetInfo() (string, string, string)
+	Rev() string
+	SetRevision(unique.MsgID)
 }
 
 //GetInfo - gets base informations about task: Name,group and description
 func (task *baseTaskDefinition) GetInfo() (string, string, string) {
 	return task.Name, task.Group, task.Description
+}
+
+func (task *baseTaskDefinition) Rev() string {
+	return task.Revision
+}
+func (task *baseTaskDefinition) SetRevision(id unique.MsgID) {
+	task.Revision = id.Hex()
 }
 
 //TaskInTicket - Provides information about required tickets
@@ -275,6 +286,21 @@ func (task *baseTaskDefinition) Action() interface{} {
 //Variables - Gets variables from tasks definition
 func (task *baseTaskDefinition) Variables() []VariableData {
 	return task.TaskVariables
+}
+
+//FromPoolDirectory - Load task from file, Wrapper function for load from string
+func FromPoolDirectory(path string) (TaskDefinition, error) {
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	def, err := FromString(string(data))
+	if err != nil {
+		return nil, err
+	}
+
+	return def, nil
 }
 
 //FromDefinitionFile - Load task from file, Wrapper function for load from string

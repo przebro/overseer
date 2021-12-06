@@ -65,61 +65,6 @@ func (srv *ovsDefinitionService) GetDefinition(ctx context.Context, msg *service
 	return result, nil
 }
 
-//LockDefinition - Locks a definition for edition
-func (srv *ovsDefinitionService) LockDefinition(ctx context.Context, msg *services.DefinitionActionMsg) (*services.LockResultMsg, error) {
-
-	var success bool = false
-	var resultMsg string = ""
-
-	result := &services.LockResultMsg{}
-	for _, e := range msg.DefinitionMsg {
-
-		data := taskdata.GroupNameData{GroupData: taskdata.GroupData{Group: e.GroupName}, Name: e.TaskName}
-		err := validator.Valid.Validate(data)
-
-		if err != nil {
-			result.LockResult = append(result.LockResult, &services.LockResult{Success: false, Message: err.Error()})
-			continue
-		}
-
-		lockID, err := srv.defManager.Lock(data)
-
-		if err != nil {
-			resultMsg = fmt.Sprintf("Unable to acquire lock for task group:%s task:%s", e.GroupName, e.TaskName)
-			success = false
-			lockID = 0
-		} else {
-
-		}
-		result.LockResult = append(result.LockResult, &services.LockResult{Success: success, Message: resultMsg, LockID: lockID})
-	}
-
-	return result, nil
-}
-
-//UnlockDefinition - unlocks definition
-func (srv *ovsDefinitionService) UnlockDefinition(ctx context.Context, msg *services.DefinitionActionMsg) (*services.LockResultMsg, error) {
-
-	var success bool
-	var rmsg string
-	result := &services.LockResultMsg{}
-	for _, e := range msg.DefinitionMsg {
-
-		err := srv.defManager.Unlock(e.LockID)
-
-		if err != nil {
-			rmsg = fmt.Sprintf("Unable to release lock")
-			success = false
-		} else {
-			rmsg = fmt.Sprintf("Lock released")
-			success = true
-		}
-
-		result.LockResult = append(result.LockResult, &services.LockResult{LockID: e.LockID, Success: success, Message: rmsg})
-	}
-	return result, nil
-}
-
 //ListGroups - List definition groups
 func (srv *ovsDefinitionService) ListGroups(ctx context.Context, filter *services.FilterMsg) (*services.DefinitionListGroupResultMsg, error) {
 
@@ -130,7 +75,7 @@ func (srv *ovsDefinitionService) ListGroups(ctx context.Context, filter *service
 	}
 
 	srv.log.Info("Request for group")
-	groups := srv.defManager.GetGroups()
+	groups, _ := srv.defManager.GetGroups()
 
 	result.GroupName = append(result.GroupName, groups...)
 

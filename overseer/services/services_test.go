@@ -196,7 +196,7 @@ func init() {
 
 	initTaskPool()
 
-	path, _ := filepath.Abs("../../def")
+	path, _ := filepath.Abs("../../def_test")
 	definitionManagerT, err = taskdef.NewManager(path, log)
 	if err != nil {
 		fmt.Println(err)
@@ -206,7 +206,7 @@ func init() {
 }
 
 func initTaskPool() {
-	taskPoolT, _ = pool.NewTaskPool(&dispatcher, taskPoolConfig, provider, true, logger.NewTestLogger())
+	taskPoolT, _ = pool.NewTaskPool(&dispatcher, taskPoolConfig, provider, true, logger.NewTestLogger(), definitionManagerT)
 }
 
 func matchExpectedStatusFromError(err error, expected codes.Code) (bool, codes.Code) {

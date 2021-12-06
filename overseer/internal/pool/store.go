@@ -21,7 +21,7 @@ type Store struct {
 }
 
 //NewStore - Creates a new store
-func NewStore(collectionName string, log logger.AppLogger, synctime int, provider *datastore.Provider) (*Store, error) {
+func NewStore(collectionName string, log logger.AppLogger, synctime int, provider *datastore.Provider, rdr ActiveDefinitionReader) (*Store, error) {
 
 	var err error
 	var col collection.DataCollection
@@ -39,7 +39,7 @@ func NewStore(collectionName string, log logger.AppLogger, synctime int, provide
 		synctime:   synctime,
 	}
 
-	store.restoreTasks()
+	store.restorePool(rdr)
 
 	return store, nil
 }
@@ -144,7 +144,7 @@ func (s *Store) storeTasks() {
 	s.log.Info("store task complete:", time.Since(tsart))
 }
 
-func (s *Store) restoreTasks() {
+func (s *Store) restorePool(rdr ActiveDefinitionReader) {
 	defer s.lock.Unlock()
 	s.lock.Lock()
 
@@ -171,7 +171,7 @@ func (s *Store) restoreTasks() {
 			continue
 		}
 
-		task, err := fromModel(model)
+		task, err := fromModel(model, rdr)
 		if err != nil {
 			s.log.Error("error loading task:", err)
 			continue

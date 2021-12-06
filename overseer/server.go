@@ -65,7 +65,7 @@ func New(config config.OverseerConfiguration, lg logger.AppLogger, quiesce bool)
 		return nil, err
 	}
 
-	if pl, err = pool.NewTaskPool(ds, config.PoolConfiguration, dataProvider, !quiesce, lg); err != nil {
+	if pl, err = pool.NewTaskPool(ds, config.PoolConfiguration, dataProvider, !quiesce, lg, dm); err != nil {
 		return nil, err
 	}
 

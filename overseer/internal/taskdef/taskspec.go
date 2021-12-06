@@ -26,3 +26,17 @@ type OsTaskDefinition struct {
 func (os *OsTaskDefinition) Action() interface{} {
 	return os.Spec
 }
+
+type AWSTaskType string
+
+const (
+	AwsTaskTypeLambda AWSTaskType = "lambda"
+	AwsTaskTypeBatch  AWSTaskType = "batch"
+)
+
+type AwsTaskData struct {
+	Type       AWSTaskType `json:"type"`
+	ObjectName string      `json:"name"`
+	Profile    string      `json:"profile"`
+	Region     string      `json:"region"`
+}

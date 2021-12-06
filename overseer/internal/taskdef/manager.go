@@ -8,55 +8,71 @@ import (
 	"io/ioutil"
 	"os"
 	"overseer/common/logger"
+	"overseer/overseer/internal/unique"
 	"overseer/overseer/taskdata"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
-	"sync/atomic"
 )
 
 var (
-	ErrLockIDNotExists error  = errors.New("given lockID does not exists")
-	ErrTaskNameEmpty   error  = errors.New("task name cannot be empty")
-	ErrGroupNameEmpty  error  = errors.New("group name cannot be empty")
-	lockIDSeq          uint32 = 1
+	ErrLockIDNotExists  error = errors.New("given lockID does not exists")
+	ErrTaskNameEmpty    error = errors.New("task name cannot be empty")
+	ErrTaskRevEmpty     error = errors.New("task rev cannot be empty")
+	ErrTaskRename       error = errors.New("unable to rename, definition already exists")
+	ErrTaskRevDiff      error = errors.New("task rev is different than original")
+	ErrTaskRevInvalid   error = errors.New("invalid task rev")
+	ErrGroupNameEmpty   error = errors.New("group name cannot be empty")
+	ErrGroupNotExists   error = errors.New("group with given name not exists")
+	ErrGroupDirNotEmpty error = errors.New("group directory not empty, remove definitions firs")
+	ErrGroupDirInvalid  error = errors.New("failed to read groups from directory,invalid path")
+	ErrReferenceEmpty   error = errors.New("empty reference id")
 )
 
-type lockData struct {
-	group string
-	name  string
-	file  *os.File
-}
+var poolDirectoryName = ".pool"
 
 type taskManager struct {
-	dirPath string
-	lockTab map[uint32]lockData
-	lock    sync.Mutex
-	log     logger.AppLogger
+	dirPath       string
+	activeTaskDir string
+	lock          sync.Mutex
+	log           logger.AppLogger
 }
 
 //TaskDefinitionManager - main component responsible for a task CRUD
 type TaskDefinitionManager interface {
 	GetTasks(tasks ...taskdata.GroupNameData) []TaskDefinition
 	GetTask(task taskdata.GroupNameData) (TaskDefinition, error)
-	GetGroups() []string
+	GetGroups() ([]string, error)
 	GetTasksFromGroup(groups []string) ([]taskdata.GroupNameData, error)
 	GetTaskModelList(group taskdata.GroupData) ([]taskdata.TaskNameModel, error)
-	Lock(task taskdata.GroupNameData) (uint32, error)
-	Unlock(lockID uint32) error
 	Create(task TaskDefinition) error
 	CreateGroup(name string) error
-	Update(lockID uint32, task TaskDefinition) error
-	Delete(lockID uint32, task taskdata.GroupNameData) error
+	Update(task TaskDefinition) error
+	Delete(task taskdata.GroupNameData) error
 	DeleteGroup(name string) error
+	GetActiveDefinition(refID string) (TaskDefinition, error)
+	WriteActiveDefinition(def TaskDefinition, id unique.MsgID) error
+	RemoveActiveDefinition(id string) error
 }
 
 //NewManager - returns new instance of a TaskDefinitionManager
 func NewManager(path string, log logger.AppLogger) (TaskDefinitionManager, error) {
 
-	var t = new(taskManager)
+	if _, err := os.Stat(path); err != nil {
+		return nil, err
+	}
+
+	poolDir := filepath.Join(path, poolDirectoryName)
+
+	if _, err := os.Stat(poolDir); err != nil {
+		return nil, err
+	}
+
+	var t = &taskManager{}
+
 	t.dirPath = path
-	t.lockTab = make(map[uint32]lockData)
+	t.activeTaskDir = poolDirectoryName
 	t.log = log
 
 	return t, nil
@@ -139,59 +155,23 @@ func (m *taskManager) GetTaskModelList(group taskdata.GroupData) ([]taskdata.Tas
 	return result, nil
 }
 
-func (m *taskManager) GetGroups() []string {
+func (m *taskManager) GetGroups() ([]string, error) {
 
 	groups := make([]string, 0)
 
 	info, err := ioutil.ReadDir(m.dirPath)
 	if err != nil {
-		m.log.Error("GetTasks:", err)
+		m.log.Error("Get groups:", err)
+		return []string{}, ErrGroupDirInvalid
 	}
 
 	for _, in := range info {
-		if in.IsDir() {
+		if in.IsDir() && !strings.HasPrefix(in.Name(), ".") {
 			groups = append(groups, in.Name())
 		}
 	}
 
-	return groups
-}
-func (m *taskManager) Lock(task taskdata.GroupNameData) (uint32, error) {
-	defer m.lock.Unlock()
-	m.lock.Lock()
-
-	if task.Name == "" {
-		return 0, ErrTaskNameEmpty
-	}
-
-	for _, n := range m.lockTab {
-
-		if n.group == task.Group && n.name == task.Name {
-			return 0, errors.New("unable to acquire lock")
-		}
-	}
-	f, err := os.Open(filepath.Join(m.dirPath, task.Group, fmt.Sprintf("%v.json", task.Name)))
-	if err != nil {
-		return 0, err
-	}
-
-	lockID := getNext()
-	m.lockTab[lockID] = lockData{name: task.Name, group: task.Group, file: f}
-
-	return lockID, nil
-}
-func (m *taskManager) Unlock(lockID uint32) error {
-	defer m.lock.Unlock()
-	m.lock.Lock()
-	d, x := m.lockTab[lockID]
-	if !x {
-		return ErrLockIDNotExists
-	}
-	d.file.Close()
-
-	delete(m.lockTab, lockID)
-	return nil
-
+	return groups, nil
 }
 func (m *taskManager) Create(task TaskDefinition) error {
 	defer m.lock.Unlock()
@@ -205,6 +185,10 @@ func (m *taskManager) Create(task TaskDefinition) error {
 		return errors.New("unable to create, definition already exists")
 	}
 
+	if task.Rev() == "" {
+		task.SetRevision(unique.NewID())
+	}
+
 	data, err := json.Marshal(task)
 	if err != nil {
 		return err
@@ -213,6 +197,7 @@ func (m *taskManager) Create(task TaskDefinition) error {
 
 	return err
 }
+
 func (m *taskManager) CreateGroup(name string) error {
 
 	if name == "" {
@@ -224,78 +209,68 @@ func (m *taskManager) CreateGroup(name string) error {
 	}
 	return nil
 }
-func (m *taskManager) Update(lockID uint32, task TaskDefinition) error {
+
+func (m *taskManager) Update(task TaskDefinition) error {
 	defer m.lock.Unlock()
 	m.lock.Lock()
 
-	d, x := m.lockTab[lockID]
-	if !x {
-		return ErrLockIDNotExists
-	}
-
+	var err error
 	name, grp, _ := task.GetInfo()
 
 	if name == "" {
 		return ErrTaskNameEmpty
 	}
-	//ensure also if task with new name or new group does not exists
-	if d.name != name || d.group != grp {
+
+	n, g, _, err := getNameGroupIdFromDefinition(task)
+	if err != nil {
+		return err
+	}
+
+	opath := filepath.Join(m.dirPath, g, fmt.Sprintf("%v.json", n))
+
+	oldDef, err := FromDefinitionFile(opath)
+	if err != nil {
+		return err
+	}
+	//ummy_update_03@test@16be1f583874c7cf61b6be1f
+	//ummy_update_03@test@16be1f583874c7cf61b6be1f
+
+	if oldDef.Rev() != task.Rev() {
+		return ErrTaskRevDiff
+	}
+
+	path := filepath.Join(m.dirPath, grp, fmt.Sprintf("%v.json", name))
+
+	//only if task is moved to different group or renamed, ensure if task with new name or new group does not exists
+	if name != n || grp != g {
 		path := filepath.Join(m.dirPath, grp, fmt.Sprintf("%v.json", name))
-		oldpath := filepath.Join(m.dirPath, d.group, fmt.Sprintf("%v.json", d.name))
-		_, err := os.Stat(path)
+		_, err = os.Stat(path)
 
 		if err == nil {
-			return errors.New("unable to rename, definition already exists")
+			return ErrTaskRename
 		}
-
-		d.file.Close()
-		os.Rename(oldpath, path)
-		nfile, _ := os.OpenFile(path, os.O_TRUNC|os.O_RDWR, 0640)
-
-		m.lockTab[lockID] = lockData{file: nfile, name: name, group: grp}
-		d = m.lockTab[lockID]
-
 	}
 
 	var result string
-	var err error
-	result, err = SerializeDefinition(task)
-	if err != nil {
+
+	if result, err = SerializeDefinition(task); err != nil {
 		return err
 	}
 
-	_, err = d.file.Seek(0, 0)
-	if err != nil {
-		return err
+	if path != opath {
+		os.Remove(opath)
 	}
 
-	if err = d.file.Truncate(0); err != nil {
-		return err
-	}
-	if _, err = d.file.Write([]byte(result)); err != nil {
-		return err
-	}
+	return os.WriteFile(path, []byte(result), 0640)
 
-	return nil
 }
-func (m *taskManager) Delete(lockID uint32, task taskdata.GroupNameData) error {
+func (m *taskManager) Delete(task taskdata.GroupNameData) error {
 
 	defer m.lock.Unlock()
 	m.lock.Lock()
 
-	d, x := m.lockTab[lockID]
-	if !x {
-		return ErrLockIDNotExists
-	}
-	if task.Name != d.name || task.Group != d.group {
-		return errors.New("group and name does not match with lockID")
-	}
-
 	path := filepath.Join(m.dirPath, task.Group, fmt.Sprintf("%v.json", task.Name))
-	d.file.Close()
-	os.Remove(path)
-	delete(m.lockTab, lockID)
-	return nil
+	return os.Remove(path)
 }
 
 func (m *taskManager) DeleteGroup(name string) error {
@@ -309,7 +284,7 @@ func (m *taskManager) DeleteGroup(name string) error {
 	path := filepath.Join(m.dirPath, name)
 	finfo, err := os.Open(path)
 	if err != nil {
-		return errors.New("can't find directory")
+		return ErrGroupNotExists
 	}
 
 	var stat os.FileInfo
@@ -324,7 +299,7 @@ func (m *taskManager) DeleteGroup(name string) error {
 
 	_, err = finfo.Readdirnames(1)
 	if err == nil {
-		return errors.New("directory is not empty")
+		return ErrGroupDirNotEmpty
 	}
 	if err == io.EOF {
 		finfo.Close()
@@ -337,7 +312,56 @@ func (m *taskManager) DeleteGroup(name string) error {
 	return nil
 }
 
-func getNext() uint32 {
+func (m *taskManager) WriteActiveDefinition(task TaskDefinition, id unique.MsgID) error {
 
-	return atomic.AddUint32(&lockIDSeq, 1)
+	var data []byte
+	var err error
+	path := filepath.Join(m.dirPath, m.activeTaskDir, fmt.Sprintf("%s.json", id.Hex()))
+
+	if data, err = json.Marshal(task); err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(path, data, 0644)
+}
+func (m *taskManager) RemoveActiveDefinition(id string) error {
+
+	path := filepath.Join(m.dirPath, m.activeTaskDir, fmt.Sprintf("%s.json", id))
+	return os.Remove(path)
+}
+func (m *taskManager) GetActiveDefinition(id string) (TaskDefinition, error) {
+
+	var err error
+	var result TaskDefinition
+
+	if id == "" {
+		return nil, ErrReferenceEmpty
+	}
+
+	path := filepath.Join(m.dirPath, m.activeTaskDir, fmt.Sprintf("%s.json", id))
+	if result, err = FromPoolDirectory(path); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+//getNameGroupFrovRev - gets name of a task, group that belongs and unique idetifier,
+//returns error if revision is not  valid format which is: task_name@task_group@unique_id
+func getNameGroupIdFromDefinition(task TaskDefinition) (string, string, string, error) {
+
+	rev := task.Rev()
+
+	if rev == "" {
+		return "", "", "", ErrTaskRevEmpty
+	}
+
+	m, err := regexp.Match(`^[A-Za-z][\w\-\.]*@[A-Za-z][\w\-\.]*@[\w]+$`, []byte(rev))
+	if err != nil || !m {
+		return "", "", "", ErrTaskRevInvalid
+	}
+
+	val := strings.Split(rev, "@")
+
+	return val[0], val[1], val[2], nil
 }

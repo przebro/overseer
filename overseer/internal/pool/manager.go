@@ -68,7 +68,7 @@ func (manager *ActiveTaskPoolManager) Order(task taskdata.GroupNameData, odate d
 		return "", ErrUnableFindDef
 	}
 
-	orderID, descr := manager.orderDefinition(definition, odate, username)
+	orderID, descr := manager.orderDefinition(definition, odate, false, username)
 	if descr != "" {
 		return descr, errors.New("failed order task")
 	}
@@ -95,7 +95,7 @@ func (manager *ActiveTaskPoolManager) OrderGroup(groupdata taskdata.GroupData, o
 			continue
 		}
 
-		orderID, descr := manager.orderDefinition(definition, odate, username)
+		orderID, descr := manager.orderDefinition(definition, odate, false, username)
 		if descr != "" {
 			result = append(result, descr)
 			continue
@@ -122,7 +122,7 @@ func (manager *ActiveTaskPoolManager) ForceGroup(groupdata taskdata.GroupData, o
 
 		definition, _ = manager.tdm.GetTask(d)
 
-		orderID, descr := manager.forceDefinition(definition, odate, username)
+		orderID, descr := manager.orderDefinition(definition, odate, true, username)
 		if descr != "" {
 			result = append(result, descr)
 			continue
@@ -142,7 +142,7 @@ func (manager *ActiveTaskPoolManager) Force(task taskdata.GroupNameData, odate d
 		return "", ErrUnableFindDef
 	}
 
-	orderID, descr := manager.forceDefinition(definition, odate, username)
+	orderID, descr := manager.orderDefinition(definition, odate, true, username)
 	if descr != "" {
 		return descr, errors.New("failed force task")
 	}
@@ -268,8 +268,8 @@ func (manager *ActiveTaskPoolManager) orderNewTasks() int {
 	ordered := 0
 	manager.log.Info("Ordering new tasks")
 
-	groups := make([]string, 0)
-	groups = append(groups, manager.tdm.GetGroups()...)
+	groups, _ := manager.tdm.GetGroups()
+
 	taskData, _ := manager.tdm.GetTasksFromGroup(groups)
 
 	result := manager.tdm.GetTasks(taskData...)
@@ -278,7 +278,7 @@ func (manager *ActiveTaskPoolManager) orderNewTasks() int {
 
 		//It is a new day procedure so skip tasks that are ordered manually
 		if t.OrderType() != taskdef.OrderingManual {
-			manager.orderDefinition(t, date.CurrentOdate(), "daily procedure")
+			manager.orderDefinition(t, date.CurrentOdate(), false, "daily procedure")
 			ordered++
 		}
 	}
@@ -287,13 +287,13 @@ func (manager *ActiveTaskPoolManager) orderNewTasks() int {
 
 //orderDefinition - Adds a new task to the Active Task Pool
 //this method performs all checks
-func (manager *ActiveTaskPoolManager) orderDefinition(def taskdef.TaskDefinition, odate date.Odate, username string) (unique.TaskOrderID, string) {
+func (manager *ActiveTaskPoolManager) orderDefinition(def taskdef.TaskDefinition, odate date.Odate, force bool, username string) (unique.TaskOrderID, string) {
 
 	manager.log.Info("order:", def, ":", odate)
 
 	ctx := TaskOrderContext{def: def,
-		ignoreCalendar:   false,
-		ignoreSubmission: false,
+		ignoreCalendar:   force,
+		ignoreSubmission: force,
 		odate:            odate,
 		state:            &ostateCheckOtype{},
 		currentOdate:     date.CurrentOdate(),
@@ -303,57 +303,30 @@ func (manager *ActiveTaskPoolManager) orderDefinition(def taskdef.TaskDefinition
 	n, g, _ := def.GetInfo()
 
 	for ctx.state.processState(&ctx) {
-
 	}
 
 	if !ctx.isSubmited {
 		return "", strings.Join(ctx.reason, ",")
 
 	}
-	orderID := manager.sequence.Next()
 
-	task := newActiveTask(orderID, odate, def)
+	refID := unique.NewID()
+
+	if err := manager.tdm.WriteActiveDefinition(def, refID); err != nil {
+		manager.log.Error("push definition to pool failed:", err.Error())
+	}
+
+	orderID := manager.sequence.Next()
+	task := newActiveTask(orderID, odate, def, refID)
 	manager.pool.addTask(orderID, task)
 
-	manager.log.Info(fmt.Sprintf("Task %s from gorup %s ordered with id:%s odate:%s", n, g, orderID, odate))
-	pushJournalMessage(manager.pool.dispatcher, orderID, task.CurrentExecutionID(), time.Now(), fmt.Sprintf(journal.TaskOrdered, username, odate))
-
-	return orderID, strings.Join(ctx.reason, ",")
-}
-
-//forceDefinition - Forcefully adds a new task to the Active Task Pool
-//this method ignores all checks
-func (manager *ActiveTaskPoolManager) forceDefinition(def taskdef.TaskDefinition, odate date.Odate, username string) (unique.TaskOrderID, string) {
-
-	manager.log.Info("force:", def, ":", odate)
-
-	ctx := TaskOrderContext{def: def,
-		ignoreCalendar:   true,
-		ignoreSubmission: true,
-		odate:            odate,
-		state:            &ostateCheckOtype{},
-		currentOdate:     date.CurrentOdate(),
-		reason:           make([]string, 0),
-		log:              manager.log,
+	if force {
+		manager.log.Info(fmt.Sprintf("Task %s from gorup %s forced with id:%s odate:%s", n, g, orderID, odate))
+		pushJournalMessage(manager.pool.dispatcher, orderID, task.CurrentExecutionID(), time.Now(), fmt.Sprintf(journal.TaskForced, username, odate))
+	} else {
+		manager.log.Info(fmt.Sprintf("Task %s from gorup %s ordered with id:%s odate:%s", n, g, orderID, odate))
+		pushJournalMessage(manager.pool.dispatcher, orderID, task.CurrentExecutionID(), time.Now(), fmt.Sprintf(journal.TaskOrdered, username, odate))
 	}
-
-	n, g, _ := def.GetInfo()
-
-	for ctx.state.processState(&ctx) {
-
-	}
-
-	if !ctx.isSubmited {
-		return "", strings.Join(ctx.reason, ",")
-
-	}
-	orderID := manager.sequence.Next()
-
-	task := newActiveTask(orderID, odate, def)
-	manager.pool.addTask(orderID, task)
-
-	manager.log.Info(fmt.Sprintf("Task %s from gorup %s forced with id:%s odate:%s", n, g, orderID, odate))
-	pushJournalMessage(manager.pool.dispatcher, orderID, task.CurrentExecutionID(), time.Now(), fmt.Sprintf(journal.TaskForced, username, odate))
 
 	return orderID, strings.Join(ctx.reason, ",")
 }
@@ -458,12 +431,7 @@ func (manager *ActiveTaskPoolManager) processAddToActivePool(msg events.RouteTas
 
 	}
 
-	if msg.Force {
-		id, rmsg = manager.forceDefinition(definition, date.Odate(msg.Odate), msg.Username)
-
-	} else {
-		id, rmsg = manager.orderDefinition(definition, date.Odate(msg.Odate), msg.Username)
-	}
+	id, rmsg = manager.orderDefinition(definition, date.Odate(msg.Odate), msg.Force, msg.Username)
 
 	result.Data = make([]events.TaskInfoResultMsg, 1)
 	result.Data[0].TaskID = id

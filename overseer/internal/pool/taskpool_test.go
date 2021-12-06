@@ -12,13 +12,19 @@ import (
 	"time"
 )
 
+func init() {
+	if !isInitialized {
+		setupEnv()
+	}
+}
+
 func TestNewTaskPool(t *testing.T) {
 	if taskPoolT == nil {
 		t.Error("TaskPool not initialized")
 	}
 
 	taskPoolConfig.Collection = "invalid_collection"
-	_, err := NewTaskPool(mDispatcher, taskPoolConfig, provider, true, logger.NewTestLogger())
+	_, err := NewTaskPool(mDispatcher, taskPoolConfig, provider, true, logger.NewTestLogger(), definitionManagerT)
 	if err == nil {
 		t.Error("unexpected result")
 	}
@@ -161,7 +167,7 @@ func TestStartStopQR(t *testing.T) {
 
 	taskPoolConfig.Collection = testCollectionName
 
-	tpool, err := NewTaskPool(mDispatcher, taskPoolConfig, provider, false, logger.NewTestLogger())
+	tpool, err := NewTaskPool(mDispatcher, taskPoolConfig, provider, false, logger.NewTestLogger(), definitionManagerT)
 	if err != nil {
 		t.Error("Unexpected result")
 	}

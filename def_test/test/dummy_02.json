@@ -1,0 +1,24 @@
+{
+    "type" : "dummy",
+    "name" :"dummy_02",
+    "group" : "test",
+    "description" :"sample dummy task definition",
+    "inticket" : [
+        {"name" : "OK-COND-01","odate" : "ODATE" }
+    ],
+    "relation" :"AND",
+    "flags" : [{"name" :"flag01", "type":"SHR"}
+
+    ],
+    "outticket" :[
+        {"name" : "OK-COND-02","odate" : "ODATE" ,"action":"ADD"}
+        
+    ],
+    "schedule" :{
+        "type" : "manual",
+        "from" : "10:30",
+        "to" : ""
+    },
+    "other" : {"name" :"xxx","val" :"yyyy"}
+
+}

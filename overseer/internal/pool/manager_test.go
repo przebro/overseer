@@ -11,6 +11,12 @@ import (
 	"time"
 )
 
+func init() {
+	if !isInitialized {
+		setupEnv()
+	}
+}
+
 func TestNewManager(t *testing.T) {
 
 	if activeTaskManagerT == nil {
@@ -265,19 +271,15 @@ func TestGetModel(t *testing.T) {
 		t.Error("unexpected result, model does not match to  the origin task, Ticket ODATE is different")
 	}
 
-	badModel := activeTaskModel{Definition: []byte("{}")}
-
-	if _, err = fromModel(badModel); err == nil {
-		t.Error("unexpected result")
-	}
+	badModel := activeTaskModel{}
 
 	badModel.Tickets = nil
 
-	if _, err = fromModel(badModel); err == nil {
+	if _, err = fromModel(badModel, definitionManagerT); err == nil {
 		t.Error("unexpected result")
 	}
 
-	def, err := fromModel(model)
+	def, err := fromModel(model, definitionManagerT)
 	if err != nil {
 		t.Error("unexpected result")
 	}

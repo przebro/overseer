@@ -34,9 +34,8 @@ func FactoryOS(header msgheader.TaskHeader, sysoutDir string, data []byte) (Work
 	if err := proto.Unmarshal(data, &act); err != nil {
 		return nil, errors.New("")
 	}
-	w, err := newOsFragment(header, sysoutDir, &act)
 
-	return w, err
+	return newOsFragment(header, sysoutDir, &act)
 }
 
 //newOsFragment - factory method, creates a new os fragment

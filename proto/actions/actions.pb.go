@@ -25,6 +25,98 @@ const (
 // of the legacy proto package is being used.
 const _ = proto.ProtoPackageIsVersion4
 
+type OsTaskAction_OsType int32
+
+const (
+	OsTaskAction_command OsTaskAction_OsType = 0
+	OsTaskAction_script  OsTaskAction_OsType = 1
+)
+
+// Enum value maps for OsTaskAction_OsType.
+var (
+	OsTaskAction_OsType_name = map[int32]string{
+		0: "command",
+		1: "script",
+	}
+	OsTaskAction_OsType_value = map[string]int32{
+		"command": 0,
+		"script":  1,
+	}
+)
+
+func (x OsTaskAction_OsType) Enum() *OsTaskAction_OsType {
+	p := new(OsTaskAction_OsType)
+	*p = x
+	return p
+}
+
+func (x OsTaskAction_OsType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (OsTaskAction_OsType) Descriptor() protoreflect.EnumDescriptor {
+	return file_actions_proto_enumTypes[0].Descriptor()
+}
+
+func (OsTaskAction_OsType) Type() protoreflect.EnumType {
+	return &file_actions_proto_enumTypes[0]
+}
+
+func (x OsTaskAction_OsType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use OsTaskAction_OsType.Descriptor instead.
+func (OsTaskAction_OsType) EnumDescriptor() ([]byte, []int) {
+	return file_actions_proto_rawDescGZIP(), []int{1, 0}
+}
+
+type AwsTaskAction_AwsType int32
+
+const (
+	AwsTaskAction_lambda AwsTaskAction_AwsType = 0
+	AwsTaskAction_batch  AwsTaskAction_AwsType = 1
+)
+
+// Enum value maps for AwsTaskAction_AwsType.
+var (
+	AwsTaskAction_AwsType_name = map[int32]string{
+		0: "lambda",
+		1: "batch",
+	}
+	AwsTaskAction_AwsType_value = map[string]int32{
+		"lambda": 0,
+		"batch":  1,
+	}
+)
+
+func (x AwsTaskAction_AwsType) Enum() *AwsTaskAction_AwsType {
+	p := new(AwsTaskAction_AwsType)
+	*p = x
+	return p
+}
+
+func (x AwsTaskAction_AwsType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AwsTaskAction_AwsType) Descriptor() protoreflect.EnumDescriptor {
+	return file_actions_proto_enumTypes[1].Descriptor()
+}
+
+func (AwsTaskAction_AwsType) Type() protoreflect.EnumType {
+	return &file_actions_proto_enumTypes[1]
+}
+
+func (x AwsTaskAction_AwsType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AwsTaskAction_AwsType.Descriptor instead.
+func (AwsTaskAction_AwsType) EnumDescriptor() ([]byte, []int) {
+	return file_actions_proto_rawDescGZIP(), []int{2, 0}
+}
+
 type DummyTaskAction struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -77,9 +169,9 @@ type OsTaskAction struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Type        string `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
-	CommandLine string `protobuf:"bytes,2,opt,name=commandLine,proto3" json:"commandLine,omitempty"`
-	Runas       string `protobuf:"bytes,3,opt,name=runas,proto3" json:"runas,omitempty"`
+	Type        OsTaskAction_OsType `protobuf:"varint,1,opt,name=type,proto3,enum=proto.OsTaskAction_OsType" json:"type,omitempty"`
+	CommandLine string              `protobuf:"bytes,2,opt,name=commandLine,proto3" json:"commandLine,omitempty"`
+	Runas       string              `protobuf:"bytes,3,opt,name=runas,proto3" json:"runas,omitempty"`
 }
 
 func (x *OsTaskAction) Reset() {
@@ -114,11 +206,11 @@ func (*OsTaskAction) Descriptor() ([]byte, []int) {
 	return file_actions_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *OsTaskAction) GetType() string {
+func (x *OsTaskAction) GetType() OsTaskAction_OsType {
 	if x != nil {
 		return x.Type
 	}
-	return ""
+	return OsTaskAction_command
 }
 
 func (x *OsTaskAction) GetCommandLine() string {
@@ -135,21 +227,116 @@ func (x *OsTaskAction) GetRunas() string {
 	return ""
 }
 
+type AwsTaskAction struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Type    AwsTaskAction_AwsType `protobuf:"varint,1,opt,name=type,proto3,enum=proto.AwsTaskAction_AwsType" json:"type,omitempty"`
+	Name    string                `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Profile string                `protobuf:"bytes,3,opt,name=profile,proto3" json:"profile,omitempty"`
+	Region  string                `protobuf:"bytes,4,opt,name=region,proto3" json:"region,omitempty"`
+	Payload []byte                `protobuf:"bytes,5,opt,name=payload,proto3" json:"payload,omitempty"`
+}
+
+func (x *AwsTaskAction) Reset() {
+	*x = AwsTaskAction{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_actions_proto_msgTypes[2]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *AwsTaskAction) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AwsTaskAction) ProtoMessage() {}
+
+func (x *AwsTaskAction) ProtoReflect() protoreflect.Message {
+	mi := &file_actions_proto_msgTypes[2]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AwsTaskAction.ProtoReflect.Descriptor instead.
+func (*AwsTaskAction) Descriptor() ([]byte, []int) {
+	return file_actions_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *AwsTaskAction) GetType() AwsTaskAction_AwsType {
+	if x != nil {
+		return x.Type
+	}
+	return AwsTaskAction_lambda
+}
+
+func (x *AwsTaskAction) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *AwsTaskAction) GetProfile() string {
+	if x != nil {
+		return x.Profile
+	}
+	return ""
+}
+
+func (x *AwsTaskAction) GetRegion() string {
+	if x != nil {
+		return x.Region
+	}
+	return ""
+}
+
+func (x *AwsTaskAction) GetPayload() []byte {
+	if x != nil {
+		return x.Payload
+	}
+	return nil
+}
+
 var File_actions_proto protoreflect.FileDescriptor
 
 var file_actions_proto_rawDesc = []byte{
 	0x0a, 0x0d, 0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x12,
 	0x05, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x22, 0x25, 0x0a, 0x0f, 0x44, 0x75, 0x6d, 0x6d, 0x79, 0x54,
 	0x61, 0x73, 0x6b, 0x41, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x12, 0x0a, 0x04, 0x64, 0x61, 0x74,
-	0x61, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x64, 0x61, 0x74, 0x61, 0x22, 0x5a, 0x0a,
-	0x0c, 0x4f, 0x73, 0x54, 0x61, 0x73, 0x6b, 0x41, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x12, 0x0a,
-	0x04, 0x74, 0x79, 0x70, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x74, 0x79, 0x70,
-	0x65, 0x12, 0x20, 0x0a, 0x0b, 0x63, 0x6f, 0x6d, 0x6d, 0x61, 0x6e, 0x64, 0x4c, 0x69, 0x6e, 0x65,
-	0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0b, 0x63, 0x6f, 0x6d, 0x6d, 0x61, 0x6e, 0x64, 0x4c,
-	0x69, 0x6e, 0x65, 0x12, 0x14, 0x0a, 0x05, 0x72, 0x75, 0x6e, 0x61, 0x73, 0x18, 0x03, 0x20, 0x01,
-	0x28, 0x09, 0x52, 0x05, 0x72, 0x75, 0x6e, 0x61, 0x73, 0x42, 0x0f, 0x5a, 0x0d, 0x70, 0x72, 0x6f,
-	0x74, 0x6f, 0x2f, 0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74,
-	0x6f, 0x33,
+	0x61, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x64, 0x61, 0x74, 0x61, 0x22, 0x99, 0x01,
+	0x0a, 0x0c, 0x4f, 0x73, 0x54, 0x61, 0x73, 0x6b, 0x41, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x2e,
+	0x0a, 0x04, 0x74, 0x79, 0x70, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x1a, 0x2e, 0x70,
+	0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x4f, 0x73, 0x54, 0x61, 0x73, 0x6b, 0x41, 0x63, 0x74, 0x69, 0x6f,
+	0x6e, 0x2e, 0x4f, 0x73, 0x54, 0x79, 0x70, 0x65, 0x52, 0x04, 0x74, 0x79, 0x70, 0x65, 0x12, 0x20,
+	0x0a, 0x0b, 0x63, 0x6f, 0x6d, 0x6d, 0x61, 0x6e, 0x64, 0x4c, 0x69, 0x6e, 0x65, 0x18, 0x02, 0x20,
+	0x01, 0x28, 0x09, 0x52, 0x0b, 0x63, 0x6f, 0x6d, 0x6d, 0x61, 0x6e, 0x64, 0x4c, 0x69, 0x6e, 0x65,
+	0x12, 0x14, 0x0a, 0x05, 0x72, 0x75, 0x6e, 0x61, 0x73, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52,
+	0x05, 0x72, 0x75, 0x6e, 0x61, 0x73, 0x22, 0x21, 0x0a, 0x06, 0x4f, 0x73, 0x54, 0x79, 0x70, 0x65,
+	0x12, 0x0b, 0x0a, 0x07, 0x63, 0x6f, 0x6d, 0x6d, 0x61, 0x6e, 0x64, 0x10, 0x00, 0x12, 0x0a, 0x0a,
+	0x06, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x10, 0x01, 0x22, 0xc3, 0x01, 0x0a, 0x0d, 0x41, 0x77,
+	0x73, 0x54, 0x61, 0x73, 0x6b, 0x41, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x30, 0x0a, 0x04, 0x74,
+	0x79, 0x70, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x1c, 0x2e, 0x70, 0x72, 0x6f, 0x74,
+	0x6f, 0x2e, 0x41, 0x77, 0x73, 0x54, 0x61, 0x73, 0x6b, 0x41, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x2e,
+	0x41, 0x77, 0x73, 0x54, 0x79, 0x70, 0x65, 0x52, 0x04, 0x74, 0x79, 0x70, 0x65, 0x12, 0x12, 0x0a,
+	0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d,
+	0x65, 0x12, 0x18, 0x0a, 0x07, 0x70, 0x72, 0x6f, 0x66, 0x69, 0x6c, 0x65, 0x18, 0x03, 0x20, 0x01,
+	0x28, 0x09, 0x52, 0x07, 0x70, 0x72, 0x6f, 0x66, 0x69, 0x6c, 0x65, 0x12, 0x16, 0x0a, 0x06, 0x72,
+	0x65, 0x67, 0x69, 0x6f, 0x6e, 0x18, 0x04, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x72, 0x65, 0x67,
+	0x69, 0x6f, 0x6e, 0x12, 0x18, 0x0a, 0x07, 0x70, 0x61, 0x79, 0x6c, 0x6f, 0x61, 0x64, 0x18, 0x05,
+	0x20, 0x01, 0x28, 0x0c, 0x52, 0x07, 0x70, 0x61, 0x79, 0x6c, 0x6f, 0x61, 0x64, 0x22, 0x20, 0x0a,
+	0x07, 0x41, 0x77, 0x73, 0x54, 0x79, 0x70, 0x65, 0x12, 0x0a, 0x0a, 0x06, 0x6c, 0x61, 0x6d, 0x62,
+	0x64, 0x61, 0x10, 0x00, 0x12, 0x09, 0x0a, 0x05, 0x62, 0x61, 0x74, 0x63, 0x68, 0x10, 0x01, 0x42,
+	0x0f, 0x5a, 0x0d, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x73,
+	0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -164,17 +351,23 @@ func file_actions_proto_rawDescGZIP() []byte {
 	return file_actions_proto_rawDescData
 }
 
-var file_actions_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_actions_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_actions_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_actions_proto_goTypes = []interface{}{
-	(*DummyTaskAction)(nil), // 0: proto.DummyTaskAction
-	(*OsTaskAction)(nil),    // 1: proto.OsTaskAction
+	(OsTaskAction_OsType)(0),   // 0: proto.OsTaskAction.OsType
+	(AwsTaskAction_AwsType)(0), // 1: proto.AwsTaskAction.AwsType
+	(*DummyTaskAction)(nil),    // 2: proto.DummyTaskAction
+	(*OsTaskAction)(nil),       // 3: proto.OsTaskAction
+	(*AwsTaskAction)(nil),      // 4: proto.AwsTaskAction
 }
 var file_actions_proto_depIdxs = []int32{
-	0, // [0:0] is the sub-list for method output_type
-	0, // [0:0] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	0, // 0: proto.OsTaskAction.type:type_name -> proto.OsTaskAction.OsType
+	1, // 1: proto.AwsTaskAction.type:type_name -> proto.AwsTaskAction.AwsType
+	2, // [2:2] is the sub-list for method output_type
+	2, // [2:2] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_actions_proto_init() }
@@ -207,19 +400,32 @@ func file_actions_proto_init() {
 				return nil
 			}
 		}
+		file_actions_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*AwsTaskAction); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_actions_proto_rawDesc,
-			NumEnums:      0,
-			NumMessages:   2,
+			NumEnums:      2,
+			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_actions_proto_goTypes,
 		DependencyIndexes: file_actions_proto_depIdxs,
+		EnumInfos:         file_actions_proto_enumTypes,
 		MessageInfos:      file_actions_proto_msgTypes,
 	}.Build()
 	File_actions_proto = out.File

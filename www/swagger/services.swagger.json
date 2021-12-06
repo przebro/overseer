@@ -1905,32 +1905,6 @@
         }
       }
     },
-    "protoLockResult": {
-      "type": "object",
-      "properties": {
-        "success": {
-          "type": "boolean"
-        },
-        "lockID": {
-          "type": "integer",
-          "format": "int64"
-        },
-        "message": {
-          "type": "string"
-        }
-      }
-    },
-    "protoLockResultMsg": {
-      "type": "object",
-      "properties": {
-        "lockResult": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/protoLockResult"
-          }
-        }
-      }
-    },
     "protoRoleDefinitionMsg": {
       "type": "object",
       "properties": {

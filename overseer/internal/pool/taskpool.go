@@ -17,17 +17,18 @@ import (
 
 //ActiveTaskPool - Holds tasks that are currently processed.
 type ActiveTaskPool struct {
-	config        config.ActivePoolConfiguration
-	dispatcher    events.Dispatcher
-	tasks         *Store
-	log           logger.AppLogger
-	isProcActive  bool
-	processing    chan *activeTask
-	enforcedTasks map[unique.TaskOrderID]bool
-	lock          sync.RWMutex
-	shutdown      chan struct{}
-	activate      chan bool
-	done          <-chan struct{}
+	config              config.ActivePoolConfiguration
+	dispatcher          events.Dispatcher
+	tasks               *Store
+	log                 logger.AppLogger
+	isProcActive        bool
+	processing          chan *activeTask
+	enforcedTasks       map[unique.TaskOrderID]bool
+	lock                sync.RWMutex
+	shutdown            chan struct{}
+	activate            chan bool
+	done                <-chan struct{}
+	activeDefinitionRWC ActiveDefinitionReadWriterRemover
 }
 
 //TaskViewer - Provides a view for an active tasks in pool
@@ -37,26 +38,32 @@ type TaskViewer interface {
 }
 
 //NewTaskPool - creates new task pool
-func NewTaskPool(dispatcher events.Dispatcher, cfg config.ActivePoolConfiguration, provider *datastore.Provider, isProcActive bool, log logger.AppLogger) (*ActiveTaskPool, error) {
+func NewTaskPool(dispatcher events.Dispatcher,
+	cfg config.ActivePoolConfiguration,
+	provider *datastore.Provider,
+	isProcActive bool,
+	log logger.AppLogger,
+	activeDefinitionRWC ActiveDefinitionReadWriterRemover) (*ActiveTaskPool, error) {
 
 	var store *Store
 	var err error
 
-	if store, err = NewStore(cfg.Collection, log, cfg.SyncTime, provider); err != nil {
+	if store, err = NewStore(cfg.Collection, log, cfg.SyncTime, provider, activeDefinitionRWC); err != nil {
 		return nil, err
 	}
 
 	pool := &ActiveTaskPool{
-		tasks:         store,
-		dispatcher:    dispatcher,
-		config:        cfg,
-		isProcActive:  isProcActive,
-		log:           log,
-		processing:    make(chan *activeTask, 8),
-		enforcedTasks: map[unique.TaskOrderID]bool{},
-		lock:          sync.RWMutex{},
-		activate:      make(chan bool),
-		shutdown:      make(chan struct{}),
+		tasks:               store,
+		dispatcher:          dispatcher,
+		config:              cfg,
+		isProcActive:        isProcActive,
+		log:                 log,
+		processing:          make(chan *activeTask, 8),
+		enforcedTasks:       map[unique.TaskOrderID]bool{},
+		lock:                sync.RWMutex{},
+		activate:            make(chan bool),
+		shutdown:            make(chan struct{}),
+		activeDefinitionRWC: activeDefinitionRWC,
 	}
 
 	if dispatcher != nil {
@@ -82,6 +89,7 @@ func (pool *ActiveTaskPool) cleanupCompletedTasks() int {
 		cleanDate := date.AddDays(v.OrderDate(), v.Retention())
 		if v.State() == TaskStateEndedOk && date.IsBeforeCurrent(cleanDate, date.CurrentOdate()) {
 			delete(pool.tasks.store, v.OrderID())
+
 			numDeleted++
 		}
 	})

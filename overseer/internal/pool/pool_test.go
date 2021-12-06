@@ -84,10 +84,6 @@ func (m *mockDispatcher) PushEvent(receiver events.EventReceiver, route events.R
 			}
 
 		}
-		if route == events.RouteTicketIn {
-
-		}
-
 		if route == events.RoutTaskJournal {
 			r := msg.Message().(events.RouteJournalMsg)
 			mockJournalT.Push(r)
@@ -189,10 +185,12 @@ var definitionManagerT taskdef.TaskDefinitionManager
 var mDispatcher = &mockDispatcher{Tickets: make(map[string]string)}
 var taskPoolT *ActiveTaskPool
 var activeTaskManagerT *ActiveTaskPoolManager
-var log logger.AppLogger = logger.NewTestLogger()
+var log logger.AppLogger
 var mockJournalT = &mockJournal{timeout: 3, collected: make(chan events.RouteJournalMsg, 10)}
+var defManagerDircetory string
+var isInitialized bool = false
 
-func init() {
+func setupEnv() {
 
 	f, _ := os.Create(fmt.Sprintf("../../../data/tests/%s.json", testCollectionName))
 	f.Write([]byte("{}"))
@@ -206,16 +204,22 @@ func init() {
 	f2.Write([]byte(`{}`))
 	f2.Close()
 
+	log = logger.NewTestLogger()
+
 	provider, _ = datastore.NewDataProvider(storeConfig, log)
-	initTaskPool()
-	taskPoolT.log = logger.NewTestLogger()
-	path, _ := filepath.Abs("../../../def/")
-	definitionManagerT, _ = taskdef.NewManager(path, log)
+
+	defManagerDircetory, _ = filepath.Abs("../../../def_test/")
+	definitionManagerT, _ = taskdef.NewManager(defManagerDircetory, log)
+
+	initTaskPool(provider)
 	activeTaskManagerT, _ = NewActiveTaskPoolManager(mDispatcher, definitionManagerT, taskPoolT, provider, log)
 	activeTaskManagerT.log = log
 	activeTaskManagerT.sequence = seq
 
+	isInitialized = true
+
 }
-func initTaskPool() {
-	taskPoolT, _ = NewTaskPool(mDispatcher, taskPoolConfig, provider, true, log)
+func initTaskPool(prov *datastore.Provider) {
+
+	taskPoolT, _ = NewTaskPool(mDispatcher, taskPoolConfig, prov, true, log, definitionManagerT)
 }

@@ -533,14 +533,6 @@ func getProcessState(state TaskState, isHeld bool) taskExecutionState {
 
 }
 
-func strTimeToInt(time string) (int, int) {
-	val := strings.Split(time, ":")
-	h, _ := strconv.Atoi(val[0])
-	m, _ := strconv.Atoi(val[1])
-	return h, m
-
-}
-
 func calcRealOdate(current date.Odate, expect date.OdateValue, schedule taskdef.SchedulingData) date.Odate {
 
 	mths := map[time.Month]bool{}

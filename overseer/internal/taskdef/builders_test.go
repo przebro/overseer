@@ -51,3 +51,42 @@ func TestBuilderFromTemplate(t *testing.T) {
 	}
 
 }
+
+func TestBuilderFromTemplate_Tickets(t *testing.T) {
+
+	builder, builder2 := &DummyTaskBuilder{}, &DummyTaskBuilder{}
+
+	intd := []InTicketData{{Name: "TICKET01", Odate: "ODATE"}}
+	outtd := []OutTicketData{{Action: "ADD", Name: "TICKET01", Odate: "ODATE"}}
+
+	task, err := builder.WithBase("testgroup", "testname", "testdescription").WithSchedule(SchedulingData{OrderType: OrderingManual}).
+		WithInTicekts(intd, InTicketAND).
+		WithOutTickets(outtd).Build()
+	if err != nil {
+		t.Error(err)
+	}
+
+	expected, _ := builder2.FromTemplate(task).Build()
+	if len(expected.TicketsIn()) == 0 {
+		t.Error("unexpected result:", 0, "expected:", 1)
+	}
+	if len(expected.TicketsOut()) == 0 {
+		t.Error("unexpected result:", 0, "expected:", 1)
+	}
+}
+
+func TestBuilder_WithCyclic(t *testing.T) {
+
+	builder := &DummyTaskBuilder{}
+
+	task, err := builder.WithBase("testgroup", "testname", "testdescription").WithSchedule(SchedulingData{OrderType: OrderingManual}).
+		WithCyclic(CyclicTaskData{IsCycle: true, MaxRuns: 10, TimeInterval: 5}).Build()
+	if err != nil {
+		t.Error(err)
+	}
+
+	actual := task.Cyclic()
+	if actual.IsCycle != true && actual.MaxRuns != 10 && actual.TimeInterval != 5 {
+		t.Error("unexpected result:", actual)
+	}
+}

@@ -720,8 +720,6 @@ service TaskService{
 
 service DefinitionService{
     rpc GetDefinition(DefinitionActionMsg) returns (DefinitionResultMsg){}
-    rpc LockDefinition(DefinitionActionMsg) returns (LockResultMsg){}
-    rpc UnlockDefinition(DefinitionActionMsg) returns (LockResultMsg){}
     rpc ListGroups(FilterMsg) returns (DefinitionListGroupResultMsg){
         option (google.api.http) = {
             get : "/api/def/groups/{filter}"
@@ -809,16 +807,6 @@ message DefinitionMsg{
 message DefinitionActionMsg{
     repeated DefinitionMsg definitionMsg = 1;
 }
-
-message LockResult {
-    bool success = 1;
-    uint32 lockID = 2;
-    string message = 3;
-}
-message LockResultMsg{
-    repeated LockResult lockResult = 1;
-}
-
 message DefinitionDetails{
     bool success = 1;
     string message  = 2;   

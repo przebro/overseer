@@ -3,6 +3,7 @@ package taskdef
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"overseer/common/logger"
 	"overseer/common/types"
 	"overseer/common/types/date"
@@ -79,7 +80,7 @@ func TestTaskData(t *testing.T) {
 
 func TestUnmarshalTask(t *testing.T) {
 
-	pth, _ := filepath.Abs(`../../../def/test/dummy_01.json`)
+	pth, _ := filepath.Abs(filepath.Join(defDirectory, `test/dummy_01.json`))
 
 	result, err := FromDefinitionFile(pth)
 	if err != nil {
@@ -128,198 +129,68 @@ func TestMarshalTask(t *testing.T) {
 
 }
 
-func TestManagerGroups(t *testing.T) {
-	path, _ := filepath.Abs("../../../def/")
+func TestManager_Create_Task(t *testing.T) {
+
+	path, _ := filepath.Abs(defDirectory)
 	manager, _ := NewManager(path, logger.NewTestLogger())
+	_, modTask2, _, _ := helperCreateTasks()
 
-	groups := manager.GetGroups()
-	fmt.Println(groups)
-
-	if len(groups) != 3 {
-		t.Error("invalid group names")
-	}
-
-	err := manager.DeleteGroup("")
-	if err.Error() != "group name cannot be empty" {
-		t.Error("Unexpected error")
-	}
-
-	err = manager.DeleteGroup("test")
-	if err == nil || err.Error() != "directory is not empty" {
-		t.Error("Manager, non empty group should not be deleted.", err)
-	}
-
-	err = manager.DeleteGroup("test2")
-	if err == nil || !strings.Contains(err.Error(), "can't find directory") {
-		t.Error("Delete group", err)
-	}
-
-	err = manager.CreateGroup("test2")
+	//Create new task
+	err := manager.Create(modTask2)
 	if err != nil {
-		t.Error("Error, create new group")
-	}
+		t.Error("Create error", err)
 
-	err = manager.CreateGroup("test2")
-	if err == nil {
-		t.Error("Error, create new group,already exists")
-	}
-
-	err = manager.CreateGroup("")
-	if err == nil {
-		t.Error("Error, create new group. group name is empty")
-	}
-
-	manager.DeleteGroup("test2")
-
-}
-
-func TestManagerLock(t *testing.T) {
-
-	path, _ := filepath.Abs("../../../def/")
-	manager, _ := NewManager(path, logger.NewTestLogger())
-	// try to unlock a lock that does not exists
-	err := manager.Unlock(12345)
-	if err == nil {
-		t.Log("Unlock error, nonexistent value")
-	}
-
-	//locking an empty task is not possible
-	_, err = manager.Lock(taskdata.GroupNameData{GroupData: taskdata.GroupData{Group: ""}, Name: ""})
-	if err != ErrTaskNameEmpty {
-		t.Error("Lock error,empty task name not allowed")
-	}
-
-	// acquire new lock
-	lID, err := manager.Lock(taskdata.GroupNameData{GroupData: taskdata.GroupData{Group: "test"}, Name: "dummy_01"})
-	if err != nil {
-		t.Error("Lock error")
-	}
-
-	//acquiring a new lock for a task that is already locked isn't possible
-	_, err = manager.Lock(taskdata.GroupNameData{GroupData: taskdata.GroupData{Group: "test"}, Name: "dummy_01"})
-	if !strings.Contains(err.Error(), "unable to acquire lock") {
-		t.Error("Lock error, object already locked")
-	}
-
-	// locking a task that doesn't exisits isn't possible
-	_, err = manager.Lock(taskdata.GroupNameData{GroupData: taskdata.GroupData{Group: "test"}, Name: "dummy_0123"})
-	if err == nil {
-		t.Error("Lock error,a file that not exists locked")
-	}
-
-	// release the lock
-	err = manager.Unlock(lID)
-	if err != nil {
-		t.Error("Unlock error")
-	}
-
-}
-func TestManagerUpdate(t *testing.T) {
-
-	path, _ := filepath.Abs("../../../def/")
-
-	manager, _ := NewManager(path, logger.NewTestLogger())
-	modTask, modTask2, modTask3, modTask4 := helperCreateTasks()
-
-	lockID, err := manager.Lock(taskdata.GroupNameData{Name: "dummy_01", GroupData: taskdata.GroupData{Group: "test"}})
-	if err != nil {
-		t.Fatal("Unable to lock task", err)
-	}
-	def := manager.GetTasks(taskdata.GroupNameData{Name: "dummy_01", GroupData: taskdata.GroupData{Group: "test"}})
-
-	if len(def) == 0 {
-		t.Fatal("def expected not empty")
-	}
-
-	if err != nil {
-		t.Fatal("Unable to acquire lock")
-	}
-
-	//Try update task without associated lockId
-	err = manager.Update(0, modTask)
-
-	if !strings.Contains(err.Error(), "given lockID does not exists") {
-		t.Log("Update error,invalid taskID")
-	}
-	//Try override definition
-	err = manager.Update(lockID, modTask)
-
-	if err != nil && !strings.Contains(err.Error(), "unable to rename,") {
-		t.Error("Update error,task ovveride", err)
-	}
-	//Only rename to new name is possible
-	err = manager.Update(lockID, modTask2)
-	if err != nil {
-		t.Error("Update task, task rename error", err)
-	}
-
-	//Try create task without name
-	err = manager.Update(lockID, modTask3)
-	if !strings.Contains(err.Error(), "task name cannot be empty") {
-		t.Error("Update task, empty name", err)
-	}
-
-	//Back to previous name
-	err = manager.Update(lockID, modTask4)
-	if err != nil {
-		t.Error("Update task, task rename error", err)
 	}
 }
 
-func TestManagerCreateDelete(t *testing.T) {
+func TestManager_Create_Error(t *testing.T) {
 
-	path, _ := filepath.Abs("../../../def/")
+	path, _ := filepath.Abs(defDirectory)
 	manager, _ := NewManager(path, logger.NewTestLogger())
-	modTask, modTask2, _, _ := helperCreateTasks()
-
-	name, grp, _ := modTask.GetInfo()
-	name2, grp2, _ := modTask2.GetInfo()
-
-	err := manager.Delete(0, taskdata.GroupNameData{GroupData: taskdata.GroupData{Group: grp}, Name: name})
-	if !strings.Contains(err.Error(), "given lockID does not exists") {
-		t.Error("Delete error", err)
-
-	}
-
-	lockID, _ := manager.Lock(taskdata.GroupNameData{Name: "dummy_01", GroupData: taskdata.GroupData{Group: "test"}})
-
-	err = manager.Delete(lockID, taskdata.GroupNameData{Name: "", GroupData: taskdata.GroupData{Group: "test"}})
-	if !strings.Contains(err.Error(), "group and name does not match with lockID") {
-		t.Error("Delete error", err)
-
-	}
-	err = manager.Delete(lockID, taskdata.GroupNameData{Name: name2, GroupData: taskdata.GroupData{Group: grp2}})
-	if !strings.Contains(err.Error(), "group and name does not match with lockID") {
-		t.Error("Delete error", err)
-
-	}
-
+	modTask, _, _, _ := helperCreateTasks()
 	//Try create task that already exists
-	err = manager.Create(modTask)
+	err := manager.Create(modTask)
 	if !strings.Contains(err.Error(), "unable to create, definition already exists") {
 		t.Error("Create error", err)
 
 	}
+}
 
-	//Create new task
-	err = manager.Create(modTask2)
+func TestManager_Delete(t *testing.T) {
+
+	path, _ := filepath.Abs(defDirectory)
+	manager, _ := NewManager(path, logger.NewTestLogger())
+	_, modTask2, _, _ := helperCreateTasks()
+
+	name, grp, _ := modTask2.GetInfo()
+
+	//Create new task ignore error
+	manager.Create(modTask2)
+
+	err := manager.Delete(taskdata.GroupNameData{GroupData: taskdata.GroupData{Group: grp}, Name: name})
 	if err != nil {
 		t.Error("Create error", err)
 
 	}
+}
 
-	lockID, _ = manager.Lock(taskdata.GroupNameData{Name: "dummy_AA", GroupData: taskdata.GroupData{Group: "test"}})
+func TestManager_Delete_Error(t *testing.T) {
 
-	err = manager.Delete(lockID, taskdata.GroupNameData{Name: "dummy_AA", GroupData: taskdata.GroupData{Group: "test"}})
-	if err != nil {
-		t.Error("Delete error", err)
+	path, _ := filepath.Abs(defDirectory)
+	manager, _ := NewManager(path, logger.NewTestLogger())
+	err := manager.Delete(taskdata.GroupNameData{Name: "dummy_AA", GroupData: taskdata.GroupData{Group: "test"}})
+	if err == nil {
+		t.Error("Delete error")
 	}
 
+	if _, ok := err.(*os.PathError); !ok {
+		t.Error("Delete error")
+	}
 }
+
 func TestGetTask(t *testing.T) {
 
-	path, _ := filepath.Abs("../../../def/")
-	manager, err := NewManager(path, logger.NewTestLogger())
+	manager, err := NewManager(managerPath, logger.NewTestLogger())
 	if err != nil {
 		t.Fatal("unable to intialize manager")
 	}
@@ -345,7 +216,7 @@ func TestGetTask(t *testing.T) {
 }
 
 func TestListTaskModel(t *testing.T) {
-	path, _ := filepath.Abs("../../../def/")
+	path, _ := filepath.Abs(defDirectory)
 	manager, err := NewManager(path, logger.NewTestLogger())
 	if err != nil {
 		t.Fatal("unable to intialize manager")
@@ -420,7 +291,7 @@ func TestGetTimeSpan(t *testing.T) {
 
 func TestCyclicData(t *testing.T) {
 
-	path, _ := filepath.Abs("../../../def/")
+	path, _ := filepath.Abs(defDirectory)
 	manager, err := NewManager(path, logger.NewTestLogger())
 	if err != nil {
 		t.Fatal("unable to intialize manager")

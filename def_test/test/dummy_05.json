@@ -1,0 +1,24 @@
+{
+    "type" : "dummy",
+    "name" :"dummy_05",
+    "group" : "test",
+    "confirm" : false,
+    "description" :"sample dummy task definition",
+    "inticket" : [
+        {"name" : "IN-DUMMY03","odate" : "ODATE" }
+    ],
+    "relation" :"AND",
+    "flags" : [],
+    "outticket" :[
+        {"name" : "OK-DUMMY03","odate" : "ODATE" ,"action":"ADD"},
+        {"name" : "IN-DUMMY03","odate" : "ODATE" ,"action":"REM"}
+        
+    ],
+    "schedule" :{
+        "type" : "manual",
+        "pastsub" : false,
+        "from" : "",
+        "to" : ""
+    }
+
+}

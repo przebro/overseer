@@ -1,0 +1,24 @@
+{
+    "type" : "dummy",
+    "name" :"cyclic_01",
+    "group" : "test",
+    "confirm" : false,
+    "description" :"sample dummy task definition",
+    "inticket" : [],
+    "relation" :"AND",
+    "flags" : [],
+    "outticket" :[],
+    "schedule" :{
+        "type" : "manual",
+        "pastsub" : false,
+        "from" : "",
+        "to" : ""
+    },
+    "cyclic":{
+        "cycle" : true,
+        "runs" : 6,
+        "from" :"start",
+        "every" : 5
+    }
+
+}

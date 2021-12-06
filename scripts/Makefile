@@ -3,12 +3,15 @@ OUTDIR=bin
 TOOLDIR=bin/tools
 TESTDIR=data/tests
 SYSDIR=data/sysout
+POOLDIR=def/.pool
+POOLDIRT=def_test/.pool
 LOGDIR=logs
 build:
 	[ -d $(OUTDIR) ] || mkdir -p $(OUTDIR)
 	[ -d $(TOOLDIR) ] || mkdir -p $(TOOLDIR)
 	[ -d $(SYSDIR) ] || mkdir -p $(SYSDIR)
 	[ -d $(LOGDIR) ] || mkdir -p $(LOGDIR)
+	[ -d $(POOLDIR) ] || mkdir -p $(POOLDIR)
 	go build -race -o bin cmd/overseer/ovs.go
 	go build -race -o bin cmd/ovswork/ovswork.go
 	go build -race -o bin cmd/ovsgate/ovsgate.go
@@ -16,6 +19,7 @@ build:
 	go build -o bin/chkprg chkprg/main.go
 tests:
 	[ -d $(TESTDIR) ] || mkdir -p $(TESTDIR)
+	[ -d $(POOLDIRT) ] || mkdir -p $(POOLDIRT)
 	go test `go list ./... | grep -v ./proto` -covermode=count --coverprofile='coverage.out'
 sprof:
 	go tool pprof -http localhost:9090 schedulerprofile.prof

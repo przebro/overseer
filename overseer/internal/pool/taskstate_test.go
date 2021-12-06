@@ -7,10 +7,19 @@ import (
 	"overseer/common/types/date"
 	"overseer/overseer/internal/events"
 	"overseer/overseer/internal/taskdef"
+	"overseer/overseer/internal/unique"
+	"strconv"
+	"strings"
 
 	"testing"
 	"time"
 )
+
+func init() {
+	if !isInitialized {
+		setupEnv()
+	}
+}
 
 func TestStateCheckTime(t *testing.T) {
 
@@ -40,7 +49,7 @@ func TestStateCheckTime(t *testing.T) {
 		dispatcher: mDispatcher,
 		time:       now,
 	}
-	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition)
+	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition, unique.NewID())
 
 	state := ostateCheckTime{}
 	state.processState(&ctx)
@@ -57,7 +66,7 @@ func TestStateCheckTime(t *testing.T) {
 		t.Error(err)
 	}
 
-	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition)
+	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition, unique.NewID())
 
 	state.processState(&ctx)
 	if ctx.isInTime != false {
@@ -73,7 +82,7 @@ func TestStateCheckTime(t *testing.T) {
 		t.Error(err)
 	}
 
-	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition)
+	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition, unique.NewID())
 
 	state.processState(&ctx)
 	if ctx.isInTime != true {
@@ -89,7 +98,7 @@ func TestStateCheckTime(t *testing.T) {
 		t.Error(err)
 	}
 
-	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition)
+	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition, unique.NewID())
 
 	state.processState(&ctx)
 	if ctx.isInTime != true {
@@ -105,7 +114,7 @@ func TestStateCheckTime(t *testing.T) {
 		t.Error(err)
 	}
 
-	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition)
+	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition, unique.NewID())
 
 	state.processState(&ctx)
 	if ctx.isInTime != false {
@@ -121,7 +130,7 @@ func TestStateCheckTime(t *testing.T) {
 		t.Error(err)
 	}
 
-	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition)
+	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition, unique.NewID())
 
 	state.processState(&ctx)
 	if ctx.isInTime != false {
@@ -137,7 +146,7 @@ func TestStateCheckTime(t *testing.T) {
 		t.Error(err)
 	}
 
-	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition)
+	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition, unique.NewID())
 
 	//from now -> to "-"
 	state.processState(&ctx)
@@ -154,7 +163,7 @@ func TestStateCheckTime(t *testing.T) {
 		t.Error(err)
 	}
 
-	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition)
+	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition, unique.NewID())
 
 	//from '-' -> to now
 	state.processState(&ctx)
@@ -170,7 +179,7 @@ func TestStateCheckTime(t *testing.T) {
 		t.Error(err)
 	}
 
-	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition)
+	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition, unique.NewID())
 	ctx.isEnforced = true
 
 	state.processState(&ctx)
@@ -207,7 +216,7 @@ func TestStateCheckCond(t *testing.T) {
 		time:       now,
 	}
 
-	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition)
+	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition, unique.NewID())
 
 	mDispatcher.withError = true
 	state := ostateCheckConditions{}
@@ -250,7 +259,7 @@ func TestStateCheckCond(t *testing.T) {
 		t.Error(err)
 	}
 	ctx.isInTime = true
-	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition)
+	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition, unique.NewID())
 
 	result = state.processState(&ctx)
 
@@ -284,7 +293,7 @@ func TestStateCheckCond(t *testing.T) {
 		t.Error(err)
 	}
 
-	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition)
+	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition, unique.NewID())
 	result = state.processState(&ctx)
 
 	if result != true {
@@ -307,7 +316,7 @@ func TestStateCheckCond(t *testing.T) {
 		t.Error(err)
 	}
 
-	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition)
+	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition, unique.NewID())
 	mDispatcher.Tickets = make(map[string]string)
 	ctx.dispatcher = mDispatcher
 
@@ -320,7 +329,7 @@ func TestStateCheckCond(t *testing.T) {
 
 	}
 
-	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition)
+	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition, unique.NewID())
 	ctx.isEnforced = true
 	result = state.processState(&ctx)
 
@@ -356,7 +365,7 @@ func TestNewCyclicTask(t *testing.T) {
 		t.Log(err)
 	}
 
-	task := newActiveTask(seq.Next(), date.CurrentOdate(), definition)
+	task := newActiveTask(seq.Next(), date.CurrentOdate(), definition, unique.NewID())
 	cycle := task.CycleData()
 
 	if !cycle.IsCyclic {
@@ -406,7 +415,7 @@ func TestCyclicState_Enforced(t *testing.T) {
 		t.Log(err)
 	}
 
-	task := newActiveTask(seq.Next(), date.CurrentOdate(), definition)
+	task := newActiveTask(seq.Next(), date.CurrentOdate(), definition, unique.NewID())
 
 	ctx := TaskExecutionContext{
 		log:        log,
@@ -437,7 +446,7 @@ func TestCyclicState_Normal(t *testing.T) {
 		t.Log(err)
 	}
 
-	task := newActiveTask(seq.Next(), date.CurrentOdate(), definition)
+	task := newActiveTask(seq.Next(), date.CurrentOdate(), definition, unique.NewID())
 
 	ctx := TaskExecutionContext{
 		log:        log,
@@ -472,7 +481,7 @@ func TestCyclicState_BeforeNextRun(t *testing.T) {
 		t.Log(err)
 	}
 
-	task := newActiveTask(seq.Next(), date.CurrentOdate(), definition)
+	task := newActiveTask(seq.Next(), date.CurrentOdate(), definition, unique.NewID())
 	now := time.Now().Add(2 * time.Minute)
 	task.cycle.NextRun = types.FromTime(now)
 
@@ -556,7 +565,7 @@ func TestStateConfirm(t *testing.T) {
 		time:       time.Now(),
 	}
 
-	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition)
+	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition, unique.NewID())
 
 	state := &ostateConfirm{}
 
@@ -573,7 +582,7 @@ func TestStateConfirm(t *testing.T) {
 		t.Error(err)
 	}
 
-	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition)
+	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition, unique.NewID())
 
 	result = state.processState(&ctx)
 
@@ -867,7 +876,7 @@ func TestStatesExecEndHold(t *testing.T) {
 		time:       time.Now(),
 	}
 
-	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition)
+	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition, unique.NewID())
 
 	state := &ostateStarting{}
 	runState := &ostateExecuting{}
@@ -1423,7 +1432,7 @@ func Test_prepareNextCycle_From_Start(t *testing.T) {
 		t.Log(err)
 	}
 
-	task := newActiveTask(seq.Next(), date.CurrentOdate(), definition)
+	task := newActiveTask(seq.Next(), date.CurrentOdate(), definition, unique.NewID())
 
 	tm := task.SetStartTime()
 	expect := tm.Add(time.Duration(interval) * time.Minute)
@@ -1454,7 +1463,7 @@ func Test_prepareNextCycle_From_End(t *testing.T) {
 		t.Log(err)
 	}
 
-	task := newActiveTask(seq.Next(), date.CurrentOdate(), definition)
+	task := newActiveTask(seq.Next(), date.CurrentOdate(), definition, unique.NewID())
 
 	task.SetStartTime()
 	tm := task.SetEndTime()
@@ -1485,7 +1494,7 @@ func Test_prepareNextCycle_From_Schedule(t *testing.T) {
 		t.Log(err)
 	}
 
-	task := newActiveTask(seq.Next(), date.CurrentOdate(), definition)
+	task := newActiveTask(seq.Next(), date.CurrentOdate(), definition, unique.NewID())
 
 	task.SetStartTime()
 	tm := task.SetEndTime()
@@ -1517,7 +1526,7 @@ func Test_prepareNextCycle_MaxRuns(t *testing.T) {
 		t.Log(err)
 	}
 
-	task := newActiveTask(seq.Next(), date.CurrentOdate(), definition)
+	task := newActiveTask(seq.Next(), date.CurrentOdate(), definition, unique.NewID())
 
 	for i := 1; i <= maxRuns; i++ {
 
@@ -1570,4 +1579,12 @@ func Test_buildFlagMsg(t *testing.T) {
 	if len(msg.Flags) != len(data) {
 		t.Error("unexpected result:", len(msg.Flags), "expected:", len(data))
 	}
+}
+
+func strTimeToInt(time string) (int, int) {
+	val := strings.Split(time, ":")
+	h, _ := strconv.Atoi(val[0])
+	m, _ := strconv.Atoi(val[1])
+	return h, m
+
 }

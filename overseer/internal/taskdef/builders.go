@@ -3,6 +3,7 @@ package taskdef
 import (
 	"overseer/common/types"
 	"overseer/common/validator"
+	"overseer/overseer/internal/unique"
 	"time"
 )
 
@@ -74,6 +75,7 @@ func (builder *DummyTaskBuilder) WithBase(group, name, description string) TaskB
 	builder.def.Name = name
 	builder.def.Group = group
 	builder.def.Description = description
+	builder.def.Revision = name + "@" + group + "@" + unique.NewID().Hex()
 
 	return builder
 }

@@ -9,9 +9,15 @@ import (
 	"time"
 )
 
+func init() {
+	if !isInitialized {
+		setupEnv()
+	}
+}
+
 func TestStore(t *testing.T) {
 
-	store, _ := NewStore(testCollectionName, log, 3600, provider)
+	store, _ := NewStore(testCollectionName, log, 3600, provider, definitionManagerT)
 	if store == nil {
 		t.Error("Store not created")
 	}
@@ -52,7 +58,7 @@ func TestStore(t *testing.T) {
 
 func TestStoreOver(t *testing.T) {
 
-	store, _ := NewStore(testCollectionName, log, 3600, provider)
+	store, _ := NewStore(testCollectionName, log, 3600, provider, definitionManagerT)
 	if store == nil {
 		t.Error("Store not created")
 	}
@@ -110,7 +116,7 @@ func TestStoreOver(t *testing.T) {
 }
 func TestStoreForEach(t *testing.T) {
 
-	store, _ := NewStore(testCollectionName, log, 3600, provider)
+	store, _ := NewStore(testCollectionName, log, 3600, provider, definitionManagerT)
 	if store == nil {
 		t.Error("Store not created")
 	}
@@ -169,7 +175,7 @@ func TestStoreForEach(t *testing.T) {
 
 func TestStore_StoreTask(t *testing.T) {
 
-	store, _ := NewStore(testStoreTaskName, log, 0, provider)
+	store, _ := NewStore(testStoreTaskName, log, 0, provider, definitionManagerT)
 	if store == nil {
 		t.Error("Store not created")
 	}
@@ -182,7 +188,7 @@ func TestStore_StoreTask(t *testing.T) {
 		t.Fatal("Unable to construct task")
 	}
 
-	active := newActiveTask(seq.Next(), date.CurrentOdate(), definition)
+	active := newActiveTask(seq.Next(), date.CurrentOdate(), definition, unique.NewID())
 
 	store.add(active.orderID, active)
 
@@ -191,5 +197,5 @@ func TestStore_StoreTask(t *testing.T) {
 	}
 	//:TODO rewrite test
 	store.storeTasks()
-	store.restoreTasks()
+	store.restorePool(definitionManagerT)
 }

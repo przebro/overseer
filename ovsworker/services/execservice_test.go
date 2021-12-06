@@ -88,7 +88,7 @@ func TestStartTaskDummy(t *testing.T) {
 }
 func TestStartTaskOS(t *testing.T) {
 
-	cmd, _ := anypb.New(&actions.OsTaskAction{Type: "command", CommandLine: "ls -l"})
+	cmd, _ := anypb.New(&actions.OsTaskAction{Type: actions.OsTaskAction_command, CommandLine: "ls -l"})
 	msg := &wservices.StartTaskMsg{
 		TaskID:    &wservices.TaskIdMsg{TaskID: "00010", ExecutionID: "1234555"},
 		Type:      "os",

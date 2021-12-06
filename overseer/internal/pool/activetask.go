@@ -47,6 +47,7 @@ type taskCycle struct {
 
 type activeTask struct {
 	taskdef.TaskDefinition
+	reference  string
 	holded     bool
 	confirmed  bool
 	orderID    unique.TaskOrderID
@@ -59,7 +60,29 @@ type activeTask struct {
 	collected  []taskInTicket
 }
 
-func newActiveTask(orderID unique.TaskOrderID, odate date.Odate, definition taskdef.TaskDefinition) *activeTask {
+type ActiveDefinitionReader interface {
+	GetActiveDefinition(refID string) (taskdef.TaskDefinition, error)
+}
+
+type ActiveDefinitionWriter interface {
+	WriteActiveDefinition(def taskdef.TaskDefinition, id unique.MsgID) error
+}
+type ActiveDefinitionRemover interface {
+	RemoveActiveDefinition(id string) error
+}
+
+type ActiveDefinitionReadWriter interface {
+	ActiveDefinitionReader
+	ActiveDefinitionWriter
+}
+
+type ActiveDefinitionReadWriterRemover interface {
+	ActiveDefinitionReader
+	ActiveDefinitionWriter
+	ActiveDefinitionRemover
+}
+
+func newActiveTask(orderID unique.TaskOrderID, odate date.Odate, definition taskdef.TaskDefinition, refID unique.MsgID) *activeTask {
 
 	tickets := make([]taskInTicket, 0)
 
@@ -79,6 +102,7 @@ func newActiveTask(orderID unique.TaskOrderID, odate date.Odate, definition task
 
 	task := &activeTask{orderID: orderID,
 		TaskDefinition: definition,
+		reference:      refID.Hex(),
 		orderDate:      odate,
 		executions:     []taskExecution{{ExecutionID: unique.NewID().Hex(), state: TaskStateWaiting}},
 		tickets:        tickets,
@@ -91,9 +115,9 @@ func newActiveTask(orderID unique.TaskOrderID, odate date.Odate, definition task
 }
 
 //fromModel - creates an active task from model
-func fromModel(model activeTaskModel) (*activeTask, error) {
+func fromModel(model activeTaskModel, rdr ActiveDefinitionReader) (*activeTask, error) {
 
-	def, err := taskdef.FromString(string(model.Definition))
+	def, err := rdr.GetActiveDefinition(model.Reference)
 	if err != nil {
 		return nil, err
 	}
@@ -329,7 +353,6 @@ func (task *activeTask) prepareNextCycle() bool {
 func (task *activeTask) getModel() activeTaskModel {
 	defer task.lock.RUnlock()
 	task.lock.RLock()
-	def, _ := taskdef.SerializeDefinition(task.TaskDefinition)
 
 	cycle := taskCycleModel{
 		IsCyclic: task.cycle.IsCyclic,
@@ -338,8 +361,12 @@ func (task *activeTask) getModel() activeTaskModel {
 		RunFrom:  task.cycle.RunFrom,
 	}
 
+	n, g, _ := task.GetInfo()
+
 	t := activeTaskModel{
-		Definition: []byte(def),
+		Name:       n,
+		Group:      g,
+		Reference:  task.reference,
 		Holded:     task.holded,
 		Confirmed:  task.confirmed,
 		OrderID:    string(task.orderID),
