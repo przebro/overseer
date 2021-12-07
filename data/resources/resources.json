@@ -1,1 +1,1 @@
-{"flags":{"_id":"flags","_rev":"","flags":[]},"tickets":{"_id":"tickets","_rev":"","tickets":[{"name":"IN-CYCLIC01","odate":"20211126"}]}}
+{"flags":{"_id":"flags","_rev":"","flags":[]},"tickets":{"_id":"tickets","_rev":"","tickets":[{"name":"IN-CYCLIC01","odate":"20211126"},{"name":"IN-SAMPLE02A","odate":"20211207"},{"name":"IN-SAMPLE02C","odate":"20211207"}]}}

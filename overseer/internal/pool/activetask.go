@@ -142,6 +142,7 @@ func fromModel(model activeTaskModel, rdr ActiveDefinitionReader) (*activeTask, 
 
 	task := &activeTask{
 		orderID:        unique.TaskOrderID(model.OrderID),
+		reference:      model.Reference,
 		TaskDefinition: def,
 		orderDate:      model.OrderDate,
 		executions:     execs,

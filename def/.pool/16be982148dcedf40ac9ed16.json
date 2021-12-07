@@ -1,0 +1,1 @@
+{"rev":"","type":"dummy","name":"minimal","group":"samples","description":"","confirm":false,"retention":0,"schedule":{"type":"manual","from":"","to":"","pastsub":false,"months":null,"exact":null,"days":null},"cyclic":{"cycle":false,"runs":0,"from":"","every":0},"inticket":null,"relation":"","flags":null,"outticket":null,"variables":null,"spec":null}
