@@ -17,15 +17,44 @@ message OsTaskAction {
     string runas = 3;
 }
 
+
+message AwsLambdaExecution{
+    string functionName = 1;
+    string alias = 2;
+}
+
+message AwsStepFunctionExecution{
+    string stateMachineARN = 1;
+    string executionName = 2;
+}
+
+message AwsConnetionData {
+    string profileName  = 3;
+    string region  = 4;
+}
+
 message AwsTaskAction {
     enum AwsType{
         lambda = 0;
-        batch = 1;
+        stepfunc = 1;
+        batch = 2;
     }
     AwsType type = 1;
-    string name  = 2;
-    string profile  = 3;
-    string region  = 4;
-    bytes  payload = 5;
+
+    oneof connection {
+        AwsConnetionData connectionData = 2;
+        //reserved for future use. The name of a profile stored in external data store
+        string connectionProfileName = 3;
+    }
+
+    oneof execution{
+        AwsLambdaExecution lambdaExecution = 4;
+        AwsStepFunctionExecution stepFunction = 5;
+    }
+    oneof payloadSource {
+        bytes  payloadRaw = 6;
+        string payloadFilePath = 7;
+    }
+    
 
 }

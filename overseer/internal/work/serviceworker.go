@@ -8,6 +8,7 @@ import (
 	"overseer/overseer/config"
 	"overseer/overseer/internal/events"
 	"overseer/overseer/internal/unique"
+	converter "overseer/overseer/internal/work/converters"
 	"overseer/proto/wservices"
 	"sync"
 	"time"
@@ -23,7 +24,6 @@ type workerMediator struct {
 	connection *grpc.ClientConn
 	client     wservices.TaskExecutionServiceClient
 	log        logger.AppLogger
-	converter  ActionConverter
 	taskStatus chan events.RouteWorkResponseMsg
 	timeout    int
 	wdata      workerStatus
@@ -37,7 +37,6 @@ func NewWorkerMediator(conf config.WorkerConfiguration, timeout int, status chan
 		config:     conf,
 		timeout:    timeout,
 		log:        log,
-		converter:  NewConverterChain(),
 		taskStatus: status,
 		wdata:      workerStatus{},
 		lock:       sync.Mutex{},
@@ -154,7 +153,7 @@ func (worker *workerMediator) StartTask(msg events.RouteTaskExecutionMsg) {
 
 	smsg := &wservices.StartTaskMsg{}
 	smsg.TaskID = &wservices.TaskIdMsg{TaskID: string(msg.OrderID), ExecutionID: msg.ExecutionID}
-	smsg.Type = msg.Type
+	smsg.Type = string(msg.Type)
 
 	smsg.Variables = map[string]string{}
 
@@ -162,9 +161,10 @@ func (worker *workerMediator) StartTask(msg events.RouteTaskExecutionMsg) {
 		smsg.Variables[n.Expand()] = n.Value
 
 	}
+	var err error
 
-	if smsg.Command = worker.converter.Convert(msg.Command, msg.Variables, worker.log); smsg.Command == nil {
-
+	smsg.Command, err = converter.ConvertToMsg(msg.Type, msg.Command, msg.Variables)
+	if err != nil {
 		status.Status = types.WorkerTaskStatusFailed
 		worker.taskStatus <- status
 		return

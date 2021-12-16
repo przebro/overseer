@@ -1,6 +1,7 @@
 package events
 
 import (
+	"encoding/json"
 	"overseer/common/types"
 	"overseer/common/types/date"
 	task "overseer/overseer/internal/taskdef"
@@ -27,6 +28,7 @@ type RouteTicketCheckMsgFormat struct {
 	}
 }
 
+//FlagActionData - struct for acquire flag message
 type FlagActionData struct {
 	Name   string
 	Policy int8
@@ -129,9 +131,9 @@ type RouteTaskStatusResponseMsg struct {
 type RouteTaskExecutionMsg struct {
 	OrderID     unique.TaskOrderID
 	ExecutionID string
-	Type        string
+	Type        types.TaskType
 	Variables   []task.VariableData
-	Command     interface{}
+	Command     json.RawMessage
 }
 
 //RouteWorkResponseMsg - Contains information about the status of executing work.

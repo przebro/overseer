@@ -33,17 +33,25 @@ message TaskExecutionResponseMsg{
 		EXECUTING = 1;
 		ENDED = 2;
 		FAILED = 3;
-		//for future use
+		//reserved for future use
 		WAITING = 4;
+		//reserved for future use
 		IDLE = 5;
 		STARTING = 6;
 	}
 	TaskStatus status = 1;
+	//Code returned from executed program,
+	//For dummy worker it is always set to 0
+	//For os type, it contains return code of an executed command
+	//For AWS Lambda it contains response code, usually 200 which means that lambda function was started successfully,
+	//even if later execution was unsuccessful
 	int32 returnCode  = 2;
+	//This field contains a subjective status of a task.
 	int32 statusCode  = 3;
-	int32 pid         = 4;
-	int32 tasks       = 5;
-	int32 tasksLimit  = 6;
+	string reason     = 4;
+	int32 pid         = 5;
+	int32 tasks       = 6;
+	int32 tasksLimit  = 7;
 }
 
 message WorkerActionMsg{

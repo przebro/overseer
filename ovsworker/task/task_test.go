@@ -2,7 +2,7 @@ package task
 
 import "testing"
 
-var exec *TaskExecutor
+var exec *TaskRunnerManager
 
 func TestCreateExecutor(t *testing.T) {
 

@@ -383,7 +383,7 @@ func TestGetAction(t *testing.T) {
 		t.Error("task builder error")
 	}
 
-	if def.Action() != "" {
+	if string(def.Action()) != "" {
 		t.Error("Unexpected value")
 	}
 }

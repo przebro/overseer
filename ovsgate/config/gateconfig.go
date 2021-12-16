@@ -8,6 +8,7 @@ import (
 	"overseer/common/logger"
 )
 
+//OverseerGatewayConfig - holds gateway configuration
 type OverseerGatewayConfig struct {
 	GatewayAddress   string                     `json:"gateAddress"`
 	GatewayPort      int                        `json:"gatePort"`

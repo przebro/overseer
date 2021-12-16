@@ -6,7 +6,6 @@ import (
 	"overseer/common/core"
 	"overseer/common/helpers"
 	"overseer/common/logger"
-	_ "overseer/common/types"
 	"overseer/common/validator"
 	"overseer/overseer"
 	"overseer/overseer/config"

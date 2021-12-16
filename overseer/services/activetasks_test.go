@@ -117,7 +117,7 @@ func TestOrderTask(t *testing.T) {
 
 	r, err := service.OrderTask(ctx, &services.TaskOrderMsg{TaskGroup: "test", Odate: string(date.CurrentOdate()), TaskName: "dummy_04"})
 	if err != nil {
-		t.Error("unexpected result")
+		t.Error("unexpected result:", err)
 	}
 
 	if r.Success != true || !strings.Contains(r.Message, "TaskID:") {

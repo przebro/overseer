@@ -10,7 +10,7 @@ import (
 	"overseer/common/types"
 	"path/filepath"
 
-	"overseer/ovsworker/fragments"
+	"overseer/ovsworker/jobs"
 	"overseer/ovsworker/msgheader"
 	"overseer/ovsworker/task"
 	"overseer/proto/wservices"
@@ -31,11 +31,12 @@ var statusMap = map[types.WorkerTaskStatus]wservices.TaskExecutionResponseMsg_Ta
 
 type workerExecutionService struct {
 	log       logger.AppLogger
-	te        *task.TaskExecutor
+	te        *task.TaskRunnerManager
 	sysoutDir string
 	taskLimit int
 }
 
+//NewWorkerExecutionService - creates a new instance of a workerExecutionService
 func NewWorkerExecutionService(sysoutDir string, limit int, log logger.AppLogger) (*workerExecutionService, error) {
 
 	var sysout string
@@ -93,14 +94,14 @@ func (wsrvc *workerExecutionService) StartTask(ctx context.Context, msg *wservic
 		Variables:   msg.Variables,
 	}
 
-	var frag fragments.WorkFragment
+	var jobExec jobs.JobExecutor
 
-	if frag, err = fragments.CreateWorkFragment(header, wsrvc.sysoutDir, msg.Command.Value); err != nil {
+	if jobExec, err = jobs.NewJobExecutor(header, wsrvc.sysoutDir, msg.Command.Value); err != nil {
 		return nil, status.Error(codes.Aborted, err.Error())
 
 	}
 
-	_, num := wsrvc.te.ExecuteTask(frag)
+	_, num := wsrvc.te.RunTask(jobExec)
 
 	response = &wservices.TaskExecutionResponseMsg{
 		Status:     wservices.TaskExecutionResponseMsg_RECEIVED,
@@ -117,7 +118,7 @@ func (wsrvc *workerExecutionService) TaskStatus(ctx context.Context, msg *wservi
 	var response *wservices.TaskExecutionResponseMsg
 	result, num, ok := wsrvc.te.GetTaskStatus(msg.ExecutionID)
 
-	if ok != true {
+	if !ok {
 		return nil, status.Error(codes.NotFound, fmt.Sprintf("task:%s does not exists", msg.TaskID))
 	}
 

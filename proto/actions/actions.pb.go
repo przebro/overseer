@@ -74,19 +74,22 @@ func (OsTaskAction_OsType) EnumDescriptor() ([]byte, []int) {
 type AwsTaskAction_AwsType int32
 
 const (
-	AwsTaskAction_lambda AwsTaskAction_AwsType = 0
-	AwsTaskAction_batch  AwsTaskAction_AwsType = 1
+	AwsTaskAction_lambda   AwsTaskAction_AwsType = 0
+	AwsTaskAction_stepfunc AwsTaskAction_AwsType = 1
+	AwsTaskAction_batch    AwsTaskAction_AwsType = 2
 )
 
 // Enum value maps for AwsTaskAction_AwsType.
 var (
 	AwsTaskAction_AwsType_name = map[int32]string{
 		0: "lambda",
-		1: "batch",
+		1: "stepfunc",
+		2: "batch",
 	}
 	AwsTaskAction_AwsType_value = map[string]int32{
-		"lambda": 0,
-		"batch":  1,
+		"lambda":   0,
+		"stepfunc": 1,
+		"batch":    2,
 	}
 )
 
@@ -114,7 +117,7 @@ func (x AwsTaskAction_AwsType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use AwsTaskAction_AwsType.Descriptor instead.
 func (AwsTaskAction_AwsType) EnumDescriptor() ([]byte, []int) {
-	return file_actions_proto_rawDescGZIP(), []int{2, 0}
+	return file_actions_proto_rawDescGZIP(), []int{5, 0}
 }
 
 type DummyTaskAction struct {
@@ -227,22 +230,195 @@ func (x *OsTaskAction) GetRunas() string {
 	return ""
 }
 
+type AwsLambdaExecution struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	FunctionName string `protobuf:"bytes,1,opt,name=functionName,proto3" json:"functionName,omitempty"`
+	Alias        string `protobuf:"bytes,2,opt,name=alias,proto3" json:"alias,omitempty"`
+}
+
+func (x *AwsLambdaExecution) Reset() {
+	*x = AwsLambdaExecution{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_actions_proto_msgTypes[2]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *AwsLambdaExecution) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AwsLambdaExecution) ProtoMessage() {}
+
+func (x *AwsLambdaExecution) ProtoReflect() protoreflect.Message {
+	mi := &file_actions_proto_msgTypes[2]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AwsLambdaExecution.ProtoReflect.Descriptor instead.
+func (*AwsLambdaExecution) Descriptor() ([]byte, []int) {
+	return file_actions_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *AwsLambdaExecution) GetFunctionName() string {
+	if x != nil {
+		return x.FunctionName
+	}
+	return ""
+}
+
+func (x *AwsLambdaExecution) GetAlias() string {
+	if x != nil {
+		return x.Alias
+	}
+	return ""
+}
+
+type AwsStepFunctionExecution struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	StateMachineARN string `protobuf:"bytes,1,opt,name=stateMachineARN,proto3" json:"stateMachineARN,omitempty"`
+	ExecutionName   string `protobuf:"bytes,2,opt,name=executionName,proto3" json:"executionName,omitempty"`
+}
+
+func (x *AwsStepFunctionExecution) Reset() {
+	*x = AwsStepFunctionExecution{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_actions_proto_msgTypes[3]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *AwsStepFunctionExecution) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AwsStepFunctionExecution) ProtoMessage() {}
+
+func (x *AwsStepFunctionExecution) ProtoReflect() protoreflect.Message {
+	mi := &file_actions_proto_msgTypes[3]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AwsStepFunctionExecution.ProtoReflect.Descriptor instead.
+func (*AwsStepFunctionExecution) Descriptor() ([]byte, []int) {
+	return file_actions_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *AwsStepFunctionExecution) GetStateMachineARN() string {
+	if x != nil {
+		return x.StateMachineARN
+	}
+	return ""
+}
+
+func (x *AwsStepFunctionExecution) GetExecutionName() string {
+	if x != nil {
+		return x.ExecutionName
+	}
+	return ""
+}
+
+type AwsConnetionData struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	ProfileName string `protobuf:"bytes,3,opt,name=profileName,proto3" json:"profileName,omitempty"`
+	Region      string `protobuf:"bytes,4,opt,name=region,proto3" json:"region,omitempty"`
+}
+
+func (x *AwsConnetionData) Reset() {
+	*x = AwsConnetionData{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_actions_proto_msgTypes[4]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *AwsConnetionData) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AwsConnetionData) ProtoMessage() {}
+
+func (x *AwsConnetionData) ProtoReflect() protoreflect.Message {
+	mi := &file_actions_proto_msgTypes[4]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AwsConnetionData.ProtoReflect.Descriptor instead.
+func (*AwsConnetionData) Descriptor() ([]byte, []int) {
+	return file_actions_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *AwsConnetionData) GetProfileName() string {
+	if x != nil {
+		return x.ProfileName
+	}
+	return ""
+}
+
+func (x *AwsConnetionData) GetRegion() string {
+	if x != nil {
+		return x.Region
+	}
+	return ""
+}
+
 type AwsTaskAction struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Type    AwsTaskAction_AwsType `protobuf:"varint,1,opt,name=type,proto3,enum=proto.AwsTaskAction_AwsType" json:"type,omitempty"`
-	Name    string                `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Profile string                `protobuf:"bytes,3,opt,name=profile,proto3" json:"profile,omitempty"`
-	Region  string                `protobuf:"bytes,4,opt,name=region,proto3" json:"region,omitempty"`
-	Payload []byte                `protobuf:"bytes,5,opt,name=payload,proto3" json:"payload,omitempty"`
+	Type AwsTaskAction_AwsType `protobuf:"varint,1,opt,name=type,proto3,enum=proto.AwsTaskAction_AwsType" json:"type,omitempty"`
+	// Types that are assignable to Connection:
+	//	*AwsTaskAction_ConnectionData
+	//	*AwsTaskAction_ConnectionProfileName
+	Connection isAwsTaskAction_Connection `protobuf_oneof:"connection"`
+	// Types that are assignable to Execution:
+	//	*AwsTaskAction_LambdaExecution
+	//	*AwsTaskAction_StepFunction
+	Execution isAwsTaskAction_Execution `protobuf_oneof:"execution"`
+	// Types that are assignable to PayloadSource:
+	//	*AwsTaskAction_PayloadRaw
+	//	*AwsTaskAction_PayloadFilePath
+	PayloadSource isAwsTaskAction_PayloadSource `protobuf_oneof:"payloadSource"`
 }
 
 func (x *AwsTaskAction) Reset() {
 	*x = AwsTaskAction{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_actions_proto_msgTypes[2]
+		mi := &file_actions_proto_msgTypes[5]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -255,7 +431,7 @@ func (x *AwsTaskAction) String() string {
 func (*AwsTaskAction) ProtoMessage() {}
 
 func (x *AwsTaskAction) ProtoReflect() protoreflect.Message {
-	mi := &file_actions_proto_msgTypes[2]
+	mi := &file_actions_proto_msgTypes[5]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -268,7 +444,7 @@ func (x *AwsTaskAction) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AwsTaskAction.ProtoReflect.Descriptor instead.
 func (*AwsTaskAction) Descriptor() ([]byte, []int) {
-	return file_actions_proto_rawDescGZIP(), []int{2}
+	return file_actions_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *AwsTaskAction) GetType() AwsTaskAction_AwsType {
@@ -278,33 +454,117 @@ func (x *AwsTaskAction) GetType() AwsTaskAction_AwsType {
 	return AwsTaskAction_lambda
 }
 
-func (x *AwsTaskAction) GetName() string {
-	if x != nil {
-		return x.Name
-	}
-	return ""
-}
-
-func (x *AwsTaskAction) GetProfile() string {
-	if x != nil {
-		return x.Profile
-	}
-	return ""
-}
-
-func (x *AwsTaskAction) GetRegion() string {
-	if x != nil {
-		return x.Region
-	}
-	return ""
-}
-
-func (x *AwsTaskAction) GetPayload() []byte {
-	if x != nil {
-		return x.Payload
+func (m *AwsTaskAction) GetConnection() isAwsTaskAction_Connection {
+	if m != nil {
+		return m.Connection
 	}
 	return nil
 }
+
+func (x *AwsTaskAction) GetConnectionData() *AwsConnetionData {
+	if x, ok := x.GetConnection().(*AwsTaskAction_ConnectionData); ok {
+		return x.ConnectionData
+	}
+	return nil
+}
+
+func (x *AwsTaskAction) GetConnectionProfileName() string {
+	if x, ok := x.GetConnection().(*AwsTaskAction_ConnectionProfileName); ok {
+		return x.ConnectionProfileName
+	}
+	return ""
+}
+
+func (m *AwsTaskAction) GetExecution() isAwsTaskAction_Execution {
+	if m != nil {
+		return m.Execution
+	}
+	return nil
+}
+
+func (x *AwsTaskAction) GetLambdaExecution() *AwsLambdaExecution {
+	if x, ok := x.GetExecution().(*AwsTaskAction_LambdaExecution); ok {
+		return x.LambdaExecution
+	}
+	return nil
+}
+
+func (x *AwsTaskAction) GetStepFunction() *AwsStepFunctionExecution {
+	if x, ok := x.GetExecution().(*AwsTaskAction_StepFunction); ok {
+		return x.StepFunction
+	}
+	return nil
+}
+
+func (m *AwsTaskAction) GetPayloadSource() isAwsTaskAction_PayloadSource {
+	if m != nil {
+		return m.PayloadSource
+	}
+	return nil
+}
+
+func (x *AwsTaskAction) GetPayloadRaw() []byte {
+	if x, ok := x.GetPayloadSource().(*AwsTaskAction_PayloadRaw); ok {
+		return x.PayloadRaw
+	}
+	return nil
+}
+
+func (x *AwsTaskAction) GetPayloadFilePath() string {
+	if x, ok := x.GetPayloadSource().(*AwsTaskAction_PayloadFilePath); ok {
+		return x.PayloadFilePath
+	}
+	return ""
+}
+
+type isAwsTaskAction_Connection interface {
+	isAwsTaskAction_Connection()
+}
+
+type AwsTaskAction_ConnectionData struct {
+	ConnectionData *AwsConnetionData `protobuf:"bytes,2,opt,name=connectionData,proto3,oneof"`
+}
+
+type AwsTaskAction_ConnectionProfileName struct {
+	//reserved for future use. The name of a profile stored in external data store
+	ConnectionProfileName string `protobuf:"bytes,3,opt,name=connectionProfileName,proto3,oneof"`
+}
+
+func (*AwsTaskAction_ConnectionData) isAwsTaskAction_Connection() {}
+
+func (*AwsTaskAction_ConnectionProfileName) isAwsTaskAction_Connection() {}
+
+type isAwsTaskAction_Execution interface {
+	isAwsTaskAction_Execution()
+}
+
+type AwsTaskAction_LambdaExecution struct {
+	LambdaExecution *AwsLambdaExecution `protobuf:"bytes,4,opt,name=lambdaExecution,proto3,oneof"`
+}
+
+type AwsTaskAction_StepFunction struct {
+	StepFunction *AwsStepFunctionExecution `protobuf:"bytes,5,opt,name=stepFunction,proto3,oneof"`
+}
+
+func (*AwsTaskAction_LambdaExecution) isAwsTaskAction_Execution() {}
+
+func (*AwsTaskAction_StepFunction) isAwsTaskAction_Execution() {}
+
+type isAwsTaskAction_PayloadSource interface {
+	isAwsTaskAction_PayloadSource()
+}
+
+type AwsTaskAction_PayloadRaw struct {
+	PayloadRaw []byte `protobuf:"bytes,6,opt,name=payloadRaw,proto3,oneof"`
+}
+
+type AwsTaskAction_PayloadFilePath struct {
+	PayloadFilePath string `protobuf:"bytes,7,opt,name=payloadFilePath,proto3,oneof"`
+}
+
+func (*AwsTaskAction_PayloadRaw) isAwsTaskAction_PayloadSource() {}
+
+func (*AwsTaskAction_PayloadFilePath) isAwsTaskAction_PayloadSource() {}
 
 var File_actions_proto protoreflect.FileDescriptor
 
@@ -322,21 +582,57 @@ var file_actions_proto_rawDesc = []byte{
 	0x12, 0x14, 0x0a, 0x05, 0x72, 0x75, 0x6e, 0x61, 0x73, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52,
 	0x05, 0x72, 0x75, 0x6e, 0x61, 0x73, 0x22, 0x21, 0x0a, 0x06, 0x4f, 0x73, 0x54, 0x79, 0x70, 0x65,
 	0x12, 0x0b, 0x0a, 0x07, 0x63, 0x6f, 0x6d, 0x6d, 0x61, 0x6e, 0x64, 0x10, 0x00, 0x12, 0x0a, 0x0a,
-	0x06, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x10, 0x01, 0x22, 0xc3, 0x01, 0x0a, 0x0d, 0x41, 0x77,
-	0x73, 0x54, 0x61, 0x73, 0x6b, 0x41, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x30, 0x0a, 0x04, 0x74,
-	0x79, 0x70, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x1c, 0x2e, 0x70, 0x72, 0x6f, 0x74,
-	0x6f, 0x2e, 0x41, 0x77, 0x73, 0x54, 0x61, 0x73, 0x6b, 0x41, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x2e,
-	0x41, 0x77, 0x73, 0x54, 0x79, 0x70, 0x65, 0x52, 0x04, 0x74, 0x79, 0x70, 0x65, 0x12, 0x12, 0x0a,
-	0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d,
-	0x65, 0x12, 0x18, 0x0a, 0x07, 0x70, 0x72, 0x6f, 0x66, 0x69, 0x6c, 0x65, 0x18, 0x03, 0x20, 0x01,
-	0x28, 0x09, 0x52, 0x07, 0x70, 0x72, 0x6f, 0x66, 0x69, 0x6c, 0x65, 0x12, 0x16, 0x0a, 0x06, 0x72,
+	0x06, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x10, 0x01, 0x22, 0x4e, 0x0a, 0x12, 0x41, 0x77, 0x73,
+	0x4c, 0x61, 0x6d, 0x62, 0x64, 0x61, 0x45, 0x78, 0x65, 0x63, 0x75, 0x74, 0x69, 0x6f, 0x6e, 0x12,
+	0x22, 0x0a, 0x0c, 0x66, 0x75, 0x6e, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x4e, 0x61, 0x6d, 0x65, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0c, 0x66, 0x75, 0x6e, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x4e,
+	0x61, 0x6d, 0x65, 0x12, 0x14, 0x0a, 0x05, 0x61, 0x6c, 0x69, 0x61, 0x73, 0x18, 0x02, 0x20, 0x01,
+	0x28, 0x09, 0x52, 0x05, 0x61, 0x6c, 0x69, 0x61, 0x73, 0x22, 0x6a, 0x0a, 0x18, 0x41, 0x77, 0x73,
+	0x53, 0x74, 0x65, 0x70, 0x46, 0x75, 0x6e, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x45, 0x78, 0x65, 0x63,
+	0x75, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x28, 0x0a, 0x0f, 0x73, 0x74, 0x61, 0x74, 0x65, 0x4d, 0x61,
+	0x63, 0x68, 0x69, 0x6e, 0x65, 0x41, 0x52, 0x4e, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0f,
+	0x73, 0x74, 0x61, 0x74, 0x65, 0x4d, 0x61, 0x63, 0x68, 0x69, 0x6e, 0x65, 0x41, 0x52, 0x4e, 0x12,
+	0x24, 0x0a, 0x0d, 0x65, 0x78, 0x65, 0x63, 0x75, 0x74, 0x69, 0x6f, 0x6e, 0x4e, 0x61, 0x6d, 0x65,
+	0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0d, 0x65, 0x78, 0x65, 0x63, 0x75, 0x74, 0x69, 0x6f,
+	0x6e, 0x4e, 0x61, 0x6d, 0x65, 0x22, 0x4c, 0x0a, 0x10, 0x41, 0x77, 0x73, 0x43, 0x6f, 0x6e, 0x6e,
+	0x65, 0x74, 0x69, 0x6f, 0x6e, 0x44, 0x61, 0x74, 0x61, 0x12, 0x20, 0x0a, 0x0b, 0x70, 0x72, 0x6f,
+	0x66, 0x69, 0x6c, 0x65, 0x4e, 0x61, 0x6d, 0x65, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0b,
+	0x70, 0x72, 0x6f, 0x66, 0x69, 0x6c, 0x65, 0x4e, 0x61, 0x6d, 0x65, 0x12, 0x16, 0x0a, 0x06, 0x72,
 	0x65, 0x67, 0x69, 0x6f, 0x6e, 0x18, 0x04, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x72, 0x65, 0x67,
-	0x69, 0x6f, 0x6e, 0x12, 0x18, 0x0a, 0x07, 0x70, 0x61, 0x79, 0x6c, 0x6f, 0x61, 0x64, 0x18, 0x05,
-	0x20, 0x01, 0x28, 0x0c, 0x52, 0x07, 0x70, 0x61, 0x79, 0x6c, 0x6f, 0x61, 0x64, 0x22, 0x20, 0x0a,
-	0x07, 0x41, 0x77, 0x73, 0x54, 0x79, 0x70, 0x65, 0x12, 0x0a, 0x0a, 0x06, 0x6c, 0x61, 0x6d, 0x62,
-	0x64, 0x61, 0x10, 0x00, 0x12, 0x09, 0x0a, 0x05, 0x62, 0x61, 0x74, 0x63, 0x68, 0x10, 0x01, 0x42,
-	0x0f, 0x5a, 0x0d, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x73,
-	0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x69, 0x6f, 0x6e, 0x22, 0xf4, 0x03, 0x0a, 0x0d, 0x41, 0x77, 0x73, 0x54, 0x61, 0x73, 0x6b, 0x41,
+	0x63, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x30, 0x0a, 0x04, 0x74, 0x79, 0x70, 0x65, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x0e, 0x32, 0x1c, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x41, 0x77, 0x73, 0x54,
+	0x61, 0x73, 0x6b, 0x41, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x2e, 0x41, 0x77, 0x73, 0x54, 0x79, 0x70,
+	0x65, 0x52, 0x04, 0x74, 0x79, 0x70, 0x65, 0x12, 0x41, 0x0a, 0x0e, 0x63, 0x6f, 0x6e, 0x6e, 0x65,
+	0x63, 0x74, 0x69, 0x6f, 0x6e, 0x44, 0x61, 0x74, 0x61, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32,
+	0x17, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x41, 0x77, 0x73, 0x43, 0x6f, 0x6e, 0x6e, 0x65,
+	0x74, 0x69, 0x6f, 0x6e, 0x44, 0x61, 0x74, 0x61, 0x48, 0x00, 0x52, 0x0e, 0x63, 0x6f, 0x6e, 0x6e,
+	0x65, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x44, 0x61, 0x74, 0x61, 0x12, 0x36, 0x0a, 0x15, 0x63, 0x6f,
+	0x6e, 0x6e, 0x65, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x50, 0x72, 0x6f, 0x66, 0x69, 0x6c, 0x65, 0x4e,
+	0x61, 0x6d, 0x65, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x48, 0x00, 0x52, 0x15, 0x63, 0x6f, 0x6e,
+	0x6e, 0x65, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x50, 0x72, 0x6f, 0x66, 0x69, 0x6c, 0x65, 0x4e, 0x61,
+	0x6d, 0x65, 0x12, 0x45, 0x0a, 0x0f, 0x6c, 0x61, 0x6d, 0x62, 0x64, 0x61, 0x45, 0x78, 0x65, 0x63,
+	0x75, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x19, 0x2e, 0x70, 0x72,
+	0x6f, 0x74, 0x6f, 0x2e, 0x41, 0x77, 0x73, 0x4c, 0x61, 0x6d, 0x62, 0x64, 0x61, 0x45, 0x78, 0x65,
+	0x63, 0x75, 0x74, 0x69, 0x6f, 0x6e, 0x48, 0x01, 0x52, 0x0f, 0x6c, 0x61, 0x6d, 0x62, 0x64, 0x61,
+	0x45, 0x78, 0x65, 0x63, 0x75, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x45, 0x0a, 0x0c, 0x73, 0x74, 0x65,
+	0x70, 0x46, 0x75, 0x6e, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x05, 0x20, 0x01, 0x28, 0x0b, 0x32,
+	0x1f, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x41, 0x77, 0x73, 0x53, 0x74, 0x65, 0x70, 0x46,
+	0x75, 0x6e, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x45, 0x78, 0x65, 0x63, 0x75, 0x74, 0x69, 0x6f, 0x6e,
+	0x48, 0x01, 0x52, 0x0c, 0x73, 0x74, 0x65, 0x70, 0x46, 0x75, 0x6e, 0x63, 0x74, 0x69, 0x6f, 0x6e,
+	0x12, 0x20, 0x0a, 0x0a, 0x70, 0x61, 0x79, 0x6c, 0x6f, 0x61, 0x64, 0x52, 0x61, 0x77, 0x18, 0x06,
+	0x20, 0x01, 0x28, 0x0c, 0x48, 0x02, 0x52, 0x0a, 0x70, 0x61, 0x79, 0x6c, 0x6f, 0x61, 0x64, 0x52,
+	0x61, 0x77, 0x12, 0x2a, 0x0a, 0x0f, 0x70, 0x61, 0x79, 0x6c, 0x6f, 0x61, 0x64, 0x46, 0x69, 0x6c,
+	0x65, 0x50, 0x61, 0x74, 0x68, 0x18, 0x07, 0x20, 0x01, 0x28, 0x09, 0x48, 0x02, 0x52, 0x0f, 0x70,
+	0x61, 0x79, 0x6c, 0x6f, 0x61, 0x64, 0x46, 0x69, 0x6c, 0x65, 0x50, 0x61, 0x74, 0x68, 0x22, 0x2e,
+	0x0a, 0x07, 0x41, 0x77, 0x73, 0x54, 0x79, 0x70, 0x65, 0x12, 0x0a, 0x0a, 0x06, 0x6c, 0x61, 0x6d,
+	0x62, 0x64, 0x61, 0x10, 0x00, 0x12, 0x0c, 0x0a, 0x08, 0x73, 0x74, 0x65, 0x70, 0x66, 0x75, 0x6e,
+	0x63, 0x10, 0x01, 0x12, 0x09, 0x0a, 0x05, 0x62, 0x61, 0x74, 0x63, 0x68, 0x10, 0x02, 0x42, 0x0c,
+	0x0a, 0x0a, 0x63, 0x6f, 0x6e, 0x6e, 0x65, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x42, 0x0b, 0x0a, 0x09,
+	0x65, 0x78, 0x65, 0x63, 0x75, 0x74, 0x69, 0x6f, 0x6e, 0x42, 0x0f, 0x0a, 0x0d, 0x70, 0x61, 0x79,
+	0x6c, 0x6f, 0x61, 0x64, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x42, 0x0f, 0x5a, 0x0d, 0x70, 0x72,
+	0x6f, 0x74, 0x6f, 0x2f, 0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x62, 0x06, 0x70, 0x72, 0x6f,
+	0x74, 0x6f, 0x33,
 }
 
 var (
@@ -352,22 +648,28 @@ func file_actions_proto_rawDescGZIP() []byte {
 }
 
 var file_actions_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_actions_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_actions_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_actions_proto_goTypes = []interface{}{
-	(OsTaskAction_OsType)(0),   // 0: proto.OsTaskAction.OsType
-	(AwsTaskAction_AwsType)(0), // 1: proto.AwsTaskAction.AwsType
-	(*DummyTaskAction)(nil),    // 2: proto.DummyTaskAction
-	(*OsTaskAction)(nil),       // 3: proto.OsTaskAction
-	(*AwsTaskAction)(nil),      // 4: proto.AwsTaskAction
+	(OsTaskAction_OsType)(0),         // 0: proto.OsTaskAction.OsType
+	(AwsTaskAction_AwsType)(0),       // 1: proto.AwsTaskAction.AwsType
+	(*DummyTaskAction)(nil),          // 2: proto.DummyTaskAction
+	(*OsTaskAction)(nil),             // 3: proto.OsTaskAction
+	(*AwsLambdaExecution)(nil),       // 4: proto.AwsLambdaExecution
+	(*AwsStepFunctionExecution)(nil), // 5: proto.AwsStepFunctionExecution
+	(*AwsConnetionData)(nil),         // 6: proto.AwsConnetionData
+	(*AwsTaskAction)(nil),            // 7: proto.AwsTaskAction
 }
 var file_actions_proto_depIdxs = []int32{
 	0, // 0: proto.OsTaskAction.type:type_name -> proto.OsTaskAction.OsType
 	1, // 1: proto.AwsTaskAction.type:type_name -> proto.AwsTaskAction.AwsType
-	2, // [2:2] is the sub-list for method output_type
-	2, // [2:2] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	6, // 2: proto.AwsTaskAction.connectionData:type_name -> proto.AwsConnetionData
+	4, // 3: proto.AwsTaskAction.lambdaExecution:type_name -> proto.AwsLambdaExecution
+	5, // 4: proto.AwsTaskAction.stepFunction:type_name -> proto.AwsStepFunctionExecution
+	5, // [5:5] is the sub-list for method output_type
+	5, // [5:5] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_actions_proto_init() }
@@ -401,6 +703,42 @@ func file_actions_proto_init() {
 			}
 		}
 		file_actions_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*AwsLambdaExecution); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_actions_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*AwsStepFunctionExecution); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_actions_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*AwsConnetionData); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_actions_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*AwsTaskAction); i {
 			case 0:
 				return &v.state
@@ -413,13 +751,21 @@ func file_actions_proto_init() {
 			}
 		}
 	}
+	file_actions_proto_msgTypes[5].OneofWrappers = []interface{}{
+		(*AwsTaskAction_ConnectionData)(nil),
+		(*AwsTaskAction_ConnectionProfileName)(nil),
+		(*AwsTaskAction_LambdaExecution)(nil),
+		(*AwsTaskAction_StepFunction)(nil),
+		(*AwsTaskAction_PayloadRaw)(nil),
+		(*AwsTaskAction_PayloadFilePath)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_actions_proto_rawDesc,
 			NumEnums:      2,
-			NumMessages:   3,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

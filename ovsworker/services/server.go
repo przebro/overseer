@@ -10,12 +10,14 @@ import (
 	"google.golang.org/grpc"
 )
 
+//OvsWorkerServer - represents worker
 type OvsWorkerServer struct {
 	conf       config.WorkerConfiguration
 	grpcServer *grpc.Server
 	log        logger.AppLogger
 }
 
+//New - creates a new instance of a OvsWorkerServer
 func New(config config.WorkerConfiguration, es wservices.TaskExecutionServiceServer, log logger.AppLogger) *OvsWorkerServer {
 
 	wserver := &OvsWorkerServer{}
@@ -28,6 +30,7 @@ func New(config config.WorkerConfiguration, es wservices.TaskExecutionServiceSer
 	return wserver
 }
 
+//Start - starts worker
 func (srv *OvsWorkerServer) Start() error {
 
 	conn := fmt.Sprintf("%s:%d", srv.conf.Host, srv.conf.Port)
@@ -47,6 +50,7 @@ func (srv *OvsWorkerServer) Start() error {
 	return nil
 }
 
+//Shutdown - stops worker execution
 func (srv *OvsWorkerServer) Shutdown() error {
 
 	srv.grpcServer.GracefulStop()

@@ -74,7 +74,7 @@ func createTaskCmd(client *ovscli.OverseerClient) *cobra.Command {
 			}
 
 			if setok {
-				selected += 1
+				selected++
 				setok = false
 			}
 

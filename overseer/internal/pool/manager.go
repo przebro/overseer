@@ -22,7 +22,7 @@ var (
 	ErrInvalidStatus = errors.New("invalid status")
 	//ErrUnableFindGroup - a group was not found
 	ErrUnableFindGroup = errors.New("unable to find group")
-	//ErrUnableFindTask
+	//ErrUnableFindTask 0 task was not found
 	ErrUnableFindTask = errors.New("unable to find task")
 )
 

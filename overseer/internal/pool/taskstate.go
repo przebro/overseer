@@ -359,7 +359,7 @@ func (state ostateStarting) processState(ctx *TaskExecutionContext) bool {
 	data := events.RouteTaskExecutionMsg{
 		OrderID:     ctx.task.OrderID(),
 		ExecutionID: ctx.task.CurrentExecutionID(),
-		Type:        string(ctx.task.TypeName()),
+		Type:        ctx.task.TypeName(),
 		Variables:   variables,
 		Command:     ctx.task.Action(),
 	}

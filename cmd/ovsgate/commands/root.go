@@ -27,6 +27,7 @@ var rootCmd = &cobra.Command{
 	},
 }
 
+//Setup - initializes root command
 func Setup() {
 
 	rootCmd.Flags().StringVar(&configFile, "config", "", "path to configuration file")

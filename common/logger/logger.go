@@ -8,7 +8,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-//LogConfiguration - configuration for logger
+//LoggerConfiguration - configuration for logger
 type LoggerConfiguration struct {
 	LogLevel     int    `json:"logLevel" validate:"min=0,max=5"`
 	SizeLimit    int    `json:"sizeLimit" validate:"gte=1024"`
@@ -89,17 +89,23 @@ func NewLogger(conf LogConfiguration) (*zap.SugaredLogger, error) {
 
 }
 
+//Level - returns current log level
 func (l LoggerConfiguration) Level() int {
 	return l.LogLevel
 }
+
+//Directory - returns current log directory
 func (l LoggerConfiguration) Directory() string {
 
 	return l.LogDirectory
 }
+
+//Prefix - returns log file prefix
 func (l LoggerConfiguration) Prefix() string {
 	return l.FilePrefix
-
 }
+
+//Limit - returns log size limit
 func (l LoggerConfiguration) Limit() int {
 	return l.SizeLimit
 

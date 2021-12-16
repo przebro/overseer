@@ -105,7 +105,7 @@ type baseTaskDefinition struct {
 	FlagsTab      []FlagData       `json:"flags"  validate:"omitempty,dive"`
 	OutTickets    []OutTicketData  `json:"outticket"  validate:"omitempty,dive"`
 	TaskVariables []VariableData   `json:"variables"  validate:"omitempty,dive"`
-	Data          json.RawMessage  `json:"spec"`
+	Data          json.RawMessage  `json:"spec,omitempty"`
 }
 
 //Ordering options
@@ -259,7 +259,7 @@ type TaskDefinition interface {
 	Confirm() bool
 	Retention() int
 	Variables() []VariableData
-	Action() interface{}
+	Action() json.RawMessage
 }
 
 //TypeName - returns task's type
@@ -279,8 +279,8 @@ func (task *baseTaskDefinition) Retention() int {
 
 //For dummy task this method returns empty string, for other specific tasks
 //method returns information required to execute action
-func (task *baseTaskDefinition) Action() interface{} {
-	return ""
+func (task *baseTaskDefinition) Action() json.RawMessage {
+	return task.Data
 }
 
 //Variables - Gets variables from tasks definition
@@ -332,27 +332,16 @@ func FromDefinitionFile(path string) (TaskDefinition, error) {
 //FromString - loads a task definition from input string. Performs validations for enum types.
 func FromString(data string) (TaskDefinition, error) {
 
-	var result TaskDefinition
-	def := baseTaskDefinition{}
-	err := json.Unmarshal([]byte(data), &def)
-	if err != nil {
+	def := &baseTaskDefinition{}
+	if err := json.Unmarshal([]byte(data), def); err != nil {
 		return nil, err
 	}
 
-	if def.TaskType == types.TypeDummy {
-		result = &def
-	}
-	if err = validator.Valid.Validate(def); err != nil {
+	if err := validator.Valid.Validate(*def); err != nil {
 		return nil, err
 	}
 
-	if def.TaskType == types.TypeOs {
-		data := OsTaskData{}
-		json.Unmarshal([]byte(def.Data), &data)
-		result = &OsTaskDefinition{baseTaskDefinition: def, Spec: data}
-	}
-
-	return result, nil
+	return def, nil
 }
 
 //SerializeDefinition - Writes task definition to string.

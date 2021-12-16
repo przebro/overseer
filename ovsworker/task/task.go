@@ -3,23 +3,24 @@ package task
 import (
 	"context"
 	"overseer/common/types"
-	"overseer/ovsworker/fragments"
+	"overseer/ovsworker/jobs"
+	"overseer/ovsworker/status"
 	"sync"
 )
 
-//TaskExecutor - executes a commissioned task
-type TaskExecutor struct {
-	store    map[string]fragments.FragmentStatus
-	statChan chan fragments.FragmentStatus
+//TaskRunnerManager - executes a commissioned task
+type TaskRunnerManager struct {
+	store    map[string]status.JobExecutionStatus
+	statChan chan status.JobExecutionStatus
 	lock     sync.Mutex
 }
 
-//NewTaskExecutor - creates a new TaskExecutor
-func NewTaskExecutor() *TaskExecutor {
+//NewTaskExecutor - creates a new TaskRunnerManager
+func NewTaskExecutor() *TaskRunnerManager {
 
-	exec := &TaskExecutor{
-		store:    map[string]fragments.FragmentStatus{},
-		statChan: make(chan fragments.FragmentStatus),
+	exec := &TaskRunnerManager{
+		store:    map[string]status.JobExecutionStatus{},
+		statChan: make(chan status.JobExecutionStatus),
 		lock:     sync.Mutex{},
 	}
 	exec.updateTaskStatus()
@@ -27,32 +28,32 @@ func NewTaskExecutor() *TaskExecutor {
 	return exec
 }
 
-//ExecuteTask - starts work fragment
-func (exec *TaskExecutor) ExecuteTask(fragment fragments.WorkFragment) (fragments.FragmentStatus, int) {
+//RunTask - starts work fragment
+func (exec *TaskRunnerManager) RunTask(j jobs.JobExecutor) (status.JobExecutionStatus, int) {
 
 	tasks := 0
-	status := fragments.FragmentStatus{
-		TaskID:      fragment.TaskID(),
-		ExecutionID: fragment.ExecutionID(),
+	status := status.JobExecutionStatus{
+		TaskID:      j.JobTaskID(),
+		ExecutionID: j.JobExecutionID(),
 		State:       types.WorkerTaskStatusExecuting,
 		ReturnCode:  0,
 		StatusCode:  0,
 	}
 
 	exec.lock.Lock()
-	exec.store[fragment.ExecutionID()] = status
+	exec.store[j.JobExecutionID()] = status
 	tasks = len(exec.store)
 	exec.lock.Unlock()
 
 	go func() {
-		fragment.StartFragment(context.Background(), exec.statChan)
+		j.StartJob(context.Background(), exec.statChan)
 	}()
 
 	return status, tasks
 
 }
 
-func (exec *TaskExecutor) updateTaskStatus() {
+func (exec *TaskRunnerManager) updateTaskStatus() {
 
 	go func() {
 		for {
@@ -62,15 +63,15 @@ func (exec *TaskExecutor) updateTaskStatus() {
 
 }
 
-func (exec *TaskExecutor) update(status fragments.FragmentStatus) {
+func (exec *TaskRunnerManager) update(stat status.JobExecutionStatus) {
 
 	defer exec.lock.Unlock()
 	exec.lock.Lock()
-	exec.store[status.ExecutionID] = status
+	exec.store[stat.ExecutionID] = stat
 }
 
 //GetTaskStatus - gets fragment status
-func (exec *TaskExecutor) GetTaskStatus(executionID string) (fragments.FragmentStatus, int, bool) {
+func (exec *TaskRunnerManager) GetTaskStatus(executionID string) (status.JobExecutionStatus, int, bool) {
 	defer exec.lock.Unlock()
 	exec.lock.Lock()
 
@@ -79,7 +80,7 @@ func (exec *TaskExecutor) GetTaskStatus(executionID string) (fragments.FragmentS
 }
 
 //TaskCount - returns the number of tasks currently processed
-func (exec *TaskExecutor) TaskCount() int {
+func (exec *TaskRunnerManager) TaskCount() int {
 	defer exec.lock.Unlock()
 	exec.lock.Lock()
 
@@ -87,7 +88,7 @@ func (exec *TaskExecutor) TaskCount() int {
 }
 
 //CleanupTask - removes a task
-func (exec *TaskExecutor) CleanupTask(executionID string) int {
+func (exec *TaskRunnerManager) CleanupTask(executionID string) int {
 
 	defer exec.lock.Unlock()
 	exec.lock.Lock()
@@ -97,7 +98,7 @@ func (exec *TaskExecutor) CleanupTask(executionID string) int {
 }
 
 //TerminateTask - removes a task
-func (exec *TaskExecutor) TerminateTask(executionID string) int {
+func (exec *TaskRunnerManager) TerminateTask(executionID string) int {
 
 	defer exec.lock.Unlock()
 	exec.lock.Lock()

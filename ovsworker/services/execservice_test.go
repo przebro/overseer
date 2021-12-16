@@ -2,6 +2,8 @@ package services
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"os"
 	"overseer/common/logger"
 	"overseer/ovsworker/task"
@@ -109,6 +111,108 @@ func TestStartTaskOS(t *testing.T) {
 	exservice.te.CleanupTask("1234555")
 }
 
+func TestStartTask_Aws_Lambda(t *testing.T) {
+
+	t.SkipNow()
+
+	cmd, _ := anypb.New(&actions.AwsTaskAction{
+		Type: actions.AwsTaskAction_lambda,
+		Connection: &actions.AwsTaskAction_ConnectionData{
+			ConnectionData: &actions.AwsConnetionData{
+				Region:      "{region}",
+				ProfileName: "{profile}",
+			},
+		},
+		Execution: &actions.AwsTaskAction_LambdaExecution{
+			LambdaExecution: &actions.AwsLambdaExecution{
+				FunctionName: "{function_name}",
+				Alias:        "{alias}",
+			},
+		},
+		PayloadSource: &actions.AwsTaskAction_PayloadRaw{
+			PayloadRaw: json.RawMessage("{\"variables\":[{\"name\":\"test\",\"value\":\"sample variable value\"}]}"),
+		},
+	})
+
+	msg := &wservices.StartTaskMsg{
+		TaskID: &wservices.TaskIdMsg{TaskID: "00010", ExecutionID: "1234666"},
+		Type:   "aws",
+		Variables: map[string]string{
+			"SOME_CONTEXT_VARIABLE": "AND_THEIR_VALUE",
+			"ANOTHER_VARIABLE":      "ANOTHER_VALUE",
+			"OVS_SOMETHING":         "SOME_SAMPLE_VALUE",
+		},
+		Command: cmd,
+	}
+
+	_, err := exservice.StartTask(context.Background(), msg)
+	if err != nil {
+		t.Error(err)
+	}
+
+	time.Sleep(3 * time.Second)
+	_, err = exservice.TaskStatus(context.Background(), &wservices.TaskIdMsg{TaskID: "00010", ExecutionID: "1234666"})
+	if err != nil {
+		t.Error(err)
+	}
+
+	exservice.te.CleanupTask("1234666")
+}
+
+func TestStartTask_Aws_StepFunction(t *testing.T) {
+
+	t.SkipNow()
+
+	cmd, _ := anypb.New(&actions.AwsTaskAction{
+		Type: actions.AwsTaskAction_stepfunc,
+		Connection: &actions.AwsTaskAction_ConnectionData{
+			ConnectionData: &actions.AwsConnetionData{
+				Region:      "{region}",
+				ProfileName: "{profile}",
+			},
+		},
+		Execution: &actions.AwsTaskAction_StepFunction{
+			StepFunction: &actions.AwsStepFunctionExecution{
+				StateMachineARN: "arn:aws:states:{region}:{id}:stateMachine:{state_machine_name}",
+				ExecutionName:   "{execution}",
+			},
+		},
+		PayloadSource: &actions.AwsTaskAction_PayloadRaw{
+			PayloadRaw: json.RawMessage("{\"variables\":[{\"name\":\"test\",\"value\":\"sample variable value\"}]}"),
+		},
+	})
+
+	msg := &wservices.StartTaskMsg{
+		TaskID: &wservices.TaskIdMsg{TaskID: "00010", ExecutionID: "1234777"},
+		Type:   "aws",
+		Variables: map[string]string{
+			"SOME_CONTEXT_VARIABLE": "AND_THEIR_VALUE",
+			"ANOTHER_VARIABLE":      "ANOTHER_VALUE",
+			"OVS_SOMETHING":         "SOME_SAMPLE_VALUE",
+		},
+		Command: cmd,
+	}
+
+	_, err := exservice.StartTask(context.Background(), msg)
+	if err != nil {
+		t.Error(err)
+	}
+
+	for {
+		res, err := exservice.TaskStatus(context.Background(), &wservices.TaskIdMsg{TaskID: "00010", ExecutionID: "1234777"})
+		if err != nil {
+			t.Error(err)
+		}
+		if res.Status == wservices.TaskExecutionResponseMsg_ENDED {
+			break
+		}
+		fmt.Println(res)
+		time.Sleep(1 * time.Second)
+	}
+
+	exservice.te.CleanupTask("1234777")
+}
+
 func TestStartTaskInvalid(t *testing.T) {
 
 	cmd, _ := anypb.New(&actions.DummyTaskAction{Data: "testdata"})
@@ -190,4 +294,22 @@ func TestTaskOutput(t *testing.T) {
 	if err == nil {
 		t.Error("unexpected result")
 	}
+}
+
+func TestSerializeMap(t *testing.T) {
+
+	keyvalues := map[string]string{
+		"sample_01":     "sample_value_01",
+		"sample_02":     "sample_value_02",
+		"OVS_SOMETHING": "SOME_SAMPLE_VALUE",
+	}
+
+	custom := struct {
+		Custom map[string]string `json:"Custom"`
+	}{}
+
+	custom.Custom = keyvalues
+
+	data, _ := json.Marshal(&custom)
+	fmt.Println(string(data))
 }

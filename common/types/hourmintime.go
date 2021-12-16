@@ -23,12 +23,14 @@ func (h HourMinTime) AsTime() (hour, min int) {
 	return
 }
 
+//Now - gets now as HourMinTime
 func Now() HourMinTime {
 
 	hmt := time.Now()
 	return HourMinTime(fmt.Sprintf("%02d:%02d", hmt.Hour(), hmt.Minute()))
 }
 
+//FromTime -  gets HourMinTime from time
 func FromTime(tm time.Time) HourMinTime {
 
 	return HourMinTime(fmt.Sprintf("%02d:%02d", tm.Hour(), tm.Minute()))
