@@ -122,10 +122,43 @@ type AwsLambdaTaskData struct {
 	FunctionAlias string `json:"alias"`
 }
 
+func (p *AwsLambdaTaskData) UnmarshalJSON(b []byte) error {
+
+	inline := struct {
+		FunctionName  string `json:"functionName"`
+		FunctionAlias string `json:"alias"`
+	}{}
+
+	if err := json.Unmarshal(b, &inline); err != nil {
+		return err
+	}
+	p.FunctionName = inline.FunctionName
+	p.FunctionAlias = inline.FunctionAlias
+
+	return nil
+}
+
 type AwsStepFunctionTaskData struct {
 	AwsTaskData
 	StateMachine  string `json:"stateMachineARN"`
 	ExecutionName string `json:"executionName"`
+}
+
+func (p *AwsStepFunctionTaskData) UnmarshalJSON(b []byte) error {
+
+	inline := struct {
+		StateMachine  string `json:"stateMachineARN"`
+		ExecutionName string `json:"executionName"`
+	}{}
+
+	if err := json.Unmarshal(b, &inline); err != nil {
+		return err
+	}
+
+	p.StateMachine = inline.StateMachine
+	p.ExecutionName = inline.ExecutionName
+
+	return nil
 }
 
 type UnknownTypeError struct {

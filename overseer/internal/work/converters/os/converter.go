@@ -6,8 +6,6 @@ import (
 	"overseer/overseer/internal/taskdef"
 	converter "overseer/overseer/internal/work/converters"
 	"overseer/proto/actions"
-	"regexp"
-	"strings"
 
 	"github.com/golang/protobuf/ptypes/any"
 	"google.golang.org/protobuf/proto"
@@ -24,17 +22,11 @@ type osConverter struct {
 //ConvertToMsg - converts os specific data to proto message
 func (c *osConverter) ConvertToMsg(data json.RawMessage, variables []taskdef.VariableData) (*any.Any, error) {
 
-	reg := regexp.MustCompile(`\%\%[A-Z0-9_]+`)
 	result := &taskdef.OsTaskData{}
 	if err := json.Unmarshal(data, result); err != nil {
 		return nil, err
 	}
-	cmdLine := result.CommandLine
-	for _, n := range variables {
-		if reg.MatchString(n.Name) {
-			cmdLine = strings.Replace(cmdLine, n.Name, n.Value, -1)
-		}
-	}
+	cmdLine := converter.ReplaceVariables(result.CommandLine, variables)
 
 	var taskType actions.OsTaskAction_OsType
 

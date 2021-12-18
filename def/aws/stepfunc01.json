@@ -1,6 +1,6 @@
 {
     "type" : "aws",
-    "name" :"lambda01",
+    "name" :"stepfunc01",
     "group" : "aws",
     "description" :"sample lambda function task",
     "inticket" : [],
@@ -21,14 +21,15 @@
     ],
 
     "spec" :{
-        "type"  :"lambda",
+        "type"  :"stepfunc",
         "connection" : {
-            "profile"  : "profile",
+            "profile"  : "testprofile",
             "region"  : "eu-west-1"
         },
         "payload" : {},
-        "functionName" : "test_function_01",
-        "alias" : "$LATEST"
+        "stateMachineARN" : "arn:aws:states:eu-west-1:000000000000:stateMachine:Test_StateMachine_01",
+        "executionName" : "State_MACHINE_EXEC_%%RN"
 
     }
+
 }

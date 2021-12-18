@@ -5,6 +5,8 @@ import (
 	"errors"
 	"overseer/common/types"
 	"overseer/overseer/internal/taskdef"
+	"regexp"
+	"strings"
 
 	"github.com/golang/protobuf/ptypes/any"
 )
@@ -29,4 +31,17 @@ func ConvertToMsg(taskType types.TaskType, data json.RawMessage, variables []tas
 	}
 
 	return converter.ConvertToMsg(data, variables)
+}
+
+func ReplaceVariables(in string, variables []taskdef.VariableData) string {
+	reg := regexp.MustCompile(`\%\%[A-Z0-9_]+`)
+
+	out := in
+	for _, n := range variables {
+		if reg.MatchString(n.Name) {
+			out = strings.Replace(out, n.Name, n.Value, -1)
+		}
+	}
+
+	return out
 }

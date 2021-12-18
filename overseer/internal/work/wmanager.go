@@ -250,7 +250,7 @@ func (w *workerManager) Process(receiver events.EventReceiver, routename events.
 	case events.RouteWorkLaunch:
 		{
 			data, isOk := msg.Message().(events.RouteTaskExecutionMsg)
-			if isOk == false {
+			if !isOk {
 				err := events.ErrUnrecognizedMsgFormat
 				w.log.Debug("worker,", events.RouteWorkLaunch, ",", err)
 				events.ResponseToReceiver(receiver, err)
@@ -261,7 +261,7 @@ func (w *workerManager) Process(receiver events.EventReceiver, routename events.
 	case events.RouteWorkCheck:
 		{
 			data, isOk := msg.Message().(events.WorkRouteCheckStatusMsg)
-			if isOk == false {
+			if !isOk {
 				err := events.ErrUnrecognizedMsgFormat
 				w.log.Debug("worker,", events.RouteWorkCheck, ",", err)
 				events.ResponseToReceiver(receiver, err)
@@ -272,9 +272,8 @@ func (w *workerManager) Process(receiver events.EventReceiver, routename events.
 		}
 	case events.RouteTaskClean:
 		{
-			data, isOk := msg.Message().(events.RouteTaskCleanMsg)
-			if isOk == false {
-			}
+			data, _ := msg.Message().(events.RouteTaskCleanMsg)
+
 			w.cleanChannel <- taskCleanMsg{terminate: data.Terminate, orderID: data.OrderID, executionID: data.ExecutionID, workername: data.WorkerName}
 		}
 	case events.RouteTimeOut:

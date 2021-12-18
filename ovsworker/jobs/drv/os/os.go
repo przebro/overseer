@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"overseer/common/logger"
 	"overseer/common/types"
 	"overseer/ovsworker/jobs"
 	"overseer/ovsworker/msgheader"
@@ -15,6 +16,7 @@ import (
 	"strings"
 	"sync"
 
+	"go.uber.org/zap"
 	"golang.org/x/net/context"
 	"google.golang.org/protobuf/proto"
 )
@@ -31,21 +33,24 @@ type osJob struct {
 	RunAs      string
 	stdout     io.ReadCloser
 	cancelFunc context.CancelFunc
+	log        logger.AppLogger
 }
 
 //OsJobFactory - Creates new os factory
-func OsJobFactory(header msgheader.TaskHeader, sysoutDir string, data []byte) (jobs.JobExecutor, error) {
+func OsJobFactory(header msgheader.TaskHeader, sysoutDir string, data []byte, log logger.AppLogger) (jobs.JobExecutor, error) {
 
 	act := actions.OsTaskAction{}
+
 	if err := proto.Unmarshal(data, &act); err != nil {
-		return nil, errors.New("")
+		log.Desugar().Error("OsJobFactory", zap.String("error", err.Error()))
+		return nil, err
 	}
 
-	return newOsJob(header, sysoutDir, &act)
+	return newOsJob(header, sysoutDir, &act, log)
 }
 
 //newOsJob - factory method, creates a new os job
-func newOsJob(header msgheader.TaskHeader, sysoutDir string, action *actions.OsTaskAction) (jobs.JobExecutor, error) {
+func newOsJob(header msgheader.TaskHeader, sysoutDir string, action *actions.OsTaskAction, log logger.AppLogger) (jobs.JobExecutor, error) {
 
 	job := &osJob{}
 	job.TaskID = header.TaskID
@@ -56,6 +61,7 @@ func newOsJob(header msgheader.TaskHeader, sysoutDir string, action *actions.OsT
 	job.Command = cmdarg[0]
 	job.Arguments = cmdarg[1:]
 	job.RunAs = action.Runas
+	job.log = log
 
 	job.Variables = make(map[string]string)
 	for k, v := range header.Variables {
@@ -81,6 +87,7 @@ func (j *osJob) StartJob(ctx context.Context, stat chan status.JobExecutionStatu
 
 	j.stdout, err = cmd.StdoutPipe()
 	if err != nil {
+		j.log.Desugar().Error("StartJob", zap.String("error", err.Error()))
 		stat <- status.StatusFailed(j.TaskID, j.ExecutionID, err.Error())
 
 	} else {
@@ -103,6 +110,8 @@ func (j *osJob) run(cmd *exec.Cmd, stat chan status.JobExecutionStatus) {
 	err := cmd.Start()
 
 	if err != nil {
+		j.log.Desugar().Error("run", zap.String("error", err.Error()))
+
 		stat <- status.StatusFailed(j.TaskID, j.ExecutionID, err.Error())
 		return
 	}
@@ -111,7 +120,7 @@ func (j *osJob) run(cmd *exec.Cmd, stat chan status.JobExecutionStatus) {
 
 	fpath := filepath.Join(j.SysoutDir, j.ExecutionID)
 
-	stdout(j.stdout, fpath)
+	stdout(j.stdout, fpath, j.log)
 	cmd.Wait()
 
 	stat <- status.StatusEnded(j.TaskID, j.ExecutionID, cmd.ProcessState.ExitCode(), cmd.ProcessState.Pid(), 0)
@@ -127,10 +136,14 @@ func (j *osJob) JobExecutionID() string {
 	return j.ExecutionID
 }
 
-func stdout(out io.ReadCloser, path string) struct{} {
+func stdout(out io.ReadCloser, path string, log logger.AppLogger) struct{} {
 
 	wait := sync.WaitGroup{}
-	file, _ := os.Create(path)
+	file, err := os.Create(path)
+	if err != nil {
+		log.Desugar().Error("stdout", zap.String("error", err.Error()))
+		return struct{}{}
+	}
 
 	wait.Add(1)
 	go func(f *os.File) {

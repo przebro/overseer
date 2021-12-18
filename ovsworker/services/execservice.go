@@ -16,6 +16,7 @@ import (
 	"overseer/proto/wservices"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -28,6 +29,15 @@ var statusMap = map[types.WorkerTaskStatus]wservices.TaskExecutionResponseMsg_Ta
 	types.WorkerTaskStatusWaiting:   wservices.TaskExecutionResponseMsg_WAITING,
 	types.WorkerTaskStatusIdle:      wservices.TaskExecutionResponseMsg_IDLE,
 }
+
+var (
+	//ErrEmptyMsgType  - empty message error
+	ErrEmptyMsgType error = errors.New("message type cannot be empty")
+	//ErrEmptyTaskID  - empty taskID error
+	ErrEmptyTaskID error = errors.New("TaskID cannot be empty")
+	//ErrEmptyExecutionID  - empty executionID error
+	ErrEmptyExecutionID error = errors.New("ExecutionID cannot be empty")
+)
 
 type workerExecutionService struct {
 	log       logger.AppLogger
@@ -68,7 +78,6 @@ func NewWorkerExecutionService(sysoutDir string, limit int, log logger.AppLogger
 	wservice.te = task.NewTaskExecutor()
 
 	return wservice, nil
-
 }
 
 func (wsrvc *workerExecutionService) StartTask(ctx context.Context, msg *wservices.StartTaskMsg) (*wservices.TaskExecutionResponseMsg, error) {
@@ -77,14 +86,26 @@ func (wsrvc *workerExecutionService) StartTask(ctx context.Context, msg *wservic
 	var err error
 
 	if msg.Type == "" {
-		return nil, status.Error(codes.Aborted, "message type cannot be empty")
+		wsrvc.log.Desugar().Error("StartTask", zap.Uint32("code", uint32(codes.Aborted)),
+			zap.String("descr", codes.Aborted.String()),
+			zap.String("error", ErrEmptyMsgType.Error()))
+
+		return nil, status.Error(codes.Aborted, ErrEmptyMsgType.Error())
 	}
 	if msg.TaskID.TaskID == "" {
-		return nil, status.Error(codes.Aborted, "message taskID cannot be empty")
+		wsrvc.log.Desugar().Error("StartTask", zap.Uint32("code", uint32(codes.Aborted)),
+			zap.String("descr", codes.Aborted.String()),
+			zap.String("error", ErrEmptyTaskID.Error()))
+
+		return nil, status.Error(codes.Aborted, ErrEmptyTaskID.Error())
 	}
 
 	if msg.TaskID.ExecutionID == "" {
-		return nil, status.Error(codes.Aborted, "message ExecutionID cannot be empty")
+		wsrvc.log.Desugar().Error("StartTask", zap.Uint32("code", uint32(codes.Aborted)),
+			zap.String("descr", codes.Aborted.String()),
+			zap.String("error", ErrEmptyTaskID.Error()))
+
+		return nil, status.Error(codes.Aborted, ErrEmptyExecutionID.Error())
 	}
 
 	header := msgheader.TaskHeader{
@@ -96,12 +117,25 @@ func (wsrvc *workerExecutionService) StartTask(ctx context.Context, msg *wservic
 
 	var jobExec jobs.JobExecutor
 
-	if jobExec, err = jobs.NewJobExecutor(header, wsrvc.sysoutDir, msg.Command.Value); err != nil {
+	if jobExec, err = jobs.NewJobExecutor(header, wsrvc.sysoutDir, msg.Command.Value, wsrvc.log); err != nil {
+
+		wsrvc.log.Desugar().Error("StartTask", zap.Uint32("code", uint32(codes.Aborted)),
+			zap.String("descr", codes.Aborted.String()),
+			zap.String("error", err.Error()))
+
 		return nil, status.Error(codes.Aborted, err.Error())
 
 	}
 
-	_, num := wsrvc.te.RunTask(jobExec)
+	wsrvc.log.Desugar().Info("StartTask",
+		zap.String("descr", "Executor Created"),
+		zap.String("type", string(header.Type)),
+		zap.String("taskID", header.TaskID),
+		zap.String("executionID", header.ExecutionID))
+
+	status, num := wsrvc.te.RunTask(jobExec)
+
+	wsrvc.log.Desugar().Info("StartTask", zap.Object("payload", &status))
 
 	response = &wservices.TaskExecutionResponseMsg{
 		Status:     wservices.TaskExecutionResponseMsg_RECEIVED,
@@ -109,7 +143,6 @@ func (wsrvc *workerExecutionService) StartTask(ctx context.Context, msg *wservic
 		Tasks:      int32(num),
 	}
 
-	wsrvc.log.Info("TaskStatus: response for:", msg.TaskID.TaskID, ",", msg.TaskID.ExecutionID, ";", response)
 	return response, nil
 }
 
@@ -119,8 +152,16 @@ func (wsrvc *workerExecutionService) TaskStatus(ctx context.Context, msg *wservi
 	result, num, ok := wsrvc.te.GetTaskStatus(msg.ExecutionID)
 
 	if !ok {
-		return nil, status.Error(codes.NotFound, fmt.Sprintf("task:%s does not exists", msg.TaskID))
+		msg := fmt.Sprintf("task:%s does not exists", msg.TaskID)
+
+		wsrvc.log.Desugar().Error("TaskStatus", zap.Uint32("code", uint32(codes.NotFound)),
+			zap.String("descr", codes.NotFound.String()),
+			zap.String("error", msg))
+
+		return nil, status.Error(codes.NotFound, msg)
 	}
+
+	wsrvc.log.Desugar().Info("TaskStatus", zap.Object("payload", &result))
 
 	response = &wservices.TaskExecutionResponseMsg{
 
@@ -132,8 +173,6 @@ func (wsrvc *workerExecutionService) TaskStatus(ctx context.Context, msg *wservi
 		Tasks:      int32(num),
 	}
 
-	wsrvc.log.Info("TaskStatus:", msg.TaskID, ",", msg.ExecutionID, ";", types.RemoteTaskStatusInfo[result.State], "task processed:", num, "task limit:", wsrvc.taskLimit)
-
 	return response, nil
 
 }
@@ -144,7 +183,11 @@ func (wsrvc *workerExecutionService) TerminateTask(context.Context, *wservices.T
 func (wsrvc *workerExecutionService) CompleteTask(ctx context.Context, msg *wservices.TaskIdMsg) (*wservices.WorkerActionMsg, error) {
 
 	tasks := wsrvc.te.CleanupTask(msg.ExecutionID)
-	wsrvc.log.Info("Clean Task: ID:", msg.TaskID, "EID:", msg.ExecutionID, "tasks:", tasks, "limit:", wsrvc.taskLimit)
+
+	wsrvc.log.Desugar().Info("CompleteTask", zap.String("descr", "task removed"),
+		zap.String("taskID", msg.TaskID),
+		zap.String("executionID", msg.ExecutionID))
+
 	resp := &wservices.WorkerActionMsg{Message: "task removed", Success: true, Tasks: int32(tasks), TasksLimit: int32(wsrvc.taskLimit)}
 	return resp, nil
 }
@@ -158,7 +201,7 @@ func (wsrvc *workerExecutionService) WorkerStatus(ctx context.Context, msg *empt
 	num := wsrvc.te.TaskCount()
 
 	response := &wservices.WorkerStatusResponseMsg{Tasks: int32(num), TasksLimit: int32(wsrvc.taskLimit), Memused: 0, Memtotal: 0, Cpuload: 0}
-	wsrvc.log.Info("WorkStatus: response:", "tasks:", num, "limit:", response.TasksLimit)
+
 	return response, nil
 
 }

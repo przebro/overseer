@@ -3,6 +3,7 @@ package dummy
 import (
 	"context"
 	"errors"
+	"overseer/common/logger"
 	"overseer/common/types"
 	"overseer/ovsworker/jobs"
 	"overseer/ovsworker/msgheader"
@@ -17,19 +18,19 @@ func init() {
 }
 
 //DummyJobFactory - Creates a new dummy factory
-func DummyJobFactory(header msgheader.TaskHeader, sysoutDir string, data []byte) (jobs.JobExecutor, error) {
+func DummyJobFactory(header msgheader.TaskHeader, sysoutDir string, data []byte, log logger.AppLogger) (jobs.JobExecutor, error) {
 
 	act := actions.DummyTaskAction{}
 	if err := proto.Unmarshal(data, &act); err != nil {
 		return nil, errors.New("")
 	}
-	w, err := newDummyJob(header, sysoutDir, &act)
+	w, err := newDummyJob(header, sysoutDir, &act, log)
 
 	return w, err
 }
 
 //newDummyJob - factory method
-func newDummyJob(header msgheader.TaskHeader, sysoutDir string, action *actions.DummyTaskAction) (jobs.JobExecutor, error) {
+func newDummyJob(header msgheader.TaskHeader, sysoutDir string, action *actions.DummyTaskAction, log logger.AppLogger) (jobs.JobExecutor, error) {
 
 	j := &dummyJob{}
 	j.TaskID = header.TaskID

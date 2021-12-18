@@ -13,6 +13,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sfn"
 	awstypes "github.com/aws/aws-sdk-go-v2/service/sfn/types"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 type awsStepFuncCaller struct {
@@ -23,6 +25,8 @@ type awsStepFuncCaller struct {
 	machineARN    string
 	executionName string
 }
+
+const logCallStepfuncHeader = "call-stepfunc"
 
 func newStepFunctionCaller(conf aws.Config, job jobs.Job, machineARN, executionName string, payloadReader awsPayloadReader) awsServiceCaller {
 
@@ -39,12 +43,14 @@ func (c *awsStepFuncCaller) Call(ctx context.Context, stat chan<- status.JobExec
 
 	file, err := os.Create(fpath)
 	if err != nil {
+		c.job.Log.Desugar().Error(logCallStepfuncHeader, c.fields(zap.String("error", err.Error()), zap.String("path", fpath))...)
 		stat <- status.StatusFailed(c.job.TaskID, c.job.ExecutionID, err.Error())
 		return
 	}
 
 	payload, err := c.payloadReader.Read()
 	if err != nil {
+		c.job.Log.Desugar().Error(logCallStepfuncHeader, c.fields(zap.String("error", err.Error()))...)
 		stat <- status.StatusFailed(c.job.TaskID, c.job.ExecutionID, err.Error())
 		return
 	}
@@ -61,7 +67,7 @@ func (c *awsStepFuncCaller) Call(ctx context.Context, stat chan<- status.JobExec
 
 	if err != nil {
 		defer file.Close()
-
+		c.job.Log.Desugar().Error(logCallStepfuncHeader, c.fields(zap.String("error", err.Error()))...)
 		stat <- status.StatusFailed(c.job.TaskID, c.job.ExecutionID, err.Error())
 		return
 	}
@@ -88,6 +94,7 @@ func (c *awsStepFuncCaller) waitForExecutionEnd(ctx context.Context, f *os.File,
 				})
 
 				if err != nil {
+					c.job.Log.Desugar().Error(logCallStepfuncHeader, c.fields(zap.String("error", err.Error()))...)
 					stat <- status.StatusFailed(c.job.TaskID, c.job.ExecutionID, err.Error())
 				}
 
@@ -117,22 +124,19 @@ func (c *awsStepFuncCaller) waitForExecutionEnd(ctx context.Context, f *os.File,
 						}
 					}
 
-					stat <- status.StatusEnded(c.job.TaskID, c.job.ExecutionID, 0, 0, int32(statusCode))
+					if out.Output != nil {
+						f.Write([]byte(*out.Output))
+					}
 
+					stat <- status.StatusEnded(c.job.TaskID, c.job.ExecutionID, 0, 0, int32(statusCode))
+					ticker.Stop()
+					return
 				}
 			}
 
 		}
 
 	}
-
-	/*
-	   ExecutionStatusRunning   ExecutionStatus = "RUNNING"
-	   	ExecutionStatusSucceeded ExecutionStatus = "SUCCEEDED"
-	   	ExecutionStatusFailed    ExecutionStatus = "FAILED"
-	   	ExecutionStatusTimedOut  ExecutionStatus = "TIMED_OUT"
-	   	ExecutionStatusAborted   ExecutionStatus = "ABORTED"
-	*/
 
 }
 
@@ -158,4 +162,15 @@ func (c *awsStepFuncCaller) JobTaskID() string {
 }
 func (c *awsStepFuncCaller) JobExecutionID() string {
 	return c.job.ExecutionID
+}
+
+func (c *awsStepFuncCaller) fields(fields ...zapcore.Field) []zap.Field {
+	f := []zapcore.Field{
+		zap.String("taskID", c.job.TaskID), zap.String("executionID", c.job.ExecutionID),
+		zap.String("stateMachineARN", c.machineARN), zap.String("executionName", c.executionName),
+	}
+
+	fields = append(fields, f...)
+
+	return fields
 }

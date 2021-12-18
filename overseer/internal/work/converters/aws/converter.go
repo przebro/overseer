@@ -13,7 +13,7 @@ import (
 
 func init() {
 
-	converter.RegisterConverter(types.TypeDummy, &awsConverter{})
+	converter.RegisterConverter(types.TypeAws, &awsConverter{})
 }
 
 type awsConverter struct {

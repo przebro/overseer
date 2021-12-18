@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -21,7 +22,6 @@ import (
 
 type workerMediator struct {
 	config     config.WorkerConfiguration
-	connection *grpc.ClientConn
 	client     wservices.TaskExecutionServiceClient
 	log        logger.AppLogger
 	taskStatus chan events.RouteWorkResponseMsg
@@ -73,11 +73,14 @@ func (worker *workerMediator) connect(host string, port int, timeout int) wservi
 	opt := []grpc.DialOption{
 		grpc.WithInsecure(),
 		grpc.WithBlock(),
-		grpc.WithTimeout(time.Second * time.Duration(timeout)),
 	}
+
+	ctx, _ := context.WithTimeout(context.Background(), time.Second*time.Duration(timeout))
+
 	targetAddr := fmt.Sprintf("%s:%d", host, port)
-	conn, err := grpc.Dial(targetAddr, opt...)
+	conn, err := grpc.DialContext(ctx, targetAddr, opt...)
 	if err != nil {
+		worker.log.Desugar().Error("connect", zap.String("error", err.Error()))
 		worker.lock.Lock()
 		worker.wdata = workerStatus{connected: false}
 		worker.lock.Unlock()
@@ -99,7 +102,7 @@ func (worker *workerMediator) Available() {
 
 		if client == nil {
 			if client := w.connect(w.config.WorkerHost, w.config.WorkerPort, w.timeout); client == nil {
-				worker.log.Error("connect with worker failed")
+				worker.log.Desugar().Error("StartTask", zap.String("error", "connect with worker failed"))
 			} else {
 				w.lock.Lock()
 				worker.client = client
@@ -114,7 +117,7 @@ func (worker *workerMediator) Available() {
 			result, err := w.client.WorkerStatus(ctx, &empty.Empty{})
 
 			if err != nil {
-				worker.log.Error("worker connection lost")
+				worker.log.Desugar().Error("Available", zap.String("error", err.Error()))
 				w.lock.Lock()
 				w.wdata = workerStatus{connected: false}
 			} else {
@@ -165,6 +168,7 @@ func (worker *workerMediator) StartTask(msg events.RouteTaskExecutionMsg) {
 
 	smsg.Command, err = converter.ConvertToMsg(msg.Type, msg.Command, msg.Variables)
 	if err != nil {
+		worker.log.Desugar().Error("StartTask", zap.String("error", err.Error()))
 		status.Status = types.WorkerTaskStatusFailed
 		worker.taskStatus <- status
 		return
@@ -178,10 +182,11 @@ func (worker *workerMediator) StartTask(msg events.RouteTaskExecutionMsg) {
 		}
 		resp, err := worker.client.StartTask(context.Background(), smsg)
 		if err != nil {
-			worker.log.Error(err)
+			worker.log.Desugar().Error("StartTask", zap.String("error", err.Error()))
 			s.Status = types.WorkerTaskStatusFailed
 		} else {
 			s.ReturnCode = resp.ReturnCode
+			s.StatusCode = resp.StatusCode
 			s.WorkerName = worker.config.WorkerName
 			s.Status = reverseStatusMap[resp.Status]
 
@@ -208,7 +213,7 @@ func (worker *workerMediator) RequestTaskStatusFromWorker(taskID unique.TaskOrde
 		if s, ok := status.FromError(err); ok {
 			//something really bad happen with worker and task is lost
 			if s.Code() == codes.NotFound {
-
+				worker.log.Desugar().Error("RequestTaskStatusFromWorker", zap.String("error", err.Error()))
 				result.Status = types.WorkerTaskStatusFailed
 				result.WorkerName = worker.config.WorkerName
 				worker.taskStatus <- result
@@ -219,6 +224,7 @@ func (worker *workerMediator) RequestTaskStatusFromWorker(taskID unique.TaskOrde
 		result.Status = reverseStatusMap[resp.Status]
 		result.ReturnCode = resp.ReturnCode
 		result.WorkerName = worker.config.WorkerName
+		result.StatusCode = resp.StatusCode
 
 		worker.taskStatus <- result
 		worker.setTaskInfo(int(resp.TasksLimit), int(resp.Tasks))
@@ -240,6 +246,7 @@ func (worker *workerMediator) CompleteTask(taskID unique.TaskOrderID, executionI
 	go func(w *workerMediator) {
 		resp, err := worker.client.CompleteTask(context.Background(), &wservices.TaskIdMsg{TaskID: string(taskID), ExecutionID: executionID})
 		if err != nil {
+			worker.log.Desugar().Error("CompleteTask", zap.String("error", err.Error()))
 			return
 		}
 

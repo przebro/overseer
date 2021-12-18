@@ -3,6 +3,7 @@ package aws
 import (
 	"encoding/json"
 	"overseer/overseer/internal/taskdef"
+	converter "overseer/overseer/internal/work/converters"
 	"overseer/proto/actions"
 )
 
@@ -37,11 +38,14 @@ func (b *taskDataBuilder) withLambda(lambda taskdef.AwsLambdaTaskData) *taskData
 
 func (b *taskDataBuilder) withStepFunction(stepfunc taskdef.AwsStepFunctionTaskData) *taskDataBuilder {
 
-	b.action.Type = actions.AwsTaskAction_lambda
+	b.action.Type = actions.AwsTaskAction_stepfunc
+
+	execName := converter.ReplaceVariables(stepfunc.ExecutionName, b.v)
+
 	b.action.Execution = &actions.AwsTaskAction_StepFunction{
 		StepFunction: &actions.AwsStepFunctionExecution{
 			StateMachineARN: stepfunc.StateMachine,
-			ExecutionName:   stepfunc.ExecutionName,
+			ExecutionName:   execName,
 		},
 	}
 

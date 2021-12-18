@@ -445,7 +445,7 @@ func (state ostateExecuting) processState(ctx *TaskExecutionContext) bool {
 	if result.Status == types.WorkerTaskStatusEnded || result.Status == types.WorkerTaskStatusFailed {
 
 		n, g, _ := ctx.task.GetInfo()
-		ctx.log.Info("Task ended:", n, " group:", g, " id:", ctx.task.OrderID(), " rc:", result.ReturnCode)
+		ctx.log.Info("Task ended:", n, " group:", g, " id:", ctx.task.OrderID(), " rc:", result.ReturnCode, "sc:", result.StatusCode)
 		tm := time.Now()
 
 		ctx.state = &ostatePostProcessing{}
@@ -462,12 +462,15 @@ func (state ostateExecuting) processState(ctx *TaskExecutionContext) bool {
 
 			msg := ""
 
-			if result.ReturnCode > ctx.maxRc || result.ReturnCode < 0 {
+			resultState := computeTaskState(ctx.task.TypeName(), ctx.maxRc, result.ReturnCode, result.StatusCode)
+
+			if resultState == TaskStateEndedNotOk {
 				ctx.task.SetState(TaskStateEndedNotOk)
-				msg = fmt.Sprintf(journal.TaskEndedNOK, result.ReturnCode)
+				msg = fmt.Sprintf(journal.TaskEndedNOK, result.ReturnCode, result.StatusCode)
+
 			} else {
 				ctx.task.SetState(TaskStateEndedOk)
-				msg = fmt.Sprintf(journal.TaskEndedOK, result.ReturnCode)
+				msg = fmt.Sprintf(journal.TaskEndedOK, result.ReturnCode, result.StatusCode)
 			}
 
 			pushJournalMessage(ctx.dispatcher, ctx.task.OrderID(), ctx.task.CurrentExecutionID(), time.Now(), msg)
@@ -954,4 +957,31 @@ func buildTicketMsg(task *activeTask, outticket []taskdef.OutTicketData) events.
 	}
 
 	return ticketMsg
+}
+
+func computeTaskState(taskType types.TaskType, maxrc, rc, sc int32) TaskState {
+
+	var state TaskState = TaskStateEndedOk
+
+	switch taskType {
+	case types.TypeDummy:
+		{
+			state = TaskStateEndedOk
+		}
+	case types.TypeOs:
+		{
+			if rc > maxrc || rc < 0 {
+				state = TaskStateEndedNotOk
+			}
+		}
+	case types.TypeAws:
+		{
+			if sc == int32(types.StatusCodeNormal) {
+				state = TaskStateEndedOk
+			} else {
+				state = TaskStateEndedNotOk
+			}
+		}
+	}
+	return state
 }

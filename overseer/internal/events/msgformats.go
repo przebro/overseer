@@ -143,6 +143,7 @@ type RouteWorkResponseMsg struct {
 	ExecutionID string
 	WorkerName  string
 	ReturnCode  int32
+	StatusCode  int32
 }
 
 //RouteChangeStateMsg - Request for setting a task into a specific state.

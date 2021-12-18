@@ -31,8 +31,8 @@ const (
 	TaskStarting          = "TASK STARTING worker:%s"
 	TaskComplete          = "TASK EXECUTION COMPLETE  %s"
 	TaskFailed            = "TASK FAILED worker failure"
-	TaskEndedNOK          = "ENDED NOT OK, RC:%d"
-	TaskEndedOK           = "ENDED OK, RC:%d"
+	TaskEndedNOK          = "ENDED NOT OK, RC:%d, STATUS:%d"
+	TaskEndedOK           = "ENDED OK, RC:%d, STATUS:%d"
 	TaskPostProc          = "TASK POST PROCESSING ends"
 )
 

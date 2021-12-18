@@ -75,7 +75,7 @@ func TestStartTaskDummy(t *testing.T) {
 		t.Error(response.Status)
 	}
 
-	response, err = exservice.TaskStatus(context.Background(), &wservices.TaskIdMsg{TaskID: "00000", ExecutionID: "1234567"})
+	_, err = exservice.TaskStatus(context.Background(), &wservices.TaskIdMsg{TaskID: "00000", ExecutionID: "1234567"})
 	if err != nil {
 		t.Error(err)
 	}
