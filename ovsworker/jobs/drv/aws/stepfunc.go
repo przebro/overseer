@@ -37,22 +37,20 @@ func newStepFunctionCaller(conf aws.Config, job jobs.Job, machineARN, executionN
 	return c
 
 }
-func (c *awsStepFuncCaller) Call(ctx context.Context, stat chan<- status.JobExecutionStatus) {
+func (c *awsStepFuncCaller) Call(ctx context.Context, stat chan<- status.JobExecutionStatus) status.JobExecutionStatus {
 
 	fpath := filepath.Join(c.job.SysoutDir, c.job.ExecutionID)
 
 	file, err := os.Create(fpath)
 	if err != nil {
 		c.job.Log.Desugar().Error(logCallStepfuncHeader, c.fields(zap.String("error", err.Error()), zap.String("path", fpath))...)
-		stat <- status.StatusFailed(c.job.TaskID, c.job.ExecutionID, err.Error())
-		return
+		return status.StatusFailed(c.job.TaskID, c.job.ExecutionID, err.Error())
 	}
 
 	payload, err := c.payloadReader.Read()
 	if err != nil {
 		c.job.Log.Desugar().Error(logCallStepfuncHeader, c.fields(zap.String("error", err.Error()))...)
-		stat <- status.StatusFailed(c.job.TaskID, c.job.ExecutionID, err.Error())
-		return
+		return status.StatusFailed(c.job.TaskID, c.job.ExecutionID, err.Error())
 	}
 
 	strpayload := string(payload)
@@ -68,18 +66,19 @@ func (c *awsStepFuncCaller) Call(ctx context.Context, stat chan<- status.JobExec
 	if err != nil {
 		defer file.Close()
 		c.job.Log.Desugar().Error(logCallStepfuncHeader, c.fields(zap.String("error", err.Error()))...)
-		stat <- status.StatusFailed(c.job.TaskID, c.job.ExecutionID, err.Error())
-		return
+		return status.StatusFailed(c.job.TaskID, c.job.ExecutionID, err.Error())
 	}
 
-	stat <- status.StatusExecuting(c.job.TaskID, c.job.ExecutionID)
 	go c.waitForExecutionEnd(ctx, file, *out.ExecutionArn, stat)
 
+	return status.StatusExecuting(c.job.TaskID, c.job.ExecutionID)
 }
 
 func (c *awsStepFuncCaller) waitForExecutionEnd(ctx context.Context, f *os.File, executionARN string, stat chan<- status.JobExecutionStatus) {
 
 	defer f.Close()
+	defer c.cancelFunc()
+
 	ticker := time.NewTicker(2 * time.Second)
 	for {
 		select {
@@ -140,17 +139,16 @@ func (c *awsStepFuncCaller) waitForExecutionEnd(ctx context.Context, f *os.File,
 
 }
 
-func (c *awsStepFuncCaller) StartJob(ctx context.Context, stat chan status.JobExecutionStatus) {
+func (c *awsStepFuncCaller) StartJob(ctx context.Context, stat chan status.JobExecutionStatus) status.JobExecutionStatus {
 
 	nctx, cfunc := context.WithCancel(ctx)
 	c.cancelFunc = cfunc
-	c.Call(nctx, stat)
-
+	return c.Call(nctx, stat)
 }
 func (c *awsStepFuncCaller) CancelJob() error {
 
 	if c.cancelFunc == nil {
-		return errors.New("cancel function is nil")
+		return errors.New("failed to cancel job")
 	}
 	c.cancelFunc()
 

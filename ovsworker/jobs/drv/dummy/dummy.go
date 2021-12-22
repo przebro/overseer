@@ -51,12 +51,9 @@ type dummyJob struct {
 }
 
 //StartJob - Start a new work
-func (j *dummyJob) StartJob(ctx context.Context, stat chan status.JobExecutionStatus) {
+func (j *dummyJob) StartJob(ctx context.Context, stat chan status.JobExecutionStatus) status.JobExecutionStatus {
 
-	go func() {
-		status := status.JobExecutionStatus{TaskID: j.TaskID, ExecutionID: j.ExecutionID, ReturnCode: 0, PID: 0, State: types.WorkerTaskStatusEnded}
-		stat <- status
-	}()
+	return status.JobExecutionStatus{TaskID: j.TaskID, ExecutionID: j.ExecutionID, ReturnCode: 0, PID: 0, State: types.WorkerTaskStatusEnded}
 }
 
 //CancelFragment - cancels current job

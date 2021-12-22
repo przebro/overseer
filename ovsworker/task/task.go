@@ -2,7 +2,6 @@ package task
 
 import (
 	"context"
-	"overseer/common/types"
 	"overseer/ovsworker/jobs"
 	"overseer/ovsworker/status"
 	"sync"
@@ -11,17 +10,19 @@ import (
 //TaskRunnerManager - executes a commissioned task
 type TaskRunnerManager struct {
 	store    map[string]status.JobExecutionStatus
+	jobs     map[string]jobs.JobExecutor
 	statChan chan status.JobExecutionStatus
-	lock     sync.Mutex
+	lock     *sync.Mutex
 }
 
-//NewTaskExecutor - creates a new TaskRunnerManager
-func NewTaskExecutor() *TaskRunnerManager {
+//NewTaskRunnerManager - creates a new TaskRunnerManager
+func NewTaskRunnerManager() *TaskRunnerManager {
 
 	exec := &TaskRunnerManager{
 		store:    map[string]status.JobExecutionStatus{},
 		statChan: make(chan status.JobExecutionStatus),
-		lock:     sync.Mutex{},
+		jobs:     map[string]jobs.JobExecutor{},
+		lock:     &sync.Mutex{},
 	}
 	exec.updateTaskStatus()
 
@@ -32,32 +33,29 @@ func NewTaskExecutor() *TaskRunnerManager {
 func (exec *TaskRunnerManager) RunTask(j jobs.JobExecutor) (status.JobExecutionStatus, int) {
 
 	tasks := 0
-	status := status.JobExecutionStatus{
-		TaskID:      j.JobTaskID(),
-		ExecutionID: j.JobExecutionID(),
-		State:       types.WorkerTaskStatusExecuting,
-		ReturnCode:  0,
-		StatusCode:  0,
-	}
-
 	exec.lock.Lock()
-	exec.store[j.JobExecutionID()] = status
-	tasks = len(exec.store)
-	exec.lock.Unlock()
+	defer exec.lock.Unlock()
 
-	go func() {
-		j.StartJob(context.Background(), exec.statChan)
-	}()
+	status := j.StartJob(context.Background(), exec.statChan)
+
+	exec.store[j.JobExecutionID()] = status
+	exec.jobs[j.JobExecutionID()] = j
+	tasks = len(exec.store)
 
 	return status, tasks
-
 }
 
 func (exec *TaskRunnerManager) updateTaskStatus() {
 
 	go func() {
 		for {
-			exec.update(<-exec.statChan)
+			value, ok := <-exec.statChan
+			if ok {
+				exec.update(value)
+			} else {
+				return
+			}
+
 		}
 	}()
 
@@ -92,7 +90,7 @@ func (exec *TaskRunnerManager) CleanupTask(executionID string) int {
 
 	defer exec.lock.Unlock()
 	exec.lock.Lock()
-
+	delete(exec.jobs, executionID)
 	delete(exec.store, executionID)
 	return len(exec.store)
 }
@@ -102,7 +100,7 @@ func (exec *TaskRunnerManager) TerminateTask(executionID string) int {
 
 	defer exec.lock.Unlock()
 	exec.lock.Lock()
+	exec.jobs[executionID].CancelJob()
 
-	delete(exec.store, executionID)
 	return len(exec.store)
 }

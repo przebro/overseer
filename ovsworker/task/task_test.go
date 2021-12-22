@@ -6,7 +6,7 @@ var exec *TaskRunnerManager
 
 func TestCreateExecutor(t *testing.T) {
 
-	exec = NewTaskExecutor()
+	exec = NewTaskRunnerManager()
 	if exec == nil {
 		t.Error("unexpected result, empty task executor")
 	}

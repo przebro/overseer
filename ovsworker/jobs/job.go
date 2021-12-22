@@ -56,7 +56,7 @@ type Job struct {
 
 //JobExecutor - Represents a piece of work that will be executed.
 type JobExecutor interface {
-	StartJob(ctx context.Context, stat chan status.JobExecutionStatus)
+	StartJob(ctx context.Context, stat chan status.JobExecutionStatus) status.JobExecutionStatus
 	CancelJob() error
 	//JobTaskID - Returns ID of a task associated with this job.
 	JobTaskID() string

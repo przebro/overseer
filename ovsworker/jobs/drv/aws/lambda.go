@@ -39,27 +39,23 @@ func newLambdaCaller(conf aws.Config, job jobs.Job, functionName, alias string, 
 
 }
 
-func (j *awsLambdaCaller) Call(ctx context.Context, stat chan<- status.JobExecutionStatus) {
+func (j *awsLambdaCaller) Call(ctx context.Context, stat chan<- status.JobExecutionStatus) status.JobExecutionStatus {
 
 	fpath := filepath.Join(j.job.SysoutDir, j.job.ExecutionID)
 
 	file, err := os.Create(fpath)
 	if err != nil {
 		j.job.Log.Desugar().Error(logCallLambdaHeader, j.fields(zap.String("error", err.Error()), zap.String("path", fpath))...)
-		stat <- status.StatusFailed(j.job.TaskID, j.job.ExecutionID, err.Error())
-
-		return
+		return status.StatusFailed(j.job.TaskID, j.job.ExecutionID, err.Error())
 	}
 
 	payload, err := j.payloadReader.Read()
 
 	if err != nil {
 		j.job.Log.Desugar().Error(logCallLambdaHeader, j.fields(zap.String("error", err.Error()))...)
-		stat <- status.StatusFailed(j.job.TaskID, j.job.ExecutionID, err.Error())
-		return
+		return status.StatusFailed(j.job.TaskID, j.job.ExecutionID, err.Error())
 	}
 
-	stat <- status.StatusExecuting(j.job.TaskID, j.job.ExecutionID)
 	customData := creteCustomContextData(j.job.Variables)
 
 	go func() {
@@ -103,18 +99,20 @@ func (j *awsLambdaCaller) Call(ctx context.Context, stat chan<- status.JobExecut
 		}
 	}()
 
+	return status.StatusExecuting(j.job.TaskID, j.job.ExecutionID)
+
 }
 
-func (j *awsLambdaCaller) StartJob(ctx context.Context, stat chan status.JobExecutionStatus) {
+func (j *awsLambdaCaller) StartJob(ctx context.Context, stat chan status.JobExecutionStatus) status.JobExecutionStatus {
 
 	nctx, cfunc := context.WithCancel(ctx)
 	j.cancelFunc = cfunc
-	j.Call(nctx, stat)
+	return j.Call(nctx, stat)
 }
 func (j *awsLambdaCaller) CancelJob() error {
 
 	if j.cancelFunc == nil {
-		return errors.New("cancel function is nil")
+		return errors.New("failed to cancel job")
 	}
 	j.cancelFunc()
 

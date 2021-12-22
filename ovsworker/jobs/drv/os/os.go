@@ -72,7 +72,7 @@ func newOsJob(header msgheader.TaskHeader, sysoutDir string, action *actions.OsT
 }
 
 //StartFragment - starts a new work
-func (j *osJob) StartJob(ctx context.Context, stat chan status.JobExecutionStatus) {
+func (j *osJob) StartJob(ctx context.Context, stat chan status.JobExecutionStatus) status.JobExecutionStatus {
 
 	var err error
 	var cmdCtx context.Context
@@ -88,19 +88,23 @@ func (j *osJob) StartJob(ctx context.Context, stat chan status.JobExecutionStatu
 	j.stdout, err = cmd.StdoutPipe()
 	if err != nil {
 		j.log.Desugar().Error("StartJob", zap.String("error", err.Error()))
-		stat <- status.StatusFailed(j.TaskID, j.ExecutionID, err.Error())
+		return status.StatusFailed(j.TaskID, j.ExecutionID, err.Error())
 
-	} else {
-		go j.run(cmd, stat)
 	}
+	go j.run(cmd, stat)
+
+	return status.StatusExecuting(j.TaskID, j.ExecutionID)
+
 }
 
 //CancelJob - cancels current work
 func (j *osJob) CancelJob() error {
 
 	if j.cancelFunc == nil {
-		return errors.New("cancel function is nil")
+		return errors.New("failed to cancel job")
 	}
+
+	j.cancelFunc()
 
 	return nil
 }
@@ -115,8 +119,6 @@ func (j *osJob) run(cmd *exec.Cmd, stat chan status.JobExecutionStatus) {
 		stat <- status.StatusFailed(j.TaskID, j.ExecutionID, err.Error())
 		return
 	}
-
-	stat <- status.StatusExecuting(j.TaskID, j.ExecutionID)
 
 	fpath := filepath.Join(j.SysoutDir, j.ExecutionID)
 

@@ -75,7 +75,7 @@ func NewWorkerExecutionService(sysoutDir string, limit int, log logger.AppLogger
 		taskLimit: limit,
 	}
 
-	wservice.te = task.NewTaskExecutor()
+	wservice.te = task.NewTaskRunnerManager()
 
 	return wservice, nil
 }

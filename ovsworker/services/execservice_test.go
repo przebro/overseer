@@ -26,7 +26,7 @@ func init() {
 	os.Mkdir("../../data/tests/sysout", os.ModePerm)
 	exservice = &workerExecutionService{
 		log:       lg,
-		te:        task.NewTaskExecutor(),
+		te:        task.NewTaskRunnerManager(),
 		sysoutDir: "../../data/tests/sysout",
 	}
 
@@ -68,26 +68,35 @@ func TestStartTaskDummy(t *testing.T) {
 	}
 	response, err := exservice.StartTask(context.Background(), msg)
 	if err != nil {
-		t.Error(err)
+		t.Error("unexpected result:", err)
 	}
 
 	if response.Status != wservices.TaskExecutionResponseMsg_RECEIVED {
-		t.Error(response.Status)
+		t.Error("unexpected result:", response.Status, "expected:", wservices.TaskExecutionResponseMsg_RECEIVED)
 	}
 
 	_, err = exservice.TaskStatus(context.Background(), &wservices.TaskIdMsg{TaskID: "00000", ExecutionID: "1234567"})
 	if err != nil {
-		t.Error(err)
+		t.Error("unexpected result:", err)
 	}
 
-	exservice.CompleteTask(context.Background(), &wservices.TaskIdMsg{TaskID: "00000", ExecutionID: "1234567"})
+	_, err = exservice.CompleteTask(context.Background(), &wservices.TaskIdMsg{TaskID: "00000", ExecutionID: "1234567"})
+	if err != nil {
+		t.Error("unexpected result,error is nil")
+	}
 
 	_, err = exservice.TaskStatus(context.Background(), &wservices.TaskIdMsg{TaskID: "00000", ExecutionID: "1234567"})
-	if err == nil || status.Code(err) != codes.NotFound {
-		t.Error(err)
+	if err == nil {
+
+		t.Error("unexpected result, error is nil")
+
+	} else if status.Code(err) != codes.NotFound {
+		t.Error("unexpected reuslt:", status.Code(err), "expected:", codes.NotFound)
 	}
 
+	exservice.te.CleanupTask("1234567")
 }
+
 func TestStartTaskOS(t *testing.T) {
 
 	cmd, _ := anypb.New(&actions.OsTaskAction{Type: actions.OsTaskAction_command, CommandLine: "ls -l"})
@@ -102,13 +111,49 @@ func TestStartTaskOS(t *testing.T) {
 		t.Error(err)
 	}
 
-	time.Sleep(1 * time.Second)
 	_, err = exservice.TaskStatus(context.Background(), &wservices.TaskIdMsg{TaskID: "00010", ExecutionID: "1234555"})
 	if err != nil {
 		t.Error(err)
 	}
 
 	exservice.te.CleanupTask("1234555")
+}
+
+func TestStartTask_Program(t *testing.T) {
+
+	t.SkipNow()
+
+	cmd, _ := anypb.New(&actions.OsTaskAction{Type: actions.OsTaskAction_command, CommandLine: "../../bin/chkprg"})
+	taskID := &wservices.TaskIdMsg{TaskID: "00010", ExecutionID: "1234999"}
+	msg := &wservices.StartTaskMsg{
+		TaskID:    taskID,
+		Type:      "os",
+		Variables: map[string]string{"OVS_TIMEOUT": "5"},
+		Command:   cmd,
+	}
+
+	_, err := exservice.StartTask(context.Background(), msg)
+	if err != nil {
+		t.Error(err)
+	}
+	n := 0
+	stat := wservices.TaskExecutionResponseMsg_EXECUTING
+	for stat == wservices.TaskExecutionResponseMsg_EXECUTING {
+		result, err := exservice.TaskStatus(context.Background(), taskID)
+		if err != nil {
+			t.Error("unexpected result:", err)
+		}
+
+		time.Sleep(1 * time.Second)
+		stat = result.Status
+		if n == 2 {
+			exservice.te.TerminateTask("1234999")
+		}
+
+		n++
+	}
+
+	exservice.te.CleanupTask("1234999")
 }
 
 func TestStartTask_Aws_Lambda(t *testing.T) {
@@ -253,6 +298,8 @@ func TestWorkerStatus(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+
+	fmt.Println("running tasks:", status.Tasks)
 
 	if status.Tasks != 0 {
 		t.Error("status Tasks, invalid number expected 0,actual:", status.Tasks)

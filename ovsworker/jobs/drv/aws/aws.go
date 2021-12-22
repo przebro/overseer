@@ -26,7 +26,7 @@ type awsPayloadReader interface {
 
 type awsServiceCaller interface {
 	jobs.JobExecutor
-	Call(ctx context.Context, stat chan<- status.JobExecutionStatus)
+	Call(ctx context.Context, stat chan<- status.JobExecutionStatus) status.JobExecutionStatus
 }
 
 //AwsJobFactory - Creates a new aws factory
