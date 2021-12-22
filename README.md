@@ -18,13 +18,13 @@ Note that currently, overseer is in a demo stage; therefore, some parts of a pro
 * Scheduling options: Manual, Daily, Day of a week, Selected months, Specific date
 * Time criteria: Active from time, Active to time
 * Hold / Free task / Rerun / Enforce
-* Confirm task
-* Task types: Dummy, OS
+* Manual task confirm
+* Task types: Dummy, OS,AWS (lambda,step function)
 * Global variables, Task variables
 * Flags
 * Worker limits
-### TODO
 * Cyclic tasks
+### TODO
 * Management of an internal state of components, quiesce mode...
 * Other task types: FTP, Messages, Services, Azure jobs, ...
 * Logging
