@@ -29,6 +29,8 @@ Note that currently, overseer is in a demo stage; therefore, some parts of a pro
 * Other task types: FTP, Messages, Services, Azure jobs, ...
 * Logging
 * Tasks running in the user's context
+* Advanced relations between conditions
+* Post Processing actions
 * ...
 ### Installation
 ```
@@ -60,6 +62,7 @@ The basic task definition is:
 **type**:Defines a kind of a task. Right now, there are two kinds of the task:
 - **dummy** - an empty task that does not call any specific program or service but can have scheduling criteria and add/remove tickets for other tasks.
 - **os** - executes scripts or programs on a worker.
+- **aws** - executes lambda or step function
 **name** and **group** are unique identifiers of a task. Group represents a subfolder of a root of the definition catalog, and the name field represents the name of a json file.
 
 **schedule**:Basically, there are two kinds of a task scheduling, manual and time-based. Manual means that task will be not taken into account by daily ordering process, any other type will be checked against specific, time-based criteria:
