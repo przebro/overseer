@@ -3,6 +3,11 @@
     "gatePort" : 7054,
     "overseerAddress" :"127.0.0.1",
     "overseerPort" :7053,
+    "securityLevel" : "server",
+    "gatewayCertPolicy" : "required",
+    "cert" : "docker/cert/overseer_srv.crt",
+    "key" : "docker/cert/overseer_srv.key",
+    "overseerCA":"docker/cert/root_ca.crt",
     "LogConfiguration" :{
         "logLevel" : 1,
         "sizeLimit" : 2048, 

@@ -33,6 +33,7 @@ func RegisterStreamHandler(h StreamHandler) {
 	}
 }
 
+//GetStreamHandlers - gets unary handlers
 func GetUnaryHandlers() []grpc.UnaryServerInterceptor {
 
 	handlers := []grpc.UnaryServerInterceptor{}
@@ -44,6 +45,7 @@ func GetUnaryHandlers() []grpc.UnaryServerInterceptor {
 	return handlers
 }
 
+//GetStreamHandlers - gets stream handlers
 func GetStreamHandlers() []grpc.StreamServerInterceptor {
 
 	handlers := []grpc.StreamServerInterceptor{}

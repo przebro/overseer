@@ -1,0 +1,22 @@
+{
+    "worker" : {
+        "serviceName" : "overseerwrkr",
+        "name":"worker_01",
+        "host" : "127.0.0.1",
+        "port" : 7055,
+        "sysoutDirectory" : "data/sysout",
+        "taskLimit" : 8,
+        "securityLevel" : "clientandserver",
+        "overseerCertPolicy" : "required",
+        "cert" : "docker/cert/overseer_srv.crt",
+        "key" : "docker/cert/overseer_srv.key",
+        "overseerCA":"docker/cert/root_ca.crt"
+    },
+    "logConfiguration" :{
+        "logLevel" : 1,
+        "sizeLimit" : 2048, 
+        "logDirectory" : "logs",
+        "prefix" :""
+        }
+        
+}

@@ -1,6 +1,6 @@
 package taskdata
 
-//GroupNameData  - helper data for managing task
+//GroupData  - helper data for managing task
 type GroupData struct {
 	Group string `validate:"required,max=20,resname"`
 }

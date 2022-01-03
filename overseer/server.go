@@ -41,9 +41,7 @@ func New(config config.OverseerConfiguration, lg logger.AppLogger, quiesce bool)
 	var rm resources.ResourceManager
 	var jn journal.TaskJournal
 	var gs *services.OvsGrpcServer
-	var ds events.Dispatcher
-
-	ds = events.NewDispatcher(lg)
+	var ds = events.NewDispatcher(lg)
 
 	dataProvider, err := datastore.NewDataProvider(config.GetStoreProviderConfiguration(), logger.NewTestLogger())
 	if err != nil {
@@ -83,7 +81,15 @@ func New(config config.OverseerConfiguration, lg logger.AppLogger, quiesce bool)
 		daily.DailyProcedure()
 	}
 
-	wrunner := work.NewWorkerManager(ds, config.GetWorkerManagerConfiguration(), lg)
+	wrunner := work.NewWorkerManager(ds,
+		config.GetWorkerManagerConfiguration(),
+		lg,
+		config.Server.ServerCert,
+		config.Server.ServerKey,
+		config.Server.ClientCA,
+		config.Server.SecurityLevel,
+		config.Server.ClientCertPolicy,
+	)
 
 	if gs, err = createServiceServer(config.GetServerConfiguration(), ds, rm, dm, pm, pl, jn, dataProvider, config.GetSecurityConfiguration(), lg); err != nil {
 		return nil, err

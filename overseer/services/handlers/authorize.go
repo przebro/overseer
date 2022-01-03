@@ -22,9 +22,12 @@ const usernameKey string = "username"
 const anonymousKey string = "<ANONYMOUS>"
 
 var (
+	//ErrUnauthenticatedAccess - occurs when user is not authenticated
 	ErrUnauthenticatedAccess = errors.New("user not authenticated")
-	ErrInvalidToken          = errors.New("invalid token")
-	ErrUserNotAuthorized     = errors.New("user not authorized to perform this action")
+	//ErrUnauthenticatedAccess - occurs when request contains invalid token
+	ErrInvalidToken = errors.New("invalid token")
+	//ErrUnauthenticatedAccess - occurs when user is valid but does not have privileges to perform specific action
+	ErrUserNotAuthorized = errors.New("user not authorized to perform this action")
 )
 
 //AccessRestricter - restricts access to services

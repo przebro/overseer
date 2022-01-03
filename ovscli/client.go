@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"overseer/common/cert"
+	"overseer/common/types"
 	"overseer/proto/services"
 	"strings"
 	"time"
@@ -49,27 +50,29 @@ func (cli *OverseerClient) Close() {
 }
 
 //Connect - setup  connection to server
-func (cli *OverseerClient) Connect(addr string, certpath string) string {
+func (cli *OverseerClient) Connect(addr string, serverCA, clientCertPath, clientKeyPath string, level types.ConnectionSecurityLevel, policy types.CertPolicy) string {
 
 	var opt []grpc.DialOption
 	var err error
 
-	opt = append(opt, grpc.WithBlock(), grpc.WithTimeout(5*time.Second))
-	if certpath == "" {
+	dctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+
+	opt = append(opt, grpc.WithBlock())
+	if level == types.ConnectionSecurityLevelNone {
 		opt = append(opt, grpc.WithInsecure())
 	} else {
-		if creds, err := cert.GetClientTLS(certpath, false); err != nil {
+		creds, err := cert.BuildClientCredentials(serverCA, clientCertPath, clientKeyPath, policy, level)
+		if err != nil {
 			return fmt.Sprintf("failed to initialize connection:%v\n", err)
-		} else {
-			opt = append(opt, grpc.WithTransportCredentials(creds))
 		}
+		opt = append(opt, creds)
 	}
 
 	if cli.conn != nil {
 		cli.token = ""
 	}
 
-	cli.conn, err = grpc.Dial(addr, opt...)
+	cli.conn, err = grpc.DialContext(dctx, addr, opt...)
 	if err != nil {
 		return fmt.Sprintf("failed to initialize connection:%v\n", err)
 	}
@@ -91,7 +94,7 @@ func (cli *OverseerClient) Authenticate(username, passwd string) (string, error)
 		return "", err
 	}
 
-	if r.Success == true {
+	if r.Success {
 		cli.token = r.Message
 		return "client authenticated", nil
 	}

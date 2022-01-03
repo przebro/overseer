@@ -33,7 +33,13 @@ type WorkerManager interface {
 }
 
 //NewWorkerManager - Creates a new WorkerManager
-func NewWorkerManager(d events.Dispatcher, conf config.WorkerManagerConfiguration, log logger.AppLogger) WorkerManager {
+func NewWorkerManager(d events.Dispatcher,
+	conf config.WorkerManagerConfiguration,
+	log logger.AppLogger,
+	overseerCertPath, overseerKeyPath, workerCA string,
+	level types.ConnectionSecurityLevel,
+	policy types.CertPolicy,
+) WorkerManager {
 
 	w := &workerManager{}
 	w.log = log
@@ -55,7 +61,7 @@ func NewWorkerManager(d events.Dispatcher, conf config.WorkerManagerConfiguratio
 
 	for _, n := range conf.Workers {
 		w.log.Info("Creating service worker:", n.WorkerName, ",", n.WorkerHost, ":", n.WorkerPort)
-		sworker := NewWorkerMediator(n, conf.Timeout, w.resultChannel, log)
+		sworker := NewWorkerMediator(n, workerCA, overseerCertPath, overseerKeyPath, level, policy, conf.Timeout, w.resultChannel, log)
 		w.workers[n.WorkerName] = sworker
 	}
 

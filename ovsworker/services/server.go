@@ -3,10 +3,14 @@ package services
 import (
 	"fmt"
 	"net"
+	"overseer/common/cert"
 	"overseer/common/logger"
+	"overseer/common/types"
 	"overseer/ovsworker/config"
+	"overseer/ovsworker/services/handlers"
 	"overseer/proto/wservices"
 
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
@@ -20,9 +24,19 @@ type OvsWorkerServer struct {
 //New - creates a new instance of a OvsWorkerServer
 func New(config config.WorkerConfiguration, es wservices.TaskExecutionServiceServer, log logger.AppLogger) *OvsWorkerServer {
 
+	options, err := buildOptions(config)
+
+	if err != nil {
+		zlog := log.Desugar()
+		zlog.Error("build options", zap.String("error", err.Error()))
+		return nil
+	}
+
+	options = append(options, buildInterceptors(log)...)
+
 	wserver := &OvsWorkerServer{}
 	wserver.conf = config
-	wserver.grpcServer = grpc.NewServer()
+	wserver.grpcServer = grpc.NewServer(options...)
 	wserver.log = log
 
 	wservices.RegisterTaskExecutionServiceServer(wserver.grpcServer, es)
@@ -34,6 +48,7 @@ func New(config config.WorkerConfiguration, es wservices.TaskExecutionServiceSer
 func (srv *OvsWorkerServer) Start() error {
 
 	conn := fmt.Sprintf("%s:%d", srv.conf.Host, srv.conf.Port)
+
 	l, err := net.Listen("tcp", conn)
 	if err != nil {
 		srv.log.Error(err)
@@ -56,4 +71,28 @@ func (srv *OvsWorkerServer) Shutdown() error {
 	srv.grpcServer.GracefulStop()
 
 	return nil
+}
+
+func buildOptions(conf config.WorkerConfiguration) ([]grpc.ServerOption, error) {
+
+	var options = []grpc.ServerOption{}
+
+	if conf.SecurityLevel != types.ConnectionSecurityLevelNone {
+		if creds, err := cert.BuildServerCredentials(conf.OverseerCA, conf.WorkerCert, conf.WorkerKey, conf.WorkerCertPolicy, conf.SecurityLevel); err == nil {
+			options = append(options, creds)
+		} else {
+			return nil, err
+		}
+	}
+
+	return options, nil
+}
+
+func buildInterceptors(log logger.AppLogger) []grpc.ServerOption {
+
+	lhandler := handlers.NewLogHandler(log)
+
+	opt := []grpc.ServerOption{grpc.ChainUnaryInterceptor(lhandler.Log), grpc.ChainStreamInterceptor(lhandler.StreamLog)}
+
+	return opt
 }

@@ -60,13 +60,17 @@ type activeTask struct {
 	collected  []taskInTicket
 }
 
+//ActiveDefinitionReader - reads definitions
 type ActiveDefinitionReader interface {
 	GetActiveDefinition(refID string) (taskdef.TaskDefinition, error)
 }
 
+//ActiveDefinitionWriter - writes definitions
 type ActiveDefinitionWriter interface {
 	WriteActiveDefinition(def taskdef.TaskDefinition, id unique.MsgID) error
 }
+
+//ActiveDefinitionRemover - removes definitions
 type ActiveDefinitionRemover interface {
 	RemoveActiveDefinition(id string) error
 }

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"overseer/common/cert"
 	"overseer/common/logger"
+	"overseer/common/types"
 	"overseer/ovsgate/config"
 
 	"overseer/proto/services"
@@ -15,6 +16,7 @@ import (
 	"google.golang.org/grpc"
 )
 
+//OverseerGateway - implements grpc gateway
 type OverseerGateway struct {
 	config *config.OverseerGatewayConfig
 	log    logger.AppLogger
@@ -28,6 +30,7 @@ func NewInstance(cfg *config.OverseerGatewayConfig, log logger.AppLogger) (*Over
 	return g, nil
 }
 
+//Start - starts gateway
 func (g *OverseerGateway) Start() error {
 
 	var err error
@@ -37,15 +40,16 @@ func (g *OverseerGateway) Start() error {
 
 	opt := []grpc.DialOption{grpc.WithBlock()}
 
-	if !g.config.UseTLS {
+	if g.config.SecurityLevel == types.ConnectionSecurityLevelNone {
 		opt = append(opt, grpc.WithInsecure())
 	} else {
 
-		if creds, err := cert.GetClientTLS(g.config.CertPath, false); err != nil {
+		creds, err := cert.BuildClientCredentials(g.config.OverseerCA, g.config.GatewayCert, g.config.GatewayKey, g.config.GatewayCertPolicy, g.config.SecurityLevel)
+		if err != nil {
 			return fmt.Errorf("failed to initialize connection %v", err)
-		} else {
-			opt = append(opt, grpc.WithTransportCredentials(creds))
 		}
+
+		opt = append(opt, creds)
 	}
 
 	if conn, err = grpc.DialContext(dctx, fmt.Sprintf("%s:%d", g.config.OverseerAddress, g.config.OverseerPort), opt...); err != nil {

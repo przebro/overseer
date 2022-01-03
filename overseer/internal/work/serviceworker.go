@@ -3,6 +3,7 @@ package work
 import (
 	"context"
 	"fmt"
+	"overseer/common/cert"
 	"overseer/common/logger"
 	"overseer/common/types"
 	"overseer/overseer/config"
@@ -28,10 +29,21 @@ type workerMediator struct {
 	timeout    int
 	wdata      workerStatus
 	lock       sync.Mutex
+	level      types.ConnectionSecurityLevel
+	policy     types.CertPolicy
+	clientCA   string
+	clientCert string
+	clientKey  string
 }
 
 //NewWorkerMediator - Creates a new WorkerMediator.
-func NewWorkerMediator(conf config.WorkerConfiguration, timeout int, status chan events.RouteWorkResponseMsg, log logger.AppLogger) WorkerMediator {
+func NewWorkerMediator(conf config.WorkerConfiguration,
+	clientCA, clientCert, clientKey string,
+	level types.ConnectionSecurityLevel,
+	policy types.CertPolicy,
+	timeout int,
+	status chan events.RouteWorkResponseMsg,
+	log logger.AppLogger) WorkerMediator {
 
 	worker := &workerMediator{
 		config:     conf,
@@ -40,9 +52,14 @@ func NewWorkerMediator(conf config.WorkerConfiguration, timeout int, status chan
 		taskStatus: status,
 		wdata:      workerStatus{},
 		lock:       sync.Mutex{},
+		level:      level,
+		policy:     policy,
+		clientCA:   clientCA,
+		clientCert: clientCert,
+		clientKey:  clientKey,
 	}
 
-	if client := worker.connect(conf.WorkerHost, conf.WorkerPort, worker.timeout); client == nil {
+	if client := worker.connect(conf, level, policy, worker.timeout); client == nil {
 		worker.wdata.connected = false
 	} else {
 		worker.client = client
@@ -68,16 +85,28 @@ func (worker *workerMediator) Name() string {
 	return worker.config.WorkerName
 }
 
-func (worker *workerMediator) connect(host string, port int, timeout int) wservices.TaskExecutionServiceClient {
+func (worker *workerMediator) connect(conf config.WorkerConfiguration, level types.ConnectionSecurityLevel, policy types.CertPolicy,
+	timeout int) wservices.TaskExecutionServiceClient {
 
 	opt := []grpc.DialOption{
-		grpc.WithInsecure(),
 		grpc.WithBlock(),
+	}
+
+	if level == types.ConnectionSecurityLevelNone {
+		opt = append(opt, grpc.WithInsecure())
+	} else {
+		result, err := cert.BuildClientCredentials(worker.clientCA, worker.clientCert, worker.clientKey, policy, level)
+		if err != nil {
+			worker.log.Desugar().Error("connect", zap.String("error", err.Error()))
+			return nil
+		}
+
+		opt = append(opt, result)
 	}
 
 	ctx, _ := context.WithTimeout(context.Background(), time.Second*time.Duration(timeout))
 
-	targetAddr := fmt.Sprintf("%s:%d", host, port)
+	targetAddr := fmt.Sprintf("%s:%d", conf.WorkerHost, conf.WorkerPort)
 	conn, err := grpc.DialContext(ctx, targetAddr, opt...)
 	if err != nil {
 		worker.log.Desugar().Error("connect", zap.String("error", err.Error()))
@@ -101,8 +130,8 @@ func (worker *workerMediator) Available() {
 		w.lock.Unlock()
 
 		if client == nil {
-			if client := w.connect(w.config.WorkerHost, w.config.WorkerPort, w.timeout); client == nil {
-				worker.log.Desugar().Error("StartTask", zap.String("error", "connect with worker failed"))
+			if client := w.connect(w.config, w.level, w.policy, w.timeout); client == nil {
+				worker.log.Desugar().Error("Available", zap.String("error", "connect with worker failed"))
 			} else {
 				w.lock.Lock()
 				worker.client = client

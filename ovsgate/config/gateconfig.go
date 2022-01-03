@@ -6,16 +6,22 @@ import (
 	"fmt"
 	"io/ioutil"
 	"overseer/common/logger"
+	"overseer/common/types"
 )
 
 //OverseerGatewayConfig - holds gateway configuration
 type OverseerGatewayConfig struct {
-	GatewayAddress   string                     `json:"gateAddress"`
-	GatewayPort      int                        `json:"gatePort"`
-	OverseerAddress  string                     `json:"overseerAddress"`
-	OverseerPort     int                        `json:"overseerPort"`
-	UseTLS           bool                       `json:"tls"`
-	CertPath         string                     `json:"cert"`
+	GatewayAddress  string `json:"gateAddress"`
+	GatewayPort     int    `json:"gatePort"`
+	OverseerAddress string `json:"overseerAddress"`
+	OverseerPort    int    `json:"overseerPort"`
+	//SecurityLevel -  this applies only to internal communication through grpc, not to external service
+	SecurityLevel     types.ConnectionSecurityLevel `default:"none" json:"securityLevel" validate:"oneof=none server clientandserver"`
+	GatewayCert       string                        `json:"cert"`
+	GatewayKey        string                        `json:"key"`
+	GatewayCertPolicy types.CertPolicy              `default:"none" json:"gatewayCertPolicy" validate:"oneof=none required verify"`
+	OverseerCA        string                        `json:"overseerCA"`
+
 	LogConfiguration logger.LoggerConfiguration `json:"LogConfiguration"`
 }
 

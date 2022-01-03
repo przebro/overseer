@@ -5,10 +5,9 @@ import (
 	"net"
 	"overseer/common/cert"
 	"overseer/common/logger"
+	"overseer/common/types"
 	"overseer/overseer/config"
 	"overseer/overseer/internal/events"
-	"overseer/overseer/internal/resources"
-	"overseer/overseer/internal/taskdef"
 	"overseer/overseer/services/middleware"
 	"overseer/proto/services"
 
@@ -20,9 +19,6 @@ type OvsGrpcServer struct {
 	conf       config.ServerConfiguration
 	grpcServer *grpc.Server
 	log        logger.AppLogger
-	rm         resources.ResourceManager
-	dm         taskdef.TaskDefinitionManager
-	dservice   ovsDefinitionService
 	dispatcher events.Dispatcher
 }
 
@@ -95,8 +91,9 @@ func buildOptions(conf config.ServerConfiguration) ([]grpc.ServerOption, error) 
 	options = append(options, buildUnaryChain())
 	options = append(options, buildStreamChain())
 
-	if conf.TLS {
-		if creds, err := buildCredentials(conf.ServerCert, conf.ServerKey); err == nil {
+	if conf.SecurityLevel != types.ConnectionSecurityLevelNone {
+
+		if creds, err := buildCredentials(conf.ServerCert, conf.ServerKey, conf.ClientCA, conf.ClientCertPolicy, conf.SecurityLevel); err == nil {
 			options = append(options, creds)
 		} else {
 			return nil, err
@@ -116,11 +113,14 @@ func buildStreamChain() grpc.ServerOption {
 	return grpc.ChainStreamInterceptor(middleware.GetStreamHandlers()...)
 }
 
-func buildCredentials(certpath, keypath string) (grpc.ServerOption, error) {
+func buildCredentials(certpath, keypath, clientCA string, clientPolicy types.CertPolicy, level types.ConnectionSecurityLevel) (grpc.ServerOption, error) {
 
-	c, err := cert.GetServerTLS(certpath, keypath)
+	var err error
+
+	creds, err := cert.BuildServerCredentials(clientCA, certpath, keypath, clientPolicy, level)
+
 	if err != nil {
 		return nil, err
 	}
-	return grpc.Creds(c), nil
+	return creds, nil
 }

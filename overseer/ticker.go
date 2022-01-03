@@ -9,10 +9,6 @@ import (
 
 type overseerTimer struct{ log logger.AppLogger }
 
-type ovsTimer interface {
-	tickerFunc(dispatcher events.Dispatcher, interval config.IntervalValue) error
-}
-
 func (timer *overseerTimer) tickerFunc(dispatcher events.Dispatcher, interval config.IntervalValue) error {
 
 	t := time.NewTicker(time.Duration(int(interval) * int(time.Second)))

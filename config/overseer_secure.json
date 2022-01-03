@@ -2,7 +2,12 @@
     "serverConfiguration":{
         "serviceName" : "overseersrv",
         "ovshost" : "127.0.0.1",
-        "ovsport" : 7053
+        "ovsport" : 7053,
+        "securityLevel" : "clientandserver",
+        "clientCertPolicy" : "required",
+        "cert" : "docker/cert/overseer_srv.crt",
+        "key" : "docker/cert/overseer_srv.key",
+        "clientCA":"docker/cert/root_ca.crt"
     },
     "definitionDirectory" : "./def",
     "LogConfiguration" :{
