@@ -1,8 +1,9 @@
 package pool
 
 import (
-	"overseer/common/types/date"
 	"time"
+
+	"github.com/przebro/overseer/common/types/date"
 )
 
 type activeTaskModel struct {

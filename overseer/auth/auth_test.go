@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"os"
-	"overseer/common/logger"
-	"overseer/datastore"
-	"overseer/overseer/config"
 	"testing"
+
+	"github.com/przebro/overseer/common/logger"
+	"github.com/przebro/overseer/datastore"
+	"github.com/przebro/overseer/overseer/config"
 )
 
 var prvstorecfg = config.StoreProviderConfiguration{

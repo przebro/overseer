@@ -1,8 +1,9 @@
 package unique
 
 import (
-	"overseer/common/validator"
 	"testing"
+
+	"github.com/przebro/overseer/common/validator"
 )
 
 func TestValidator(t *testing.T) {

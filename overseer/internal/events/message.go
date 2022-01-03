@@ -1,8 +1,9 @@
 package events
 
 import (
-	"overseer/overseer/internal/unique"
 	"time"
+
+	"github.com/przebro/overseer/overseer/internal/unique"
 )
 
 type dispatchedMessage struct {

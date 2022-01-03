@@ -2,13 +2,14 @@ package journal
 
 import (
 	"os"
-	"overseer/common/logger"
-	"overseer/datastore"
-	"overseer/overseer/config"
-	"overseer/overseer/internal/events"
-	"overseer/overseer/internal/unique"
 	"testing"
 	"time"
+
+	"github.com/przebro/overseer/common/logger"
+	"github.com/przebro/overseer/datastore"
+	"github.com/przebro/overseer/overseer/config"
+	"github.com/przebro/overseer/overseer/internal/events"
+	"github.com/przebro/overseer/overseer/internal/unique"
 )
 
 type mockDisp struct {

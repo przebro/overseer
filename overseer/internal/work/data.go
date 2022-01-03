@@ -1,10 +1,10 @@
 package work
 
 import (
-	"overseer/common/types"
-	"overseer/overseer/internal/events"
-	"overseer/overseer/internal/unique"
-	"overseer/proto/wservices"
+	"github.com/przebro/overseer/common/types"
+	"github.com/przebro/overseer/overseer/internal/events"
+	"github.com/przebro/overseer/overseer/internal/unique"
+	"github.com/przebro/overseer/proto/wservices"
 )
 
 type taskExecuteMsg struct {

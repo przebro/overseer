@@ -3,10 +3,11 @@ package converter
 import (
 	"encoding/json"
 	"errors"
-	"overseer/common/types"
-	"overseer/overseer/internal/taskdef"
 	"regexp"
 	"strings"
+
+	"github.com/przebro/overseer/common/types"
+	"github.com/przebro/overseer/overseer/internal/taskdef"
 
 	"github.com/golang/protobuf/ptypes/any"
 )

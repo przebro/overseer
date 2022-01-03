@@ -1,10 +1,11 @@
 package pool
 
 import (
-	"overseer/common/logger"
-	"overseer/common/types/date"
-	"overseer/overseer/internal/events"
 	"time"
+
+	"github.com/przebro/overseer/common/logger"
+	"github.com/przebro/overseer/common/types/date"
+	"github.com/przebro/overseer/overseer/internal/events"
 )
 
 //DailyExecutor - Executes New Day Procedure

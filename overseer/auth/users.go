@@ -2,9 +2,10 @@ package auth
 
 import (
 	"context"
-	"overseer/datastore"
-	"overseer/overseer/config"
 	"strings"
+
+	"github.com/przebro/overseer/datastore"
+	"github.com/przebro/overseer/overseer/config"
 
 	"golang.org/x/crypto/bcrypt"
 

@@ -2,8 +2,9 @@ package aws
 
 import (
 	"encoding/json"
-	"overseer/overseer/internal/taskdef"
 	"testing"
+
+	"github.com/przebro/overseer/overseer/internal/taskdef"
 )
 
 var input string = `{"type":"lambda","connection":{"profile":"overseer","region":"eu-west-1"},"payload":{},"functionName":"test_function_01","alias":"$LATEST"}`

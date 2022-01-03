@@ -2,16 +2,17 @@ package resources
 
 import (
 	"errors"
-	"overseer/common/core"
-	"overseer/common/logger"
-	"overseer/common/types/date"
-	"overseer/datastore"
-	"overseer/overseer/config"
-	"overseer/overseer/internal/events"
-	"overseer/overseer/internal/taskdef"
 	"regexp"
 	"sort"
 	"sync"
+
+	"github.com/przebro/overseer/common/core"
+	"github.com/przebro/overseer/common/logger"
+	"github.com/przebro/overseer/common/types/date"
+	"github.com/przebro/overseer/datastore"
+	"github.com/przebro/overseer/overseer/config"
+	"github.com/przebro/overseer/overseer/internal/events"
+	"github.com/przebro/overseer/overseer/internal/taskdef"
 )
 
 type resourceManager struct {

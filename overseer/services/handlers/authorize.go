@@ -3,11 +3,12 @@ package handlers
 import (
 	"context"
 	"errors"
-	"overseer/common/logger"
-	"overseer/datastore"
-	"overseer/overseer/auth"
-	"overseer/overseer/config"
 	"strings"
+
+	"github.com/przebro/overseer/common/logger"
+	"github.com/przebro/overseer/datastore"
+	"github.com/przebro/overseer/overseer/auth"
+	"github.com/przebro/overseer/overseer/config"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"

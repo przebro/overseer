@@ -2,8 +2,9 @@ package events
 
 import (
 	"errors"
-	"overseer/common/logger"
 	"sync"
+
+	"github.com/przebro/overseer/common/logger"
 )
 
 //Dispatcher - dispatch messages between subscribed objects.

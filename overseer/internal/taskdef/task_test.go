@@ -4,15 +4,16 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"overseer/common/logger"
-	"overseer/common/types"
-	"overseer/common/types/date"
-	"overseer/common/validator"
-	"overseer/overseer/taskdata"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/przebro/overseer/common/logger"
+	"github.com/przebro/overseer/common/types"
+	"github.com/przebro/overseer/common/types/date"
+	"github.com/przebro/overseer/common/validator"
+	"github.com/przebro/overseer/overseer/taskdata"
 )
 
 var expect TaskDefinition = &baseTaskDefinition{

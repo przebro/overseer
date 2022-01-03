@@ -1,15 +1,16 @@
 package pool
 
 import (
-	"overseer/common/logger"
-	"overseer/common/types/date"
-	"overseer/overseer/internal/events"
-	"overseer/overseer/internal/taskdef"
-	"overseer/overseer/internal/unique"
-	"overseer/overseer/taskdata"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/przebro/overseer/common/logger"
+	"github.com/przebro/overseer/common/types/date"
+	"github.com/przebro/overseer/overseer/internal/events"
+	"github.com/przebro/overseer/overseer/internal/taskdef"
+	"github.com/przebro/overseer/overseer/internal/unique"
+	"github.com/przebro/overseer/overseer/taskdata"
 )
 
 func init() {

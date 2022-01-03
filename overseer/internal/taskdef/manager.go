@@ -7,13 +7,14 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"overseer/common/logger"
-	"overseer/overseer/internal/unique"
-	"overseer/overseer/taskdata"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
+
+	"github.com/przebro/overseer/common/logger"
+	"github.com/przebro/overseer/overseer/internal/unique"
+	"github.com/przebro/overseer/overseer/taskdata"
 )
 
 var (

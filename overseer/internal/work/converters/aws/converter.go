@@ -3,9 +3,10 @@ package aws
 import (
 	"encoding/json"
 	"errors"
-	"overseer/common/types"
-	"overseer/overseer/internal/taskdef"
-	converter "overseer/overseer/internal/work/converters"
+
+	"github.com/przebro/overseer/common/types"
+	"github.com/przebro/overseer/overseer/internal/taskdef"
+	converter "github.com/przebro/overseer/overseer/internal/work/converters"
 
 	"github.com/golang/protobuf/ptypes/any"
 	"google.golang.org/protobuf/proto"

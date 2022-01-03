@@ -4,10 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"overseer/common/logger"
-	"overseer/common/types"
-	"overseer/ovsworker/msgheader"
-	"overseer/ovsworker/status"
+
+	"github.com/przebro/overseer/common/logger"
+	"github.com/przebro/overseer/common/types"
+	"github.com/przebro/overseer/ovsworker/msgheader"
+	"github.com/przebro/overseer/ovsworker/status"
 
 	"go.uber.org/zap"
 )

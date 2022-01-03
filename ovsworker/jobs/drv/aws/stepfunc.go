@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"os"
-	"overseer/common/types"
-	"overseer/ovsworker/jobs"
-	"overseer/ovsworker/status"
 	"path/filepath"
 	"time"
+
+	"github.com/przebro/overseer/common/types"
+	"github.com/przebro/overseer/ovsworker/jobs"
+	"github.com/przebro/overseer/ovsworker/status"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sfn"

@@ -2,14 +2,15 @@ package pool
 
 import (
 	"fmt"
-	"overseer/common/logger"
-	"overseer/common/types"
-	"overseer/common/types/date"
-	"overseer/overseer/internal/events"
-	"overseer/overseer/internal/taskdef"
-	"overseer/overseer/internal/unique"
 	"strconv"
 	"strings"
+
+	"github.com/przebro/overseer/common/logger"
+	"github.com/przebro/overseer/common/types"
+	"github.com/przebro/overseer/common/types/date"
+	"github.com/przebro/overseer/overseer/internal/events"
+	"github.com/przebro/overseer/overseer/internal/taskdef"
+	"github.com/przebro/overseer/overseer/internal/unique"
 
 	"testing"
 	"time"

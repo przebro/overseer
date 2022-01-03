@@ -1,21 +1,22 @@
 package overseer
 
 import (
-	"overseer/common/core"
-	"overseer/common/logger"
-	"overseer/datastore"
-	"overseer/overseer/auth"
-	"overseer/overseer/config"
-	"overseer/overseer/internal/events"
-	"overseer/overseer/internal/journal"
-	"overseer/overseer/internal/pool"
-	"overseer/overseer/internal/resources"
-	"overseer/overseer/internal/taskdef"
-	"overseer/overseer/internal/work"
-	"overseer/overseer/services"
-	"overseer/overseer/services/handlers"
-	"overseer/overseer/services/middleware"
 	"path/filepath"
+
+	"github.com/przebro/overseer/common/core"
+	"github.com/przebro/overseer/common/logger"
+	"github.com/przebro/overseer/datastore"
+	"github.com/przebro/overseer/overseer/auth"
+	"github.com/przebro/overseer/overseer/config"
+	"github.com/przebro/overseer/overseer/internal/events"
+	"github.com/przebro/overseer/overseer/internal/journal"
+	"github.com/przebro/overseer/overseer/internal/pool"
+	"github.com/przebro/overseer/overseer/internal/resources"
+	"github.com/przebro/overseer/overseer/internal/taskdef"
+	"github.com/przebro/overseer/overseer/internal/work"
+	"github.com/przebro/overseer/overseer/services"
+	"github.com/przebro/overseer/overseer/services/handlers"
+	"github.com/przebro/overseer/overseer/services/middleware"
 )
 
 //Overseer - main  component

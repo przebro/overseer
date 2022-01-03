@@ -2,9 +2,10 @@ package task
 
 import (
 	"context"
-	"overseer/ovsworker/jobs"
-	"overseer/ovsworker/status"
 	"sync"
+
+	"github.com/przebro/overseer/ovsworker/jobs"
+	"github.com/przebro/overseer/ovsworker/status"
 )
 
 //TaskRunnerManager - executes a commissioned task

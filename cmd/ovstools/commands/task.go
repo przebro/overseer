@@ -2,9 +2,10 @@ package commands
 
 import (
 	"fmt"
-	"overseer/common/validator"
-	"overseer/ovscli"
 	"strings"
+
+	"github.com/przebro/overseer/common/validator"
+	"github.com/przebro/overseer/ovscli"
 
 	"github.com/spf13/cobra"
 )

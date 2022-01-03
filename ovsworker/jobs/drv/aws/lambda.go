@@ -6,11 +6,12 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
-	"overseer/ovsworker/jobs"
-	"overseer/ovsworker/status"
 	"path/filepath"
 
-	"overseer/common/types"
+	"github.com/przebro/overseer/ovsworker/jobs"
+	"github.com/przebro/overseer/ovsworker/status"
+
+	"github.com/przebro/overseer/common/types"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"

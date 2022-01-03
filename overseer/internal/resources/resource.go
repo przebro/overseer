@@ -1,7 +1,7 @@
 package resources
 
 import (
-	"overseer/common/types/date"
+	"github.com/przebro/overseer/common/types/date"
 )
 
 type (

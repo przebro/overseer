@@ -2,7 +2,7 @@ package task
 
 import (
 	//indirect call init() in drivers packages
-	_ "overseer/ovsworker/jobs/drv/aws"
-	_ "overseer/ovsworker/jobs/drv/dummy"
-	_ "overseer/ovsworker/jobs/drv/os"
+	_ "github.com/przebro/overseer/ovsworker/jobs/drv/aws"
+	_ "github.com/przebro/overseer/ovsworker/jobs/drv/dummy"
+	_ "github.com/przebro/overseer/ovsworker/jobs/drv/os"
 )

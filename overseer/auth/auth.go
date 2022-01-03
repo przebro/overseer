@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"overseer/datastore"
-	"overseer/overseer/config"
+
+	"github.com/przebro/overseer/datastore"
+	"github.com/przebro/overseer/overseer/config"
 
 	"golang.org/x/crypto/bcrypt"
 

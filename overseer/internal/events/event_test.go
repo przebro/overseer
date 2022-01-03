@@ -3,13 +3,14 @@ package events
 import (
 	"errors"
 	"fmt"
-	"overseer/common/logger"
-	"overseer/common/types"
-	"overseer/common/types/date"
-	"overseer/overseer/internal/taskdef"
-	"overseer/overseer/internal/unique"
 	"testing"
 	"time"
+
+	"github.com/przebro/overseer/common/logger"
+	"github.com/przebro/overseer/common/types"
+	"github.com/przebro/overseer/common/types/date"
+	"github.com/przebro/overseer/overseer/internal/taskdef"
+	"github.com/przebro/overseer/overseer/internal/unique"
 )
 
 var log logger.AppLogger = logger.NewTestLogger()

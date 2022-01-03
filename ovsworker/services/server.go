@@ -3,12 +3,13 @@ package services
 import (
 	"fmt"
 	"net"
-	"overseer/common/cert"
-	"overseer/common/logger"
-	"overseer/common/types"
-	"overseer/ovsworker/config"
-	"overseer/ovsworker/services/handlers"
-	"overseer/proto/wservices"
+
+	"github.com/przebro/overseer/common/cert"
+	"github.com/przebro/overseer/common/logger"
+	"github.com/przebro/overseer/common/types"
+	"github.com/przebro/overseer/ovsworker/config"
+	"github.com/przebro/overseer/ovsworker/services/handlers"
+	"github.com/przebro/overseer/proto/wservices"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"

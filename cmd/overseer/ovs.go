@@ -2,7 +2,8 @@ package main
 
 import (
 	"os"
-	"overseer/cmd/overseer/commands"
+
+	"github.com/przebro/overseer/cmd/overseer/commands"
 )
 
 func main() {

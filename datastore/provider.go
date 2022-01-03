@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"overseer/common/logger"
-	"overseer/overseer/config"
+
+	"github.com/przebro/overseer/common/logger"
+	"github.com/przebro/overseer/overseer/config"
 
 	"github.com/przebro/databazaar/store"
 	//required driver

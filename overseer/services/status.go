@@ -2,8 +2,9 @@ package services
 
 import (
 	"context"
-	"overseer/common/logger"
-	"overseer/proto/services"
+
+	"github.com/przebro/overseer/common/logger"
+	"github.com/przebro/overseer/proto/services"
 
 	"github.com/golang/protobuf/ptypes/empty"
 )

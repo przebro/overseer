@@ -2,10 +2,11 @@ package taskdef
 
 import (
 	"os"
-	"overseer/common/logger"
-	"overseer/overseer/internal/unique"
-	"overseer/overseer/taskdata"
 	"testing"
+
+	"github.com/przebro/overseer/common/logger"
+	"github.com/przebro/overseer/overseer/internal/unique"
+	"github.com/przebro/overseer/overseer/taskdata"
 )
 
 func TestNewManager_Errors(t *testing.T) {

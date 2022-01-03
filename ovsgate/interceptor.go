@@ -2,8 +2,9 @@ package ovsgate
 
 import (
 	"net/http"
-	"overseer/common/logger"
 	"strings"
+
+	"github.com/przebro/overseer/common/logger"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 )

@@ -3,13 +3,14 @@ package resources
 import (
 	"encoding/json"
 	"os"
-	"overseer/common/logger"
-	"overseer/common/types/date"
-	"overseer/datastore"
-	"overseer/overseer/config"
-	"overseer/overseer/internal/events"
-	"overseer/overseer/internal/taskdef"
 	"testing"
+
+	"github.com/przebro/overseer/common/logger"
+	"github.com/przebro/overseer/common/types/date"
+	"github.com/przebro/overseer/datastore"
+	"github.com/przebro/overseer/overseer/config"
+	"github.com/przebro/overseer/overseer/internal/events"
+	"github.com/przebro/overseer/overseer/internal/taskdef"
 )
 
 var mlog = logger.NewTestLogger()

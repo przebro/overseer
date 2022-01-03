@@ -1,8 +1,9 @@
 package events
 
 import (
-	"overseer/common/logger"
 	"sync"
+
+	"github.com/przebro/overseer/common/logger"
 )
 
 //RouteName - possible routes

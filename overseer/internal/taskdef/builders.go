@@ -1,10 +1,11 @@
 package taskdef
 
 import (
-	"overseer/common/types"
-	"overseer/common/validator"
-	"overseer/overseer/internal/unique"
 	"time"
+
+	"github.com/przebro/overseer/common/types"
+	"github.com/przebro/overseer/common/validator"
+	"github.com/przebro/overseer/overseer/internal/unique"
 )
 
 //TaskBuilder - task builder.

@@ -2,11 +2,12 @@ package services
 
 import (
 	"context"
-	"overseer/common/logger"
-	"overseer/datastore"
-	"overseer/overseer/auth"
-	"overseer/overseer/config"
-	"overseer/proto/services"
+
+	"github.com/przebro/overseer/common/logger"
+	"github.com/przebro/overseer/datastore"
+	"github.com/przebro/overseer/overseer/auth"
+	"github.com/przebro/overseer/overseer/config"
+	"github.com/przebro/overseer/proto/services"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

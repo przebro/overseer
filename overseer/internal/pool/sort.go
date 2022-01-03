@@ -1,7 +1,7 @@
 package pool
 
 import (
-	"overseer/overseer/internal/events"
+	"github.com/przebro/overseer/overseer/internal/events"
 )
 
 type taskInfoSorter struct{ list []events.TaskInfoResultMsg }

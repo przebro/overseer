@@ -2,9 +2,10 @@ package aws
 
 import (
 	"encoding/json"
-	"overseer/overseer/internal/taskdef"
-	converter "overseer/overseer/internal/work/converters"
-	"overseer/proto/actions"
+
+	"github.com/przebro/overseer/overseer/internal/taskdef"
+	converter "github.com/przebro/overseer/overseer/internal/work/converters"
+	"github.com/przebro/overseer/proto/actions"
 )
 
 type awsTaskDatabuilder interface {

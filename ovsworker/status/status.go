@@ -1,7 +1,7 @@
 package status
 
 import (
-	"overseer/common/types"
+	"github.com/przebro/overseer/common/types"
 
 	"go.uber.org/zap/zapcore"
 )

@@ -4,13 +4,14 @@ import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
-	"overseer/common/types"
-	"overseer/common/types/date"
-	"overseer/common/validator"
-	"overseer/overseer/internal/unique"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/przebro/overseer/common/types"
+	"github.com/przebro/overseer/common/types/date"
+	"github.com/przebro/overseer/common/validator"
+	"github.com/przebro/overseer/overseer/internal/unique"
 )
 
 //InTicketRelation - Restricts possible values of tickets relation.

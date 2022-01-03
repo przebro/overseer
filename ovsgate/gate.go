@@ -4,13 +4,15 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"overseer/common/cert"
-	"overseer/common/logger"
-	"overseer/common/types"
-	"overseer/ovsgate/config"
 
-	"overseer/proto/services"
+	"github.com/przebro/overseer/common/cert"
+	"github.com/przebro/overseer/common/logger"
+	"github.com/przebro/overseer/common/types"
+	"github.com/przebro/overseer/ovsgate/config"
+
 	"time"
+
+	"github.com/przebro/overseer/proto/services"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc"

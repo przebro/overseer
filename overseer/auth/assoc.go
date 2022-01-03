@@ -2,8 +2,9 @@ package auth
 
 import (
 	"context"
-	"overseer/datastore"
-	"overseer/overseer/config"
+
+	"github.com/przebro/overseer/datastore"
+	"github.com/przebro/overseer/overseer/config"
 
 	"github.com/przebro/databazaar/collection"
 )

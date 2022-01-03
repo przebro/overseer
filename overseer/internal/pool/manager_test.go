@@ -2,13 +2,14 @@ package pool
 
 import (
 	"fmt"
-	"overseer/common/types/date"
-	"overseer/overseer/internal/events"
-	"overseer/overseer/internal/unique"
-	"overseer/overseer/taskdata"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/przebro/overseer/common/types/date"
+	"github.com/przebro/overseer/overseer/internal/events"
+	"github.com/przebro/overseer/overseer/internal/unique"
+	"github.com/przebro/overseer/overseer/taskdata"
 )
 
 func init() {

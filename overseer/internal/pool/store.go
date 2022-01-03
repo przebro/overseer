@@ -2,11 +2,12 @@ package pool
 
 import (
 	"context"
-	"overseer/common/logger"
-	"overseer/datastore"
-	"overseer/overseer/internal/unique"
 	"sync"
 	"time"
+
+	"github.com/przebro/overseer/common/logger"
+	"github.com/przebro/overseer/datastore"
+	"github.com/przebro/overseer/overseer/internal/unique"
 
 	"github.com/przebro/databazaar/collection"
 )

@@ -7,8 +7,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"overseer/common/types"
 	"path/filepath"
+
+	"github.com/przebro/overseer/common/types"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"

@@ -2,7 +2,8 @@ package main
 
 import (
 	"os"
-	"overseer/cmd/ovswork/commands"
+
+	"github.com/przebro/overseer/cmd/ovswork/commands"
 )
 
 func main() {

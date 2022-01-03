@@ -6,10 +6,11 @@ package helpers
 import (
 	"fmt"
 	"os"
-	"overseer/common/logger"
 	"path/filepath"
 	"runtime/pprof"
 	"time"
+
+	"github.com/przebro/overseer/common/logger"
 )
 
 //GetDirectories - Gets the root and programs catalog

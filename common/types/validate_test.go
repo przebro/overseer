@@ -1,8 +1,9 @@
 package types
 
 import (
-	"overseer/common/validator"
 	"testing"
+
+	"github.com/przebro/overseer/common/validator"
 )
 
 type teststruct struct {

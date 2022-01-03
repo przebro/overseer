@@ -3,9 +3,10 @@ package datastore
 import (
 	"errors"
 	"os"
-	"overseer/common/logger"
-	"overseer/overseer/config"
 	"testing"
+
+	"github.com/przebro/overseer/common/logger"
+	"github.com/przebro/overseer/overseer/config"
 )
 
 var resourceString = `{"flags":{"_id":"flags","_rev":"","flags":null},"tickets":{"_id":"tickets","_rev":"","tickets":[]}}`

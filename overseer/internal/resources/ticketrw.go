@@ -2,7 +2,8 @@ package resources
 
 import (
 	"context"
-	"overseer/datastore"
+
+	"github.com/przebro/overseer/datastore"
 
 	"github.com/przebro/databazaar/collection"
 )

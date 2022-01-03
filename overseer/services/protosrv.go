@@ -3,13 +3,14 @@ package services
 import (
 	"fmt"
 	"net"
-	"overseer/common/cert"
-	"overseer/common/logger"
-	"overseer/common/types"
-	"overseer/overseer/config"
-	"overseer/overseer/internal/events"
-	"overseer/overseer/services/middleware"
-	"overseer/proto/services"
+
+	"github.com/przebro/overseer/common/cert"
+	"github.com/przebro/overseer/common/logger"
+	"github.com/przebro/overseer/common/types"
+	"github.com/przebro/overseer/overseer/config"
+	"github.com/przebro/overseer/overseer/internal/events"
+	"github.com/przebro/overseer/overseer/services/middleware"
+	"github.com/przebro/overseer/proto/services"
 
 	"google.golang.org/grpc"
 )

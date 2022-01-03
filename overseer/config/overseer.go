@@ -5,8 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"overseer/common/logger"
-	"overseer/common/types"
+
+	"github.com/przebro/overseer/common/logger"
+	"github.com/przebro/overseer/common/types"
 )
 
 //WorkerConfiguration - configuration

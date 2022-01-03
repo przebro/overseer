@@ -2,8 +2,9 @@ package services
 
 import (
 	"encoding/base64"
-	"overseer/overseer/auth"
-	"overseer/overseer/config"
+
+	"github.com/przebro/overseer/overseer/auth"
+	"github.com/przebro/overseer/overseer/config"
 )
 
 //NewTokenCreatorVerifier - Creates a new token creator verifier

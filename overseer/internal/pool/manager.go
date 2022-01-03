@@ -3,16 +3,17 @@ package pool
 import (
 	"errors"
 	"fmt"
-	"overseer/common/logger"
-	"overseer/common/types/date"
-	"overseer/datastore"
-	"overseer/overseer/internal/events"
-	"overseer/overseer/internal/journal"
-	"overseer/overseer/internal/taskdef"
-	"overseer/overseer/internal/unique"
-	"overseer/overseer/taskdata"
 	"strings"
 	"time"
+
+	"github.com/przebro/overseer/common/logger"
+	"github.com/przebro/overseer/common/types/date"
+	"github.com/przebro/overseer/datastore"
+	"github.com/przebro/overseer/overseer/internal/events"
+	"github.com/przebro/overseer/overseer/internal/journal"
+	"github.com/przebro/overseer/overseer/internal/taskdef"
+	"github.com/przebro/overseer/overseer/internal/unique"
+	"github.com/przebro/overseer/overseer/taskdata"
 )
 
 var (

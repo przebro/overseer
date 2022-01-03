@@ -1,9 +1,10 @@
 package pool
 
 import (
-	"overseer/overseer/internal/events"
-	"overseer/overseer/internal/unique"
 	"testing"
+
+	"github.com/przebro/overseer/overseer/internal/events"
+	"github.com/przebro/overseer/overseer/internal/unique"
 )
 
 func TestSortSwap(t *testing.T) {

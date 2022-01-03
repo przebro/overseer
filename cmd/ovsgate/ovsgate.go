@@ -2,7 +2,8 @@ package main
 
 import (
 	"os"
-	"overseer/cmd/ovsgate/commands"
+
+	"github.com/przebro/overseer/cmd/ovsgate/commands"
 )
 
 func main() {

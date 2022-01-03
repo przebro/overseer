@@ -2,13 +2,14 @@ package pool
 
 import (
 	"fmt"
-	"overseer/common/logger"
-	"overseer/common/types"
-	"overseer/common/types/date"
-	"overseer/overseer/internal/events"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/przebro/overseer/common/logger"
+	"github.com/przebro/overseer/common/types"
+	"github.com/przebro/overseer/common/types/date"
+	"github.com/przebro/overseer/overseer/internal/events"
 )
 
 var daily *DailyExecutor

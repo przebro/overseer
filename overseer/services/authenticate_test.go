@@ -3,10 +3,11 @@ package services
 import (
 	"context"
 	"net"
-	"overseer/common/logger"
-	"overseer/datastore"
-	"overseer/proto/services"
 	"testing"
+
+	"github.com/przebro/overseer/common/logger"
+	"github.com/przebro/overseer/datastore"
+	"github.com/przebro/overseer/proto/services"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"

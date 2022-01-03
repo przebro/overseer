@@ -1,10 +1,11 @@
 package taskdef
 
 import (
-	"overseer/common/types"
-	"overseer/common/validator"
 	"testing"
 	"time"
+
+	"github.com/przebro/overseer/common/types"
+	"github.com/przebro/overseer/common/validator"
 )
 
 func TestInTicketData(t *testing.T) {

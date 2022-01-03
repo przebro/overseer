@@ -2,17 +2,19 @@ package pool
 
 import (
 	"fmt"
-	"overseer/common/logger"
-	"overseer/common/types"
-	"overseer/common/types/date"
-	"overseer/overseer/internal/events"
-	"overseer/overseer/internal/journal"
 
-	"overseer/overseer/internal/taskdef"
-	"overseer/overseer/internal/unique"
+	"github.com/przebro/overseer/common/logger"
+	"github.com/przebro/overseer/common/types"
+	"github.com/przebro/overseer/common/types/date"
+	"github.com/przebro/overseer/overseer/internal/events"
+	"github.com/przebro/overseer/overseer/internal/journal"
+
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/przebro/overseer/overseer/internal/taskdef"
+	"github.com/przebro/overseer/overseer/internal/unique"
 )
 
 //TaskOrderContext - use state pattern to verify if task can be added to Active Task Pool (ATP)

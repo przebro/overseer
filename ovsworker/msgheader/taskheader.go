@@ -1,7 +1,7 @@
 package msgheader
 
 import (
-	common "overseer/common/types"
+	common "github.com/przebro/overseer/common/types"
 )
 
 //TaskHeader - Common data for all tasks

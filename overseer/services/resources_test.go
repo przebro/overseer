@@ -4,10 +4,11 @@ import (
 	"context"
 	"io"
 	"net"
-	"overseer/common/logger"
-	"overseer/overseer/auth"
-	"overseer/proto/services"
 	"testing"
+
+	"github.com/przebro/overseer/common/logger"
+	"github.com/przebro/overseer/overseer/auth"
+	"github.com/przebro/overseer/proto/services"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"

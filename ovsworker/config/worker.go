@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
-	"overseer/common/logger"
-	"overseer/common/types"
+
+	"github.com/przebro/overseer/common/logger"
+	"github.com/przebro/overseer/common/types"
 )
 
 //WorkerConfiguration - Holds a worker configuration

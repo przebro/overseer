@@ -1,4 +1,4 @@
-module overseer
+module github.com/przebro/overseer
 
 go 1.17
 

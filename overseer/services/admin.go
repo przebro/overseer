@@ -3,11 +3,12 @@ package services
 import (
 	"context"
 	"fmt"
-	"overseer/common/core"
-	"overseer/common/logger"
-	"overseer/common/validator"
-	"overseer/overseer/auth"
-	"overseer/proto/services"
+
+	"github.com/przebro/overseer/common/core"
+	"github.com/przebro/overseer/common/logger"
+	"github.com/przebro/overseer/common/validator"
+	"github.com/przebro/overseer/overseer/auth"
+	"github.com/przebro/overseer/proto/services"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"google.golang.org/grpc/codes"

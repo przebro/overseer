@@ -2,11 +2,12 @@ package events
 
 import (
 	"encoding/json"
-	"overseer/common/types"
-	"overseer/common/types/date"
-	task "overseer/overseer/internal/taskdef"
-	"overseer/overseer/internal/unique"
 	"time"
+
+	"github.com/przebro/overseer/common/types"
+	"github.com/przebro/overseer/common/types/date"
+	task "github.com/przebro/overseer/overseer/internal/taskdef"
+	"github.com/przebro/overseer/overseer/internal/unique"
 )
 
 //RouteTimeOutMsgFormat - outgoing message from ticker

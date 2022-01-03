@@ -4,13 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"overseer/common/logger"
-	"overseer/common/validator"
-	"overseer/overseer/auth"
-	"overseer/overseer/internal/taskdef"
-	"overseer/overseer/taskdata"
-	"overseer/proto/services"
 	"strings"
+
+	"github.com/przebro/overseer/common/logger"
+	"github.com/przebro/overseer/common/validator"
+	"github.com/przebro/overseer/overseer/auth"
+	"github.com/przebro/overseer/overseer/internal/taskdef"
+	"github.com/przebro/overseer/overseer/taskdata"
+	"github.com/przebro/overseer/proto/services"
 )
 
 type ovsDefinitionService struct {

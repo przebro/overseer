@@ -3,12 +3,13 @@ package aws
 import (
 	"context"
 	"errors"
-	"overseer/common/logger"
-	"overseer/common/types"
-	"overseer/ovsworker/jobs"
-	"overseer/ovsworker/msgheader"
-	"overseer/ovsworker/status"
-	"overseer/proto/actions"
+
+	"github.com/przebro/overseer/common/logger"
+	"github.com/przebro/overseer/common/types"
+	"github.com/przebro/overseer/ovsworker/jobs"
+	"github.com/przebro/overseer/ovsworker/msgheader"
+	"github.com/przebro/overseer/ovsworker/status"
+	"github.com/przebro/overseer/proto/actions"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"

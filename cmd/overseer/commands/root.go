@@ -3,13 +3,14 @@ package commands
 import (
 	"fmt"
 	"os"
-	"overseer/common/core"
-	"overseer/common/helpers"
-	"overseer/common/logger"
-	"overseer/common/validator"
-	"overseer/overseer"
-	"overseer/overseer/config"
 	"path/filepath"
+
+	"github.com/przebro/overseer/common/core"
+	"github.com/przebro/overseer/common/helpers"
+	"github.com/przebro/overseer/common/logger"
+	"github.com/przebro/overseer/common/validator"
+	"github.com/przebro/overseer/overseer"
+	"github.com/przebro/overseer/overseer/config"
 
 	"github.com/spf13/cobra"
 )

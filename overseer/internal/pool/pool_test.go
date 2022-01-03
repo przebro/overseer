@@ -4,15 +4,16 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"overseer/common/logger"
-	"overseer/common/types"
-	"overseer/datastore"
-	"overseer/overseer/config"
-	"overseer/overseer/internal/events"
-	"overseer/overseer/internal/taskdef"
-	"overseer/overseer/internal/unique"
 	"path/filepath"
 	"time"
+
+	"github.com/przebro/overseer/common/logger"
+	"github.com/przebro/overseer/common/types"
+	"github.com/przebro/overseer/datastore"
+	"github.com/przebro/overseer/overseer/config"
+	"github.com/przebro/overseer/overseer/internal/events"
+	"github.com/przebro/overseer/overseer/internal/taskdef"
+	"github.com/przebro/overseer/overseer/internal/unique"
 )
 
 type mockJournal struct {

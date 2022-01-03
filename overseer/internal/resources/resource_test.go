@@ -3,11 +3,12 @@ package resources
 import (
 	"encoding/json"
 	"os"
-	"overseer/common/logger"
-	"overseer/datastore"
-	"overseer/overseer/config"
-	"overseer/overseer/internal/events"
 	"testing"
+
+	"github.com/przebro/overseer/common/logger"
+	"github.com/przebro/overseer/datastore"
+	"github.com/przebro/overseer/overseer/config"
+	"github.com/przebro/overseer/overseer/internal/events"
 )
 
 var manager ResourceManager

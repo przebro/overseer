@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"overseer/ovscli"
+	"github.com/przebro/overseer/ovscli"
 
 	"github.com/spf13/cobra"
 )

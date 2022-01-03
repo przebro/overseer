@@ -3,10 +3,11 @@ package pool
 import (
 	"context"
 	"errors"
-	"overseer/common/types/date"
-	"overseer/datastore"
-	"overseer/overseer/internal/unique"
 	"sync"
+
+	"github.com/przebro/overseer/common/types/date"
+	"github.com/przebro/overseer/datastore"
+	"github.com/przebro/overseer/overseer/internal/unique"
 
 	"github.com/przebro/databazaar/collection"
 )

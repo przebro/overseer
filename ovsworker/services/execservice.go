@@ -6,14 +6,15 @@ import (
 
 	"fmt"
 	"os"
-	"overseer/common/logger"
-	"overseer/common/types"
 	"path/filepath"
 
-	"overseer/ovsworker/jobs"
-	"overseer/ovsworker/msgheader"
-	"overseer/ovsworker/task"
-	"overseer/proto/wservices"
+	"github.com/przebro/overseer/common/logger"
+	"github.com/przebro/overseer/common/types"
+
+	"github.com/przebro/overseer/ovsworker/jobs"
+	"github.com/przebro/overseer/ovsworker/msgheader"
+	"github.com/przebro/overseer/ovsworker/task"
+	"github.com/przebro/overseer/proto/wservices"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"go.uber.org/zap"

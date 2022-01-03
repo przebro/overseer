@@ -2,8 +2,9 @@ package cert
 
 import (
 	"os"
-	"overseer/common/types"
 	"testing"
+
+	"github.com/przebro/overseer/common/types"
 )
 
 func TestGetClientTLSInvalid(t *testing.T) {

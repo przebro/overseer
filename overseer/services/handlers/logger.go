@@ -4,8 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"overseer/common/logger"
 	"path"
+
+	"github.com/przebro/overseer/common/logger"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"

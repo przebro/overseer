@@ -3,13 +3,14 @@ package work
 import (
 	"errors"
 	"fmt"
-	"overseer/common/logger"
-	"overseer/common/types"
-	"overseer/overseer/config"
-	"overseer/overseer/internal/events"
-	"overseer/overseer/internal/unique"
 	"sync"
 	"time"
+
+	"github.com/przebro/overseer/common/logger"
+	"github.com/przebro/overseer/common/types"
+	"github.com/przebro/overseer/overseer/config"
+	"github.com/przebro/overseer/overseer/internal/events"
+	"github.com/przebro/overseer/overseer/internal/unique"
 )
 
 var errWorkerBusy = errors.New("no available workers")

@@ -1,9 +1,10 @@
 package main
 
 import (
-	"overseer/cmd/ovstools/commands"
-	"overseer/ovscli"
 	"strings"
+
+	"github.com/przebro/overseer/cmd/ovstools/commands"
+	"github.com/przebro/overseer/ovscli"
 
 	"github.com/manifoldco/promptui"
 )

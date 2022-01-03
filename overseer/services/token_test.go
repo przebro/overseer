@@ -1,8 +1,9 @@
 package services
 
 import (
-	"overseer/overseer/config"
 	"testing"
+
+	"github.com/przebro/overseer/overseer/config"
 )
 
 func TestCreateTokenVerifier(t *testing.T) {

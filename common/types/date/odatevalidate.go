@@ -1,8 +1,9 @@
 package date
 
 import (
-	"overseer/common/validator"
 	"regexp"
+
+	"github.com/przebro/overseer/common/validator"
 
 	vl "github.com/go-playground/validator/v10"
 )

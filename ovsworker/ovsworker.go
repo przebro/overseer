@@ -2,11 +2,12 @@ package ovsworker
 
 import (
 	"fmt"
-	"overseer/common/core"
-	"overseer/common/logger"
-	"overseer/ovsworker/config"
-	"overseer/ovsworker/services"
 	"path/filepath"
+
+	"github.com/przebro/overseer/common/core"
+	"github.com/przebro/overseer/common/logger"
+	"github.com/przebro/overseer/ovsworker/config"
+	"github.com/przebro/overseer/ovsworker/services"
 
 	"github.com/pkg/errors"
 )

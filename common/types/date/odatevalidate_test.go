@@ -1,8 +1,9 @@
 package date
 
 import (
-	"overseer/common/validator"
 	"testing"
+
+	"github.com/przebro/overseer/common/validator"
 )
 
 func TestOdateValidator(t *testing.T) {

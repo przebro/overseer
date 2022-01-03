@@ -1,10 +1,11 @@
 package overseer
 
 import (
-	"overseer/common/logger"
-	"overseer/overseer/config"
-	"overseer/overseer/internal/events"
 	"time"
+
+	"github.com/przebro/overseer/common/logger"
+	"github.com/przebro/overseer/overseer/config"
+	"github.com/przebro/overseer/overseer/internal/events"
 )
 
 type overseerTimer struct{ log logger.AppLogger }

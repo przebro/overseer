@@ -4,11 +4,12 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"overseer/common/cert"
-	"overseer/common/types"
-	"overseer/proto/services"
 	"strings"
 	"time"
+
+	"github.com/przebro/overseer/common/cert"
+	"github.com/przebro/overseer/common/types"
+	"github.com/przebro/overseer/proto/services"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"

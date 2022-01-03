@@ -2,8 +2,9 @@ package handlers
 
 import (
 	"context"
-	"overseer/common/logger"
 	"path"
+
+	"github.com/przebro/overseer/common/logger"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"

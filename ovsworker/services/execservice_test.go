@@ -5,12 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"overseer/common/logger"
-	"overseer/ovsworker/task"
-	"overseer/proto/actions"
-	"overseer/proto/wservices"
 	"testing"
 	"time"
+
+	"github.com/przebro/overseer/common/logger"
+	"github.com/przebro/overseer/ovsworker/task"
+	"github.com/przebro/overseer/proto/actions"
+	"github.com/przebro/overseer/proto/wservices"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"google.golang.org/grpc/codes"
