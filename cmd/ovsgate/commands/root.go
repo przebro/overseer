@@ -15,7 +15,6 @@ import (
 )
 
 var (
-	conf       *config.OverseerGatewayConfig
 	configFile string
 	hostAddr   string
 	hostPort   int
@@ -52,13 +51,14 @@ func startGateway() {
 	var err error
 	var gate *ovsgate.OverseerGateway
 	var log logger.AppLogger
+	var conf config.OverseerGatewayConfig
 
 	if rootPath, progPath, err = helpers.GetDirectories(os.Args[0]); err != nil {
 		fmt.Println(err)
 		os.Exit(8)
 	}
 
-	if err = getConfiguration(rootPath, progPath); err != nil {
+	if conf, err = getConfiguration(rootPath, progPath); err != nil {
 		fmt.Println(err)
 		os.Exit(16)
 	}
@@ -88,24 +88,25 @@ func startGateway() {
 
 }
 
-func getConfiguration(root, prog string) error {
+func getConfiguration(root, prog string) (config.OverseerGatewayConfig, error) {
 
 	var err error
+	var conf config.OverseerGatewayConfig
 
 	if configFile != "" {
 		if conf, err = config.Load(configFile); err != nil {
-			return err
+			return conf, err
 		}
 	} else {
 
 		if conf, err = config.Load(filepath.Join(root, "config", "gateway.json")); err != nil {
-			return err
+			return conf, err
 		}
 	}
 
-	if err = validator.Valid.Validate(*conf); err != nil {
-		return err
+	if err = validator.Valid.Validate(conf); err != nil {
+		return conf, err
 	}
 
-	return nil
+	return conf, nil
 }

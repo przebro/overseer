@@ -25,9 +25,9 @@ const anonymousKey string = "<ANONYMOUS>"
 var (
 	//ErrUnauthenticatedAccess - occurs when user is not authenticated
 	ErrUnauthenticatedAccess = errors.New("user not authenticated")
-	//ErrUnauthenticatedAccess - occurs when request contains invalid token
+	//ErrInvalidToken - occurs when request contains invalid token
 	ErrInvalidToken = errors.New("invalid token")
-	//ErrUnauthenticatedAccess - occurs when user is valid but does not have privileges to perform specific action
+	//ErrUserNotAuthorized - occurs when user is valid but does not have privileges to perform specific action
 	ErrUserNotAuthorized = errors.New("user not authorized to perform this action")
 )
 

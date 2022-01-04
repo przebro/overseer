@@ -58,11 +58,17 @@ func TestGetServerWithClientCArootTLS(t *testing.T) {
 	kpath := "../../docker/cert/overseer_srv.key"
 	cpath := "../../docker/cert/overseer_srv.crt"
 	capath := "../../docker/cert/root_ca.crt"
+
 	if _, err := os.Stat(kpath); err != nil {
 		t.Skip("key file does not exists, run certgen.sh first")
 
 	}
 	if _, err := os.Stat(cpath); err != nil {
+		t.Skip("cert file does not exists, run certgen.sh first")
+
+	}
+
+	if _, err := os.Stat(capath); err != nil {
 		t.Skip("cert file does not exists, run certgen.sh first")
 
 	}
@@ -109,5 +115,57 @@ func TestGetServerTLSInvalidCAPath(t *testing.T) {
 
 	if _, err := getServerWithClientCArootTLS(cpath, kpath, fpath, types.CertPolicyRequired); err == nil {
 		t.Error("unexpected result")
+	}
+}
+
+func TestBuildServerCredentials_Errors(t *testing.T) {
+
+	kpath := "cert.go"
+	cpath := "../../docker/cert/overseer_srv.crt"
+	fpath := "cert.go"
+
+	if _, err := os.Stat(kpath); err != nil {
+		t.Skip("key file does not exists, run certgen.sh first")
+
+	}
+	if _, err := os.Stat(cpath); err != nil {
+		t.Skip("cert file does not exists, run certgen.sh first")
+
+	}
+
+	_, err := BuildServerCredentials(fpath, cpath, kpath, types.CertPolicyRequired, types.ConnectionSecurityLevelClientAndServer)
+	if err == nil {
+		t.Error("unexpected result,err is nil")
+	}
+
+	_, err = BuildServerCredentials(fpath, cpath, kpath, types.CertPolicyRequired, types.ConnectionSecurityLevelServeOnly)
+	if err == nil {
+		t.Error("unexpected result,err is nil")
+	}
+}
+
+func TestBuildClientCredentials_Errors(t *testing.T) {
+
+	kpath := "cert.go"
+	cpath := "../../docker/cert/overseer_srv.crt"
+	fpath := "cert.go"
+
+	if _, err := os.Stat(kpath); err != nil {
+		t.Skip("key file does not exists, run certgen.sh first")
+
+	}
+	if _, err := os.Stat(cpath); err != nil {
+		t.Skip("cert file does not exists, run certgen.sh first")
+
+	}
+
+	_, err := BuildClientCredentials(fpath, cpath, kpath, types.CertPolicyRequired, types.ConnectionSecurityLevelClientAndServer)
+	if err == nil {
+		t.Error("unexpected result,err is nil")
+	}
+
+	_, err = BuildClientCredentials(fpath, cpath, kpath, types.CertPolicyRequired, types.ConnectionSecurityLevelServeOnly)
+	if err == nil {
+		t.Error("unexpected result,err is nil")
 	}
 }

@@ -40,7 +40,7 @@ func (c *awsConverter) ConvertToMsg(data json.RawMessage, variables []taskdef.Va
 		b.withConnectionName(v)
 
 	} else {
-		return nil, errors.New("unkown connection type")
+		return nil, errors.New("unknown connection type")
 	}
 
 	if result.Type == taskdef.AWSActionTypeLambda {
@@ -60,7 +60,7 @@ func (c *awsConverter) ConvertToMsg(data json.RawMessage, variables []taskdef.Va
 		b.withStepFunction(val)
 
 	} else {
-		return nil, errors.New("unkown action type")
+		return nil, errors.New("unknown action type")
 	}
 
 	if v, ok := result.Payload.(string); ok {

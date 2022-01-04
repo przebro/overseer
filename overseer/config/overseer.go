@@ -56,11 +56,11 @@ type ServerConfiguration struct {
 	ServiceName      string                        `json:"serviceName" validate:"required"`
 	Host             string                        `json:"ovshost" validate:"ipv4,required"`
 	Port             int                           `json:"ovsport" validate:"min=1024,max=65535,required"`
-	SecurityLevel    types.ConnectionSecurityLevel `default:"none" json:"securityLevel" validate:"oneof=none server clientandserver"`
+	SecurityLevel    types.ConnectionSecurityLevel `json:"securityLevel" validate:"oneof=none server clientandserver"`
 	ClientCA         string                        `json:"clientCA"`
 	ServerCert       string                        `json:"cert"`
 	ServerKey        string                        `json:"key"`
-	ClientCertPolicy types.CertPolicy              `default:"none" json:"clientCertPolicy" validate:"oneof=none required verify"`
+	ClientCertPolicy types.CertPolicy              `json:"clientCertPolicy" validate:"oneof=none required verify"`
 }
 
 //OverseerConfiguration - main configuration
@@ -114,11 +114,16 @@ type JournalConfiguration struct {
 //Load - Loads configuration from a file
 func Load(path string) (OverseerConfiguration, error) {
 
-	config := OverseerConfiguration{}
+	config := OverseerConfiguration{
+		Server: ServerConfiguration{
+			ClientCertPolicy: types.CertPolicyNone,
+			SecurityLevel:    types.ConnectionSecurityLevelNone,
+		},
+	}
 
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
-		return config, errors.New("Unable to loadConfiguration from file")
+		return config, errors.New("unable to load configuration from file")
 	}
 	err = json.Unmarshal(data, &config)
 

@@ -20,12 +20,22 @@ import (
 
 //OverseerGateway - implements grpc gateway
 type OverseerGateway struct {
-	config *config.OverseerGatewayConfig
+	config config.OverseerGatewayConfig
 	log    logger.AppLogger
 }
 
+const (
+	apiHandlePatter     = "/api/"
+	fileServerDirectory = "./www/swagger"
+	utilsDirectory      = "./www/utils"
+	docsHandlerPattern  = "/docs/"
+	utilsHandlerPattern = "/utils/"
+	cssHandlerPatter    = "/css/"
+	jsHandlerPatter     = "/js/"
+)
+
 //NewInstance - creates a new instance of a OverseerGateway
-func NewInstance(cfg *config.OverseerGatewayConfig, log logger.AppLogger) (*OverseerGateway, error) {
+func NewInstance(cfg config.OverseerGatewayConfig, log logger.AppLogger) (*OverseerGateway, error) {
 
 	g := &OverseerGateway{config: cfg, log: log}
 
@@ -82,14 +92,14 @@ func (g *OverseerGateway) Start() error {
 }
 func (g *OverseerGateway) setupHandlers(mux *http.ServeMux, gwmux *runtime.ServeMux) {
 
-	mux.Handle("/api/", newHttpInterceptor(gwmux, g.log))
-	fs := http.FileServer(http.Dir("./www/swagger"))
-	mux.Handle("/docs/", http.StripPrefix("/docs/", fs))
+	mux.Handle(apiHandlePatter, newHttpInterceptor(gwmux, g.log))
+	fs := http.FileServer(http.Dir(fileServerDirectory))
+	mux.Handle(docsHandlerPattern, http.StripPrefix(docsHandlerPattern, fs))
 
-	ui := http.FileServer(http.Dir("./www/utils"))
-	mux.Handle("/utils/", http.StripPrefix("/utils/", ui))
-	mux.Handle("/css/", ui)
-	mux.Handle("/js/", ui)
+	ui := http.FileServer(http.Dir(utilsDirectory))
+	mux.Handle(utilsHandlerPattern, http.StripPrefix(utilsHandlerPattern, ui))
+	mux.Handle(cssHandlerPatter, ui)
+	mux.Handle(jsHandlerPatter, ui)
 
 }
 func initializeServices(ctx context.Context, mux *runtime.ServeMux, conn *grpc.ClientConn) error {

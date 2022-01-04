@@ -17,10 +17,10 @@ type WorkerConfiguration struct {
 	Port             int                           `json:"port" validate:"min=1024,max=65535,required"`
 	SysoutDirectory  string                        `json:"sysoutDirectory" validate:"required"`
 	TaskLimit        int                           `json:"taskLimit" validate:"min=0,max=128"`
-	SecurityLevel    types.ConnectionSecurityLevel `default:"none" json:"securityLevel" validate:"oneof=none server clientandserver"`
+	SecurityLevel    types.ConnectionSecurityLevel `json:"securityLevel" validate:"oneof=none server clientandserver"`
 	WorkerCert       string                        `json:"cert"`
 	WorkerKey        string                        `json:"key"`
-	WorkerCertPolicy types.CertPolicy              `default:"none" json:"overseerCertPolicy" validate:"oneof=none required verify"`
+	WorkerCertPolicy types.CertPolicy              `json:"overseerCertPolicy" validate:"oneof=none required verify"`
 	OverseerCA       string                        `json:"overseerCA"`
 	RootDirectory    string
 	ProcessDirectory string
@@ -35,7 +35,12 @@ type OverseerWorkerConfiguration struct {
 //Load - loads a configuration from file
 func Load(path string) (OverseerWorkerConfiguration, error) {
 
-	config := OverseerWorkerConfiguration{}
+	config := OverseerWorkerConfiguration{
+		Worker: WorkerConfiguration{
+			WorkerCertPolicy: types.CertPolicyNone,
+			SecurityLevel:    types.ConnectionSecurityLevelNone,
+		},
+	}
 
 	data, err := ioutil.ReadFile(path)
 	if err != nil {

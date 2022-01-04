@@ -76,11 +76,13 @@ type ActiveDefinitionRemover interface {
 	RemoveActiveDefinition(id string) error
 }
 
+//ActiveDefinitionReadWriter - groups definition reader and writer
 type ActiveDefinitionReadWriter interface {
 	ActiveDefinitionReader
 	ActiveDefinitionWriter
 }
 
+//ActiveDefinitionReadWriter - groups definition reader, writer and remover
 type ActiveDefinitionReadWriterRemover interface {
 	ActiveDefinitionReader
 	ActiveDefinitionWriter

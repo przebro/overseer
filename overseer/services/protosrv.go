@@ -59,6 +59,7 @@ func NewOvsGrpcServer(disp events.Dispatcher,
 	return srv
 }
 
+//Start - starts a service
 func (srv *OvsGrpcServer) Start() error {
 
 	conn := fmt.Sprintf("%s:%d", srv.conf.Host, srv.conf.Port)
@@ -78,6 +79,7 @@ func (srv *OvsGrpcServer) Start() error {
 	return nil
 }
 
+//Shutdown - shutdowns a service
 func (srv *OvsGrpcServer) Shutdown() error {
 
 	srv.grpcServer.GracefulStop()

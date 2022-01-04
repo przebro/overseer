@@ -33,7 +33,7 @@ func RegisterStreamHandler(h StreamHandler) {
 	}
 }
 
-//GetStreamHandlers - gets unary handlers
+//GetUnaryHandlers - gets unary handlers
 func GetUnaryHandlers() []grpc.UnaryServerInterceptor {
 
 	handlers := []grpc.UnaryServerInterceptor{}

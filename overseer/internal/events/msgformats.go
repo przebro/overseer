@@ -72,6 +72,7 @@ type TaskInfoResultMsg struct {
 	WaitingInfo string
 }
 
+//TaskCycleMsg - task cyclic data
 type TaskCycleMsg struct {
 	IsCyclic    bool
 	NextRun     types.HourMinTime

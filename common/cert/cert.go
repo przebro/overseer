@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -90,7 +89,6 @@ func getServerWithClientCArootTLS(certpath, keypath, clientCA string, policy typ
 
 	cert, err := tls.LoadX509KeyPair(certpath, keypath)
 	if err != nil {
-		fmt.Println(err)
 		return nil, err
 	}
 

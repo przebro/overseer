@@ -21,7 +21,7 @@ const (
 	messageKey   = "message"
 	errorKey     = "error"
 	workerErrKey = "worker-error"
-	receiveKey   = "grpc-worker-recieve"
+	receiveKey   = "grpc-worker-receive"
 )
 
 //NewLogHandler - creates a new LogHandler

@@ -24,7 +24,7 @@ func newFile(dir, prefix string, num int) (*os.File, error) {
 	fname := fmt.Sprintf("%s_%s_%04d.log", prefix, time.Now().Format("20060102_150405"), num)
 	path := filepath.Join(dir, fname)
 
-	if filepath.IsAbs(path) != true {
+	if !filepath.IsAbs(path) {
 		return nil, fmt.Errorf("filepath is not absolute:%s", path)
 
 	}
