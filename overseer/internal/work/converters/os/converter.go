@@ -14,7 +14,7 @@ import (
 
 func init() {
 
-	converter.RegisterConverter(types.TypeDummy, &osConverter{})
+	converter.RegisterConverter(types.TypeOs, &osConverter{})
 }
 
 type osConverter struct {

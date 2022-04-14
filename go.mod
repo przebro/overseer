@@ -18,7 +18,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/przebro/databazaar v0.0.0-20210222233636-a6956fda6d41
 	github.com/przebro/localstore v0.0.0-20210223095046-7159d94d8e15
-	github.com/przebro/mongostore v0.0.0-20210223001122-3c2ccdf7a332
+	github.com/przebro/mongostore v0.0.0-20220413141854-9e30c9c41434
 	github.com/spf13/cobra v1.1.1
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.16.0

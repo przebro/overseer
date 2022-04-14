@@ -1,5 +1,6 @@
-{
+   {
     "serverConfiguration":{
+        "serviceName" : "overseersrv",
         "ovshost" : "127.0.0.1",
         "ovsport" : 7053,
         "tls" : false
@@ -8,14 +9,16 @@
     "definitionDirectory" : "./def",
     "LogConfiguration" :{
         "logLevel" : 1,
-        "logDirectory" : "./logs"
+        "sizeLimit" : 2048, 
+        "logDirectory" : "./logs",
+        "prefix" :""
     },
     "ResourceConfiguration" : {
         "tickets" :{ "collectionName" : "resources", "sync" : 2},
         "flags" : { "collectionName" : "resources", "sync" : 2}
     },
     "ActivePoolConfiguration" :{
-        "forceNewDayProc" : true,
+        "forceNewDayProc" : false,
         "newDayProc" : "22:00",
         "maxOkReturnCode" : 4,
         "collection":"tasks",
@@ -33,7 +36,7 @@
     
     "StoreProvider" : {
         "store" : [
-            {"id" : "datastore", "connectionString":"mongodb;127.0.0.1:23017/overseer?username=admin&password=notsecure"}
+            {"id" : "datastore", "connectionString":"mongodb;127.0.0.1:25750/ovsdb?username=ovsdbuser&password=notsecure&untrusted=true"}
         ],
         "collections" : [
             {"storeId" : "datastore", "name" : "resources"},
