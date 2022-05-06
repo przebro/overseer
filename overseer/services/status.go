@@ -6,11 +6,12 @@ import (
 	"github.com/przebro/overseer/common/logger"
 	"github.com/przebro/overseer/proto/services"
 
-	"github.com/golang/protobuf/ptypes/empty"
+	empty "google.golang.org/protobuf/types/known/emptypb"
 )
 
 type ovsStatusService struct {
 	log logger.AppLogger
+	services.UnimplementedStatusServiceServer
 }
 
 //NewStatusService - Creates a new status service

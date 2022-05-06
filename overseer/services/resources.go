@@ -19,6 +19,7 @@ import (
 type ovsResourceService struct {
 	resManager resources.ResourceManager
 	log        logger.AppLogger
+	services.UnimplementedResourceServiceServer
 }
 
 //NewResourceService - Creates new service for ResourceManager

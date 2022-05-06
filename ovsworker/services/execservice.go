@@ -16,10 +16,10 @@ import (
 	"github.com/przebro/overseer/ovsworker/task"
 	"github.com/przebro/overseer/proto/wservices"
 
-	"github.com/golang/protobuf/ptypes/empty"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	empty "google.golang.org/protobuf/types/known/emptypb"
 )
 
 var statusMap = map[types.WorkerTaskStatus]wservices.TaskExecutionResponseMsg_TaskStatus{
@@ -45,6 +45,7 @@ type workerExecutionService struct {
 	te        *task.TaskRunnerManager
 	sysoutDir string
 	taskLimit int
+	wservices.UnimplementedTaskExecutionServiceServer
 }
 
 //NewWorkerExecutionService - creates a new instance of a workerExecutionService

@@ -8,6 +8,7 @@ import (
 	"github.com/przebro/overseer/common/logger"
 	"github.com/przebro/overseer/ovsworker/config"
 	"github.com/przebro/overseer/ovsworker/services"
+	"github.com/przebro/overseer/proto/wservices"
 
 	"github.com/pkg/errors"
 )
@@ -16,6 +17,7 @@ type ovsWorker struct {
 	conf          config.OverseerWorkerConfiguration
 	grpcComponent core.OverseerComponent
 	logger        logger.AppLogger
+	wservices.UnimplementedTaskExecutionServiceServer
 }
 
 //NewWorkerService - creates a new Worker

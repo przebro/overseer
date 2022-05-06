@@ -16,7 +16,8 @@
       "name": "TaskService"
     },
     {
-      "name": "DefinitionService"
+      "name": "DefinitionService",
+      "description": "Definition Service"
     },
     {
       "name": "AdministrationService"
@@ -89,6 +90,62 @@
         ],
         "tags": [
           "AuthenticateService"
+        ]
+      }
+    },
+    "/api/def/definition": {
+      "post": {
+        "operationId": "DefinitionService_GetDefinition",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/protoDefinitionResultMsg"
+            }
+          },
+          "401": {
+            "description": "An unauthenticated user",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authenticated"
+              }
+            }
+          },
+          "403": {
+            "description": "An unauthorized access",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authorized to perform this action"
+              }
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "definitionMsg",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/protoDefinitionMsg"
+            }
+          }
+        ],
+        "tags": [
+          "DefinitionService"
         ]
       }
     },
@@ -1831,10 +1888,6 @@
         },
         "taskName": {
           "type": "string"
-        },
-        "lockID": {
-          "type": "integer",
-          "format": "int64"
         }
       }
     },
@@ -1842,10 +1895,7 @@
       "type": "object",
       "properties": {
         "definitionMsg": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/protoDefinitionDetails"
-          }
+          "$ref": "#/definitions/protoDefinitionDetails"
         }
       }
     },

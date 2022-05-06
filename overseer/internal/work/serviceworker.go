@@ -14,8 +14,8 @@ import (
 	"github.com/przebro/overseer/overseer/internal/unique"
 	converter "github.com/przebro/overseer/overseer/internal/work/converters"
 	"github.com/przebro/overseer/proto/wservices"
+	empty "google.golang.org/protobuf/types/known/emptypb"
 
-	"github.com/golang/protobuf/ptypes/empty"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"

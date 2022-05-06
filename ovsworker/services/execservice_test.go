@@ -13,10 +13,10 @@ import (
 	"github.com/przebro/overseer/proto/actions"
 	"github.com/przebro/overseer/proto/wservices"
 
-	"github.com/golang/protobuf/ptypes/empty"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/anypb"
+	empty "google.golang.org/protobuf/types/known/emptypb"
 )
 
 var exservice *workerExecutionService

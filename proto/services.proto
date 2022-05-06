@@ -719,7 +719,17 @@ service TaskService{
 }
 
 service DefinitionService{
-    rpc GetDefinition(DefinitionActionMsg) returns (DefinitionResultMsg){}
+
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_tag) = {
+        description : "Definition Service"
+    };
+
+    rpc GetDefinition(DefinitionActionMsg) returns (DefinitionResultMsg){
+        option (google.api.http) = {
+            post : "/api/def/definition"
+            body : "definitionMsg"
+        };
+    }
     rpc ListGroups(FilterMsg) returns (DefinitionListGroupResultMsg){
         option (google.api.http) = {
             get : "/api/def/groups/{filter}"
@@ -802,17 +812,16 @@ message TaskOrderGroupMsg{
 message DefinitionMsg{
     string groupName = 1;
     string taskName = 2;
-    uint32 lockID = 3;
 }
 message DefinitionActionMsg{
-    repeated DefinitionMsg definitionMsg = 1;
+    DefinitionMsg definitionMsg = 1;
 }
 message DefinitionDetails{
     bool success = 1;
     string message  = 2;   
 }
 message DefinitionResultMsg{
-    repeated DefinitionDetails definitionMsg = 1;
+    DefinitionDetails definitionMsg = 1;
 }
 
 message ActionResultMsg{

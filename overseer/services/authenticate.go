@@ -18,6 +18,7 @@ type ovsAuthenticateService struct {
 	tokenManager   *auth.TokenCreatorVerifier
 	allowAnonymous bool
 	log            logger.AppLogger
+	services.UnimplementedAuthenticateServiceServer
 }
 
 //NewAuthenticateService - Creates a new Authentication service

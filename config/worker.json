@@ -11,7 +11,7 @@
         "logLevel" : 1,
         "sizeLimit" : 2048, 
         "logDirectory" : "logs",
-        "prefix" :""
+        "prefix" :"worker_01"
         }
         
 }

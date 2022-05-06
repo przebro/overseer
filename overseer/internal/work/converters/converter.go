@@ -9,7 +9,7 @@ import (
 	"github.com/przebro/overseer/common/types"
 	"github.com/przebro/overseer/overseer/internal/taskdef"
 
-	"github.com/golang/protobuf/ptypes/any"
+	any "google.golang.org/protobuf/types/known/anypb"
 )
 
 var converters map[types.TaskType]TaskActionConverter = make(map[types.TaskType]TaskActionConverter)

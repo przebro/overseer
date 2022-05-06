@@ -3,6 +3,8 @@
     "name" :"sample_07",
     "group" : "samples",
     "description" :"sample long runnnig task",
+    "confirm" : true,
+    "retention" : 3,
     "inticket" : [
         {"name" : "IN-SAMPLE07","odate" : "PREV" }
     ],

@@ -10,9 +10,9 @@ import (
 	"github.com/przebro/overseer/overseer/auth"
 	"github.com/przebro/overseer/proto/services"
 
-	"github.com/golang/protobuf/ptypes/empty"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	empty "google.golang.org/protobuf/types/known/emptypb"
 )
 
 type ovsAdministrationService struct {
@@ -21,6 +21,7 @@ type ovsAdministrationService struct {
 	rmanager    *auth.RoleManager
 	amanager    *auth.RoleAssociationManager
 	qcomponents []core.ComponentQuiescer
+	services.UnimplementedAdministrationServiceServer
 }
 
 //NewAdministrationService - returns a new instance of ovsAdministrationService

@@ -8,8 +8,8 @@ import (
 	"github.com/przebro/overseer/overseer/internal/taskdef"
 	converter "github.com/przebro/overseer/overseer/internal/work/converters"
 
-	"github.com/golang/protobuf/ptypes/any"
 	"google.golang.org/protobuf/proto"
+	any "google.golang.org/protobuf/types/known/anypb"
 )
 
 func init() {

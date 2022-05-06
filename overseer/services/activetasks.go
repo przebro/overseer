@@ -26,6 +26,7 @@ type ovsActiveTaskService struct {
 	poolView pool.TaskViewer
 	jrnal    journal.TaskLogReader
 	log      logger.AppLogger
+	services.UnimplementedTaskServiceServer
 }
 
 const errInvalidUser = "invalid user"

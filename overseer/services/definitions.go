@@ -17,6 +17,7 @@ import (
 type ovsDefinitionService struct {
 	log        logger.AppLogger
 	defManager taskdef.TaskDefinitionManager
+	services.UnimplementedDefinitionServiceServer
 }
 
 //NewDefinistionService - Creates a new Definition service
@@ -31,19 +32,12 @@ func (srv *ovsDefinitionService) GetDefinition(ctx context.Context, msg *service
 
 	var success bool
 	var resultMsg string
-	tdata := make([]taskdata.GroupNameData, 0)
+	tdata := make([]taskdata.GroupNameData, 1)
 	result := &services.DefinitionResultMsg{}
 
-	for _, e := range msg.DefinitionMsg {
+	srv.log.Info("get definition call:", msg.String())
 
-		data := taskdata.GroupNameData{GroupData: taskdata.GroupData{Group: e.GroupName}, Name: e.TaskName}
-		err := validator.Valid.Validate(data)
-		if err != nil {
-			result.DefinitionMsg = append(result.DefinitionMsg, &services.DefinitionDetails{Success: false, Message: err.Error()})
-		} else {
-			tdata = append(tdata, data)
-		}
-	}
+	tdata[0] = taskdata.GroupNameData{GroupData: taskdata.GroupData{Group: msg.DefinitionMsg.GroupName}, Name: msg.DefinitionMsg.TaskName}
 
 	tasks := srv.defManager.GetTasks(tdata...)
 
@@ -60,7 +54,7 @@ func (srv *ovsDefinitionService) GetDefinition(ctx context.Context, msg *service
 			resultMsg = string(data)
 		}
 
-		result.DefinitionMsg = append(result.DefinitionMsg, &services.DefinitionDetails{Success: success, Message: resultMsg})
+		result.DefinitionMsg = &services.DefinitionDetails{Success: success, Message: resultMsg}
 	}
 
 	return result, nil

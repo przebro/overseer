@@ -26,7 +26,6 @@ func (i *httpInterceptor) ServeHTTP(resp http.ResponseWriter, req *http.Request)
 		return
 	}
 
-	i.log.Info(req)
 	i.mux.ServeHTTP(resp, req)
 }
 

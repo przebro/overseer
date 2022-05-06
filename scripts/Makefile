@@ -28,9 +28,9 @@ wprof:
 cover:
 	go tool cover  -html coverage.out  
 protoc:
-	 protoc --proto_path=./proto/  --go_out=plugins=grpc:./ proto/wservices.proto 
-	 protoc --proto_path=./proto/  --go_out=plugins=grpc:./ proto/actions.proto 
-	 protoc --proto_path=./proto/  --go_out=plugins=grpc:./ proto/services.proto
+	 protoc --proto_path=./proto/ --go_out=paths=source_relative:./proto/wservices proto/wservices.proto  --go-grpc_out=./ proto/wservices.proto 
+	 protoc --proto_path=./proto/ --go_out=paths=source_relative:./proto/actions proto/actions.proto   --go-grpc_out=./ proto/actions.proto 
+	 protoc --proto_path=./proto/ --go_out=paths=source_relative:./proto/services proto/services.proto  --go-grpc_out=./ proto/services.proto
 	 protoc -I ./proto --grpc-gateway_out ./proto/services --grpc-gateway_opt paths=source_relative --grpc-gateway_opt logtostderr=true services.proto
 	 protoc -I ./proto --openapiv2_out ./www/swagger --openapiv2_opt logtostderr=true services.proto
 dockerbuild:

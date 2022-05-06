@@ -1026,6 +1026,40 @@ func local_request_TaskService_TaskLog_0(ctx context.Context, marshaler runtime.
 
 }
 
+func request_DefinitionService_GetDefinition_0(ctx context.Context, marshaler runtime.Marshaler, client DefinitionServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var protoReq DefinitionActionMsg
+	var metadata runtime.ServerMetadata
+
+	newReader, berr := utilities.IOReaderFactory(req.Body)
+	if berr != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", berr)
+	}
+	if err := marshaler.NewDecoder(newReader()).Decode(&protoReq.DefinitionMsg); err != nil && err != io.EOF {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+
+	msg, err := client.GetDefinition(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
+	return msg, metadata, err
+
+}
+
+func local_request_DefinitionService_GetDefinition_0(ctx context.Context, marshaler runtime.Marshaler, server DefinitionServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var protoReq DefinitionActionMsg
+	var metadata runtime.ServerMetadata
+
+	newReader, berr := utilities.IOReaderFactory(req.Body)
+	if berr != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", berr)
+	}
+	if err := marshaler.NewDecoder(newReader()).Decode(&protoReq.DefinitionMsg); err != nil && err != io.EOF {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+
+	msg, err := server.GetDefinition(ctx, &protoReq)
+	return msg, metadata, err
+
+}
+
 func request_DefinitionService_ListGroups_0(ctx context.Context, marshaler runtime.Marshaler, client DefinitionServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var protoReq FilterMsg
 	var metadata runtime.ServerMetadata
@@ -1142,12 +1176,13 @@ func RegisterAuthenticateServiceHandlerServer(ctx context.Context, mux *runtime.
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/proto.AuthenticateService/Authenticate", runtime.WithHTTPPathPattern("/api/authorize"))
+		var err error
+		ctx, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/proto.AuthenticateService/Authenticate", runtime.WithHTTPPathPattern("/api/authorize"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := local_request_AuthenticateService_Authenticate_0(rctx, inboundMarshaler, server, req, pathParams)
+		resp, md, err := local_request_AuthenticateService_Authenticate_0(ctx, inboundMarshaler, server, req, pathParams)
 		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
@@ -1174,12 +1209,13 @@ func RegisterResourceServiceHandlerServer(ctx context.Context, mux *runtime.Serv
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/proto.ResourceService/AddTicket", runtime.WithHTTPPathPattern("/api/resources/ticket"))
+		var err error
+		ctx, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/proto.ResourceService/AddTicket", runtime.WithHTTPPathPattern("/api/resources/ticket"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := local_request_ResourceService_AddTicket_0(rctx, inboundMarshaler, server, req, pathParams)
+		resp, md, err := local_request_ResourceService_AddTicket_0(ctx, inboundMarshaler, server, req, pathParams)
 		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
@@ -1197,12 +1233,13 @@ func RegisterResourceServiceHandlerServer(ctx context.Context, mux *runtime.Serv
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/proto.ResourceService/DeleteTicket", runtime.WithHTTPPathPattern("/api/resources/ticket/{name}/{odate}"))
+		var err error
+		ctx, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/proto.ResourceService/DeleteTicket", runtime.WithHTTPPathPattern("/api/resources/ticket/{name}/{odate}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := local_request_ResourceService_DeleteTicket_0(rctx, inboundMarshaler, server, req, pathParams)
+		resp, md, err := local_request_ResourceService_DeleteTicket_0(ctx, inboundMarshaler, server, req, pathParams)
 		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
@@ -1220,12 +1257,13 @@ func RegisterResourceServiceHandlerServer(ctx context.Context, mux *runtime.Serv
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/proto.ResourceService/CheckTicket", runtime.WithHTTPPathPattern("/api/resources/ticket/{name}/{odate}"))
+		var err error
+		ctx, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/proto.ResourceService/CheckTicket", runtime.WithHTTPPathPattern("/api/resources/ticket/{name}/{odate}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := local_request_ResourceService_CheckTicket_0(rctx, inboundMarshaler, server, req, pathParams)
+		resp, md, err := local_request_ResourceService_CheckTicket_0(ctx, inboundMarshaler, server, req, pathParams)
 		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
@@ -1250,12 +1288,13 @@ func RegisterResourceServiceHandlerServer(ctx context.Context, mux *runtime.Serv
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/proto.ResourceService/SetFlag", runtime.WithHTTPPathPattern("/api/resources/flag"))
+		var err error
+		ctx, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/proto.ResourceService/SetFlag", runtime.WithHTTPPathPattern("/api/resources/flag"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := local_request_ResourceService_SetFlag_0(rctx, inboundMarshaler, server, req, pathParams)
+		resp, md, err := local_request_ResourceService_SetFlag_0(ctx, inboundMarshaler, server, req, pathParams)
 		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
@@ -1273,12 +1312,13 @@ func RegisterResourceServiceHandlerServer(ctx context.Context, mux *runtime.Serv
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/proto.ResourceService/DestroyFlag", runtime.WithHTTPPathPattern("/api/resources/flag/{name}"))
+		var err error
+		ctx, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/proto.ResourceService/DestroyFlag", runtime.WithHTTPPathPattern("/api/resources/flag/{name}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := local_request_ResourceService_DestroyFlag_0(rctx, inboundMarshaler, server, req, pathParams)
+		resp, md, err := local_request_ResourceService_DestroyFlag_0(ctx, inboundMarshaler, server, req, pathParams)
 		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
@@ -1312,12 +1352,13 @@ func RegisterTaskServiceHandlerServer(ctx context.Context, mux *runtime.ServeMux
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/proto.TaskService/OrderTask", runtime.WithHTTPPathPattern("/api/task/order"))
+		var err error
+		ctx, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/proto.TaskService/OrderTask", runtime.WithHTTPPathPattern("/api/task/order"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := local_request_TaskService_OrderTask_0(rctx, inboundMarshaler, server, req, pathParams)
+		resp, md, err := local_request_TaskService_OrderTask_0(ctx, inboundMarshaler, server, req, pathParams)
 		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
@@ -1335,12 +1376,13 @@ func RegisterTaskServiceHandlerServer(ctx context.Context, mux *runtime.ServeMux
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/proto.TaskService/ForceTask", runtime.WithHTTPPathPattern("/api/task/force"))
+		var err error
+		ctx, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/proto.TaskService/ForceTask", runtime.WithHTTPPathPattern("/api/task/force"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := local_request_TaskService_ForceTask_0(rctx, inboundMarshaler, server, req, pathParams)
+		resp, md, err := local_request_TaskService_ForceTask_0(ctx, inboundMarshaler, server, req, pathParams)
 		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
@@ -1358,12 +1400,13 @@ func RegisterTaskServiceHandlerServer(ctx context.Context, mux *runtime.ServeMux
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/proto.TaskService/OrderGroup", runtime.WithHTTPPathPattern("/api/group/order"))
+		var err error
+		ctx, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/proto.TaskService/OrderGroup", runtime.WithHTTPPathPattern("/api/group/order"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := local_request_TaskService_OrderGroup_0(rctx, inboundMarshaler, server, req, pathParams)
+		resp, md, err := local_request_TaskService_OrderGroup_0(ctx, inboundMarshaler, server, req, pathParams)
 		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
@@ -1381,12 +1424,13 @@ func RegisterTaskServiceHandlerServer(ctx context.Context, mux *runtime.ServeMux
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/proto.TaskService/ForceGroup", runtime.WithHTTPPathPattern("/api/group/force"))
+		var err error
+		ctx, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/proto.TaskService/ForceGroup", runtime.WithHTTPPathPattern("/api/group/force"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := local_request_TaskService_ForceGroup_0(rctx, inboundMarshaler, server, req, pathParams)
+		resp, md, err := local_request_TaskService_ForceGroup_0(ctx, inboundMarshaler, server, req, pathParams)
 		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
@@ -1404,12 +1448,13 @@ func RegisterTaskServiceHandlerServer(ctx context.Context, mux *runtime.ServeMux
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/proto.TaskService/EnforceTask", runtime.WithHTTPPathPattern("/api/task/{taskID}/enforce"))
+		var err error
+		ctx, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/proto.TaskService/EnforceTask", runtime.WithHTTPPathPattern("/api/task/{taskID}/enforce"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := local_request_TaskService_EnforceTask_0(rctx, inboundMarshaler, server, req, pathParams)
+		resp, md, err := local_request_TaskService_EnforceTask_0(ctx, inboundMarshaler, server, req, pathParams)
 		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
@@ -1427,12 +1472,13 @@ func RegisterTaskServiceHandlerServer(ctx context.Context, mux *runtime.ServeMux
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/proto.TaskService/RerunTask", runtime.WithHTTPPathPattern("/api/task/{taskID}/rerun"))
+		var err error
+		ctx, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/proto.TaskService/RerunTask", runtime.WithHTTPPathPattern("/api/task/{taskID}/rerun"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := local_request_TaskService_RerunTask_0(rctx, inboundMarshaler, server, req, pathParams)
+		resp, md, err := local_request_TaskService_RerunTask_0(ctx, inboundMarshaler, server, req, pathParams)
 		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
@@ -1450,12 +1496,13 @@ func RegisterTaskServiceHandlerServer(ctx context.Context, mux *runtime.ServeMux
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/proto.TaskService/HoldTask", runtime.WithHTTPPathPattern("/api/task/{taskID}/hold"))
+		var err error
+		ctx, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/proto.TaskService/HoldTask", runtime.WithHTTPPathPattern("/api/task/{taskID}/hold"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := local_request_TaskService_HoldTask_0(rctx, inboundMarshaler, server, req, pathParams)
+		resp, md, err := local_request_TaskService_HoldTask_0(ctx, inboundMarshaler, server, req, pathParams)
 		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
@@ -1473,12 +1520,13 @@ func RegisterTaskServiceHandlerServer(ctx context.Context, mux *runtime.ServeMux
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/proto.TaskService/FreeTask", runtime.WithHTTPPathPattern("/api/task/{taskID}/free"))
+		var err error
+		ctx, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/proto.TaskService/FreeTask", runtime.WithHTTPPathPattern("/api/task/{taskID}/free"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := local_request_TaskService_FreeTask_0(rctx, inboundMarshaler, server, req, pathParams)
+		resp, md, err := local_request_TaskService_FreeTask_0(ctx, inboundMarshaler, server, req, pathParams)
 		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
@@ -1496,12 +1544,13 @@ func RegisterTaskServiceHandlerServer(ctx context.Context, mux *runtime.ServeMux
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/proto.TaskService/SetToOk", runtime.WithHTTPPathPattern("/api/task/{taskID}/setok"))
+		var err error
+		ctx, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/proto.TaskService/SetToOk", runtime.WithHTTPPathPattern("/api/task/{taskID}/setok"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := local_request_TaskService_SetToOk_0(rctx, inboundMarshaler, server, req, pathParams)
+		resp, md, err := local_request_TaskService_SetToOk_0(ctx, inboundMarshaler, server, req, pathParams)
 		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
@@ -1519,12 +1568,13 @@ func RegisterTaskServiceHandlerServer(ctx context.Context, mux *runtime.ServeMux
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/proto.TaskService/ConfirmTask", runtime.WithHTTPPathPattern("/api/task/{taskID}/confirm"))
+		var err error
+		ctx, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/proto.TaskService/ConfirmTask", runtime.WithHTTPPathPattern("/api/task/{taskID}/confirm"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := local_request_TaskService_ConfirmTask_0(rctx, inboundMarshaler, server, req, pathParams)
+		resp, md, err := local_request_TaskService_ConfirmTask_0(ctx, inboundMarshaler, server, req, pathParams)
 		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
@@ -1549,12 +1599,13 @@ func RegisterTaskServiceHandlerServer(ctx context.Context, mux *runtime.ServeMux
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/proto.TaskService/TaskDetail", runtime.WithHTTPPathPattern("/api/task/{taskID}/details"))
+		var err error
+		ctx, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/proto.TaskService/TaskDetail", runtime.WithHTTPPathPattern("/api/task/{taskID}/details"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := local_request_TaskService_TaskDetail_0(rctx, inboundMarshaler, server, req, pathParams)
+		resp, md, err := local_request_TaskService_TaskDetail_0(ctx, inboundMarshaler, server, req, pathParams)
 		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
@@ -1572,12 +1623,13 @@ func RegisterTaskServiceHandlerServer(ctx context.Context, mux *runtime.ServeMux
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/proto.TaskService/TaskOutput", runtime.WithHTTPPathPattern("/api/task/{taskID}/output"))
+		var err error
+		ctx, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/proto.TaskService/TaskOutput", runtime.WithHTTPPathPattern("/api/task/{taskID}/output"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := local_request_TaskService_TaskOutput_0(rctx, inboundMarshaler, server, req, pathParams)
+		resp, md, err := local_request_TaskService_TaskOutput_0(ctx, inboundMarshaler, server, req, pathParams)
 		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
@@ -1595,12 +1647,13 @@ func RegisterTaskServiceHandlerServer(ctx context.Context, mux *runtime.ServeMux
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/proto.TaskService/TaskLog", runtime.WithHTTPPathPattern("/api/task/{taskID}/log"))
+		var err error
+		ctx, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/proto.TaskService/TaskLog", runtime.WithHTTPPathPattern("/api/task/{taskID}/log"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := local_request_TaskService_TaskLog_0(rctx, inboundMarshaler, server, req, pathParams)
+		resp, md, err := local_request_TaskService_TaskLog_0(ctx, inboundMarshaler, server, req, pathParams)
 		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
@@ -1621,18 +1674,43 @@ func RegisterTaskServiceHandlerServer(ctx context.Context, mux *runtime.ServeMux
 // Note that using this registration option will cause many gRPC library features to stop working. Consider using RegisterDefinitionServiceHandlerFromEndpoint instead.
 func RegisterDefinitionServiceHandlerServer(ctx context.Context, mux *runtime.ServeMux, server DefinitionServiceServer) error {
 
+	mux.Handle("POST", pattern_DefinitionService_GetDefinition_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		var stream runtime.ServerTransportStream
+		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		var err error
+		ctx, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/proto.DefinitionService/GetDefinition", runtime.WithHTTPPathPattern("/api/def/definition"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := local_request_DefinitionService_GetDefinition_0(ctx, inboundMarshaler, server, req, pathParams)
+		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
+		ctx = runtime.NewServerMetadataContext(ctx, md)
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+
+		forward_DefinitionService_GetDefinition_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+
+	})
+
 	mux.Handle("GET", pattern_DefinitionService_ListGroups_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/proto.DefinitionService/ListGroups", runtime.WithHTTPPathPattern("/api/def/groups/{filter}"))
+		var err error
+		ctx, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/proto.DefinitionService/ListGroups", runtime.WithHTTPPathPattern("/api/def/groups/{filter}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := local_request_DefinitionService_ListGroups_0(rctx, inboundMarshaler, server, req, pathParams)
+		resp, md, err := local_request_DefinitionService_ListGroups_0(ctx, inboundMarshaler, server, req, pathParams)
 		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
@@ -1650,12 +1728,13 @@ func RegisterDefinitionServiceHandlerServer(ctx context.Context, mux *runtime.Se
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/proto.DefinitionService/ListDefinitionsFromGroup", runtime.WithHTTPPathPattern("/api/def/{groupName}/definitions"))
+		var err error
+		ctx, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/proto.DefinitionService/ListDefinitionsFromGroup", runtime.WithHTTPPathPattern("/api/def/{groupName}/definitions"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := local_request_DefinitionService_ListDefinitionsFromGroup_0(rctx, inboundMarshaler, server, req, pathParams)
+		resp, md, err := local_request_DefinitionService_ListDefinitionsFromGroup_0(ctx, inboundMarshaler, server, req, pathParams)
 		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
@@ -1712,12 +1791,13 @@ func RegisterAuthenticateServiceHandlerClient(ctx context.Context, mux *runtime.
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/proto.AuthenticateService/Authenticate", runtime.WithHTTPPathPattern("/api/authorize"))
+		var err error
+		ctx, err = runtime.AnnotateContext(ctx, mux, req, "/proto.AuthenticateService/Authenticate", runtime.WithHTTPPathPattern("/api/authorize"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_AuthenticateService_Authenticate_0(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_AuthenticateService_Authenticate_0(ctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
@@ -1781,12 +1861,13 @@ func RegisterResourceServiceHandlerClient(ctx context.Context, mux *runtime.Serv
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/proto.ResourceService/AddTicket", runtime.WithHTTPPathPattern("/api/resources/ticket"))
+		var err error
+		ctx, err = runtime.AnnotateContext(ctx, mux, req, "/proto.ResourceService/AddTicket", runtime.WithHTTPPathPattern("/api/resources/ticket"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_ResourceService_AddTicket_0(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_ResourceService_AddTicket_0(ctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
@@ -1801,12 +1882,13 @@ func RegisterResourceServiceHandlerClient(ctx context.Context, mux *runtime.Serv
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/proto.ResourceService/DeleteTicket", runtime.WithHTTPPathPattern("/api/resources/ticket/{name}/{odate}"))
+		var err error
+		ctx, err = runtime.AnnotateContext(ctx, mux, req, "/proto.ResourceService/DeleteTicket", runtime.WithHTTPPathPattern("/api/resources/ticket/{name}/{odate}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_ResourceService_DeleteTicket_0(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_ResourceService_DeleteTicket_0(ctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
@@ -1821,12 +1903,13 @@ func RegisterResourceServiceHandlerClient(ctx context.Context, mux *runtime.Serv
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/proto.ResourceService/CheckTicket", runtime.WithHTTPPathPattern("/api/resources/ticket/{name}/{odate}"))
+		var err error
+		ctx, err = runtime.AnnotateContext(ctx, mux, req, "/proto.ResourceService/CheckTicket", runtime.WithHTTPPathPattern("/api/resources/ticket/{name}/{odate}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_ResourceService_CheckTicket_0(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_ResourceService_CheckTicket_0(ctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
@@ -1841,12 +1924,13 @@ func RegisterResourceServiceHandlerClient(ctx context.Context, mux *runtime.Serv
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/proto.ResourceService/ListTickets", runtime.WithHTTPPathPattern("/api/resources/tickets"))
+		var err error
+		ctx, err = runtime.AnnotateContext(ctx, mux, req, "/proto.ResourceService/ListTickets", runtime.WithHTTPPathPattern("/api/resources/tickets"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_ResourceService_ListTickets_0(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_ResourceService_ListTickets_0(ctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
@@ -1861,12 +1945,13 @@ func RegisterResourceServiceHandlerClient(ctx context.Context, mux *runtime.Serv
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/proto.ResourceService/SetFlag", runtime.WithHTTPPathPattern("/api/resources/flag"))
+		var err error
+		ctx, err = runtime.AnnotateContext(ctx, mux, req, "/proto.ResourceService/SetFlag", runtime.WithHTTPPathPattern("/api/resources/flag"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_ResourceService_SetFlag_0(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_ResourceService_SetFlag_0(ctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
@@ -1881,12 +1966,13 @@ func RegisterResourceServiceHandlerClient(ctx context.Context, mux *runtime.Serv
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/proto.ResourceService/DestroyFlag", runtime.WithHTTPPathPattern("/api/resources/flag/{name}"))
+		var err error
+		ctx, err = runtime.AnnotateContext(ctx, mux, req, "/proto.ResourceService/DestroyFlag", runtime.WithHTTPPathPattern("/api/resources/flag/{name}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_ResourceService_DestroyFlag_0(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_ResourceService_DestroyFlag_0(ctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
@@ -1901,12 +1987,13 @@ func RegisterResourceServiceHandlerClient(ctx context.Context, mux *runtime.Serv
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/proto.ResourceService/ListFlags", runtime.WithHTTPPathPattern("/api/resources/flags"))
+		var err error
+		ctx, err = runtime.AnnotateContext(ctx, mux, req, "/proto.ResourceService/ListFlags", runtime.WithHTTPPathPattern("/api/resources/flags"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_ResourceService_ListFlags_0(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_ResourceService_ListFlags_0(ctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
@@ -1994,12 +2081,13 @@ func RegisterTaskServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/proto.TaskService/OrderTask", runtime.WithHTTPPathPattern("/api/task/order"))
+		var err error
+		ctx, err = runtime.AnnotateContext(ctx, mux, req, "/proto.TaskService/OrderTask", runtime.WithHTTPPathPattern("/api/task/order"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_TaskService_OrderTask_0(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_TaskService_OrderTask_0(ctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
@@ -2014,12 +2102,13 @@ func RegisterTaskServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/proto.TaskService/ForceTask", runtime.WithHTTPPathPattern("/api/task/force"))
+		var err error
+		ctx, err = runtime.AnnotateContext(ctx, mux, req, "/proto.TaskService/ForceTask", runtime.WithHTTPPathPattern("/api/task/force"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_TaskService_ForceTask_0(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_TaskService_ForceTask_0(ctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
@@ -2034,12 +2123,13 @@ func RegisterTaskServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/proto.TaskService/OrderGroup", runtime.WithHTTPPathPattern("/api/group/order"))
+		var err error
+		ctx, err = runtime.AnnotateContext(ctx, mux, req, "/proto.TaskService/OrderGroup", runtime.WithHTTPPathPattern("/api/group/order"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_TaskService_OrderGroup_0(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_TaskService_OrderGroup_0(ctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
@@ -2054,12 +2144,13 @@ func RegisterTaskServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/proto.TaskService/ForceGroup", runtime.WithHTTPPathPattern("/api/group/force"))
+		var err error
+		ctx, err = runtime.AnnotateContext(ctx, mux, req, "/proto.TaskService/ForceGroup", runtime.WithHTTPPathPattern("/api/group/force"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_TaskService_ForceGroup_0(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_TaskService_ForceGroup_0(ctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
@@ -2074,12 +2165,13 @@ func RegisterTaskServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/proto.TaskService/EnforceTask", runtime.WithHTTPPathPattern("/api/task/{taskID}/enforce"))
+		var err error
+		ctx, err = runtime.AnnotateContext(ctx, mux, req, "/proto.TaskService/EnforceTask", runtime.WithHTTPPathPattern("/api/task/{taskID}/enforce"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_TaskService_EnforceTask_0(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_TaskService_EnforceTask_0(ctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
@@ -2094,12 +2186,13 @@ func RegisterTaskServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/proto.TaskService/RerunTask", runtime.WithHTTPPathPattern("/api/task/{taskID}/rerun"))
+		var err error
+		ctx, err = runtime.AnnotateContext(ctx, mux, req, "/proto.TaskService/RerunTask", runtime.WithHTTPPathPattern("/api/task/{taskID}/rerun"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_TaskService_RerunTask_0(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_TaskService_RerunTask_0(ctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
@@ -2114,12 +2207,13 @@ func RegisterTaskServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/proto.TaskService/HoldTask", runtime.WithHTTPPathPattern("/api/task/{taskID}/hold"))
+		var err error
+		ctx, err = runtime.AnnotateContext(ctx, mux, req, "/proto.TaskService/HoldTask", runtime.WithHTTPPathPattern("/api/task/{taskID}/hold"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_TaskService_HoldTask_0(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_TaskService_HoldTask_0(ctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
@@ -2134,12 +2228,13 @@ func RegisterTaskServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/proto.TaskService/FreeTask", runtime.WithHTTPPathPattern("/api/task/{taskID}/free"))
+		var err error
+		ctx, err = runtime.AnnotateContext(ctx, mux, req, "/proto.TaskService/FreeTask", runtime.WithHTTPPathPattern("/api/task/{taskID}/free"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_TaskService_FreeTask_0(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_TaskService_FreeTask_0(ctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
@@ -2154,12 +2249,13 @@ func RegisterTaskServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/proto.TaskService/SetToOk", runtime.WithHTTPPathPattern("/api/task/{taskID}/setok"))
+		var err error
+		ctx, err = runtime.AnnotateContext(ctx, mux, req, "/proto.TaskService/SetToOk", runtime.WithHTTPPathPattern("/api/task/{taskID}/setok"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_TaskService_SetToOk_0(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_TaskService_SetToOk_0(ctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
@@ -2174,12 +2270,13 @@ func RegisterTaskServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/proto.TaskService/ConfirmTask", runtime.WithHTTPPathPattern("/api/task/{taskID}/confirm"))
+		var err error
+		ctx, err = runtime.AnnotateContext(ctx, mux, req, "/proto.TaskService/ConfirmTask", runtime.WithHTTPPathPattern("/api/task/{taskID}/confirm"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_TaskService_ConfirmTask_0(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_TaskService_ConfirmTask_0(ctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
@@ -2194,12 +2291,13 @@ func RegisterTaskServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/proto.TaskService/ListTasks", runtime.WithHTTPPathPattern("/api/task/tasks"))
+		var err error
+		ctx, err = runtime.AnnotateContext(ctx, mux, req, "/proto.TaskService/ListTasks", runtime.WithHTTPPathPattern("/api/task/tasks"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_TaskService_ListTasks_0(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_TaskService_ListTasks_0(ctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
@@ -2214,12 +2312,13 @@ func RegisterTaskServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/proto.TaskService/TaskDetail", runtime.WithHTTPPathPattern("/api/task/{taskID}/details"))
+		var err error
+		ctx, err = runtime.AnnotateContext(ctx, mux, req, "/proto.TaskService/TaskDetail", runtime.WithHTTPPathPattern("/api/task/{taskID}/details"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_TaskService_TaskDetail_0(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_TaskService_TaskDetail_0(ctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
@@ -2234,12 +2333,13 @@ func RegisterTaskServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/proto.TaskService/TaskOutput", runtime.WithHTTPPathPattern("/api/task/{taskID}/output"))
+		var err error
+		ctx, err = runtime.AnnotateContext(ctx, mux, req, "/proto.TaskService/TaskOutput", runtime.WithHTTPPathPattern("/api/task/{taskID}/output"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_TaskService_TaskOutput_0(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_TaskService_TaskOutput_0(ctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
@@ -2254,12 +2354,13 @@ func RegisterTaskServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/proto.TaskService/TaskLog", runtime.WithHTTPPathPattern("/api/task/{taskID}/log"))
+		var err error
+		ctx, err = runtime.AnnotateContext(ctx, mux, req, "/proto.TaskService/TaskLog", runtime.WithHTTPPathPattern("/api/task/{taskID}/log"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_TaskService_TaskLog_0(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_TaskService_TaskLog_0(ctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
@@ -2371,16 +2472,38 @@ func RegisterDefinitionServiceHandler(ctx context.Context, mux *runtime.ServeMux
 // "DefinitionServiceClient" to call the correct interceptors.
 func RegisterDefinitionServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux, client DefinitionServiceClient) error {
 
-	mux.Handle("GET", pattern_DefinitionService_ListGroups_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle("POST", pattern_DefinitionService_GetDefinition_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/proto.DefinitionService/ListGroups", runtime.WithHTTPPathPattern("/api/def/groups/{filter}"))
+		var err error
+		ctx, err = runtime.AnnotateContext(ctx, mux, req, "/proto.DefinitionService/GetDefinition", runtime.WithHTTPPathPattern("/api/def/definition"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_DefinitionService_ListGroups_0(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_DefinitionService_GetDefinition_0(ctx, inboundMarshaler, client, req, pathParams)
+		ctx = runtime.NewServerMetadataContext(ctx, md)
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+
+		forward_DefinitionService_GetDefinition_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+
+	})
+
+	mux.Handle("GET", pattern_DefinitionService_ListGroups_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		var err error
+		ctx, err = runtime.AnnotateContext(ctx, mux, req, "/proto.DefinitionService/ListGroups", runtime.WithHTTPPathPattern("/api/def/groups/{filter}"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := request_DefinitionService_ListGroups_0(ctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
@@ -2395,12 +2518,13 @@ func RegisterDefinitionServiceHandlerClient(ctx context.Context, mux *runtime.Se
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/proto.DefinitionService/ListDefinitionsFromGroup", runtime.WithHTTPPathPattern("/api/def/{groupName}/definitions"))
+		var err error
+		ctx, err = runtime.AnnotateContext(ctx, mux, req, "/proto.DefinitionService/ListDefinitionsFromGroup", runtime.WithHTTPPathPattern("/api/def/{groupName}/definitions"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_DefinitionService_ListDefinitionsFromGroup_0(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_DefinitionService_ListDefinitionsFromGroup_0(ctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
@@ -2415,12 +2539,16 @@ func RegisterDefinitionServiceHandlerClient(ctx context.Context, mux *runtime.Se
 }
 
 var (
+	pattern_DefinitionService_GetDefinition_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"api", "def", "definition"}, ""))
+
 	pattern_DefinitionService_ListGroups_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"api", "def", "groups", "filter"}, ""))
 
 	pattern_DefinitionService_ListDefinitionsFromGroup_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 1, 0, 4, 1, 5, 2, 2, 3}, []string{"api", "def", "groupName", "definitions"}, ""))
 )
 
 var (
+	forward_DefinitionService_GetDefinition_0 = runtime.ForwardResponseMessage
+
 	forward_DefinitionService_ListGroups_0 = runtime.ForwardResponseMessage
 
 	forward_DefinitionService_ListDefinitionsFromGroup_0 = runtime.ForwardResponseMessage
