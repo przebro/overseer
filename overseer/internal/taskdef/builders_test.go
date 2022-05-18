@@ -8,7 +8,7 @@ func TestBuilderFromTemplate(t *testing.T) {
 
 	builder, builder2 := &DummyTaskBuilder{}, &DummyTaskBuilder{}
 
-	sd := SchedulingData{FromTime: "10:30", AllowPastSub: true, OrderType: OrderingManual}
+	sd := SchedulingData{FromTime: "10:30", OrderType: OrderingManual}
 	intd := []InTicketData{{Name: "TICKET01", Odate: "ODATE"}}
 	outtd := []OutTicketData{{Action: "ADD", Name: "TICKET01", Odate: "ODATE"}}
 
@@ -17,7 +17,7 @@ func TestBuilderFromTemplate(t *testing.T) {
 		t.Error(err)
 	}
 
-	task2, err := builder2.FromTemplate(task).WithSchedule(sd).WithInTicekts(intd, InTicketAND).WithOutTickets(outtd).Build()
+	task2, err := builder2.FromTemplate(task).WithSchedule(sd).WithInTicekts(intd, InTicketAND, "").WithOutTickets(outtd).Build()
 	if err != nil {
 		t.Error(err)
 	}
@@ -34,10 +34,9 @@ func TestBuilderFromTemplate(t *testing.T) {
 	}
 
 	from, to := task2.TimeSpan()
-	allow := task2.AllowPast()
 
-	if from != "10:30" || to != "" || allow != true {
-		t.Error("Unexpected values, expected:", "10:30", "", true, "actual:", from, to, allow)
+	if from != "10:30" || to != "" {
+		t.Error("Unexpected values, expected:", "10:30", "", true, "actual:", from, to)
 	}
 
 	if task2.TicketsIn()[0].Name != intd[0].Name && task2.TicketsIn()[0].Odate != intd[0].Odate {
@@ -60,7 +59,7 @@ func TestBuilderFromTemplate_Tickets(t *testing.T) {
 	outtd := []OutTicketData{{Action: "ADD", Name: "TICKET01", Odate: "ODATE"}}
 
 	task, err := builder.WithBase("testgroup", "testname", "testdescription").WithSchedule(SchedulingData{OrderType: OrderingManual}).
-		WithInTicekts(intd, InTicketAND).
+		WithInTicekts(intd, InTicketAND, "").
 		WithOutTickets(outtd).Build()
 	if err != nil {
 		t.Error(err)

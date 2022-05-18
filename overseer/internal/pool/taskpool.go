@@ -205,7 +205,6 @@ func (pool *ActiveTaskPool) Detail(orderID unique.TaskOrderID) (events.TaskDetai
 	result.StartTime = t.StartTime().Format("2006-01-02 15:04:05")
 	result.Held = t.IsHeld()
 	result.RunNumber = int32(t.RunNumber())
-	result.WaitingInfo = t.WaitingInfo()
 	result.Worker = t.WorkerName()
 
 	if c := t.CycleData(); c.IsCyclic {
@@ -246,14 +245,13 @@ func (pool *ActiveTaskPool) List(filter string) []events.TaskInfoResultMsg {
 	pool.tasks.Over(func(k unique.TaskOrderID, v *activeTask) {
 		n, g, _ := v.GetInfo()
 		data := events.TaskInfoResultMsg{Group: g,
-			Name:        n,
-			Odate:       v.OrderDate(),
-			TaskID:      v.OrderID(),
-			State:       int32(v.State()),
-			WaitingInfo: v.WaitingInfo(),
-			RunNumber:   v.RunNumber(),
-			Held:        v.IsHeld(),
-			Confirmed:   v.Confirmed(),
+			Name:      n,
+			Odate:     v.OrderDate(),
+			TaskID:    v.OrderID(),
+			State:     int32(v.State()),
+			RunNumber: v.RunNumber(),
+			Held:      v.IsHeld(),
+			Confirmed: v.Confirmed(),
 		}
 		result = append(result, data)
 	})

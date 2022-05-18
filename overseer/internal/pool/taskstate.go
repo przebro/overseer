@@ -3,6 +3,7 @@ package pool
 import (
 	"fmt"
 
+	"github.com/przebro/expr"
 	"github.com/przebro/overseer/common/logger"
 	"github.com/przebro/overseer/common/types"
 	"github.com/przebro/overseer/common/types/date"
@@ -10,7 +11,6 @@ import (
 	"github.com/przebro/overseer/overseer/internal/journal"
 
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/przebro/overseer/overseer/internal/taskdef"
@@ -47,8 +47,6 @@ type TaskExecutionContext struct {
 type ostateCheckOtype struct {
 }
 type ostateCheckCalendar struct {
-}
-type ostateCheckSubmission struct {
 }
 type ostateOrdered struct {
 }
@@ -101,14 +99,14 @@ func (state ostateCheckCalendar) processState(ctx *TaskOrderContext) bool {
 
 	if ctx.ignoreCalendar {
 		ctx.log.Debug("state check calendar processed")
-		ctx.state = &ostateCheckSubmission{}
+		ctx.state = &ostateOrdered{}
 	} else {
 		switch ctx.def.OrderType() {
 		case taskdef.OrderingWeek:
 			{
 				ctx.log.Debug("checking task weekly")
 				if date.IsInDayOfWeek(ctx.odate, ctx.def.Days()) && date.IsInMonth(ctx.odate, ctx.def.Months()) {
-					ctx.state = &ostateCheckSubmission{}
+					ctx.state = &ostateOrdered{}
 					ctx.log.Debug("weekly task submitted")
 				}
 			}
@@ -116,7 +114,7 @@ func (state ostateCheckCalendar) processState(ctx *TaskOrderContext) bool {
 			{
 				ctx.log.Debug("checking task daily")
 				if date.IsInMonth(ctx.odate, ctx.def.Months()) {
-					ctx.state = &ostateCheckSubmission{}
+					ctx.state = &ostateOrdered{}
 					ctx.log.Debug("daily task submitted")
 				}
 
@@ -125,44 +123,33 @@ func (state ostateCheckCalendar) processState(ctx *TaskOrderContext) bool {
 			{
 				ctx.log.Debug("checking task day of month")
 				if date.IsInDayOfMonth(ctx.odate, ctx.def.Days()) && date.IsInMonth(ctx.odate, ctx.def.Months()) {
-					ctx.state = &ostateCheckSubmission{}
+					ctx.state = &ostateOrdered{}
 					ctx.log.Debug("day of month task submitted")
+				}
+			}
+		case taskdef.OrderingFromEnd:
+			{
+				if date.IsInFromEnd(ctx.odate, ctx.def.Days()) && date.IsInMonth(ctx.odate, ctx.def.Months()) {
+					ctx.state = &ostateOrdered{}
+					ctx.log.Debug("from end of month task submitted")
 				}
 			}
 		case taskdef.OrderingExact:
 			{
 				if date.IsInExactDate(ctx.odate, ctx.def.ExactDate()) {
-					ctx.state = &ostateCheckSubmission{}
+					ctx.state = &ostateOrdered{}
 				}
 
 			}
 		case taskdef.OrderingManual:
 			{
-				ctx.state = &ostateCheckSubmission{}
+				ctx.state = &ostateOrdered{}
 			}
 
 		}
 
 		if ctx.state == canceledState {
 			ctx.reason = append(ctx.reason, "Scheduling criteria does not meet")
-		}
-	}
-
-	return true
-}
-func (state ostateCheckSubmission) processState(ctx *TaskOrderContext) bool {
-
-	ctx.log.Debug()
-	if ctx.ignoreSubmission {
-		ctx.log.Debug("check submission ingored")
-		ctx.state = &ostateOrdered{}
-	} else {
-		if !ctx.def.AllowPast() && date.IsBeforeCurrent(ctx.odate, ctx.currentOdate) {
-			ctx.log.Debug("check submission allow past")
-			ctx.reason = append(ctx.reason, "Task cannot be ordered before current day")
-			ctx.state = &ostateNotSubmitted{}
-		} else {
-			ctx.state = &ostateOrdered{}
 		}
 	}
 
@@ -183,8 +170,6 @@ func (state ostateNotSubmitted) processState(ctx *TaskOrderContext) bool {
 func (state ostateConfirm) processState(ctx *TaskExecutionContext) bool {
 
 	if !ctx.task.Confirmed() {
-
-		ctx.task.SetWaitingInfo("task waiting for confirmation")
 		return false
 	}
 
@@ -225,7 +210,6 @@ func (state ostateCheckTime) processState(ctx *TaskExecutionContext) bool {
 	}
 
 	from, to := ctx.task.TimeSpan()
-	ctx.task.SetWaitingInfo(fmt.Sprintf("%s - %s", from, to))
 	if from == "" && to == "" {
 		ctx.isInTime = true
 		ctx.state = &ostateCheckConditions{}
@@ -266,15 +250,16 @@ func (state ostateCheckConditions) processState(ctx *TaskExecutionContext) bool 
 
 	msgData := events.RouteTicketCheckMsgFormat{Tickets: make([]struct {
 		Name, Odate string
+		Label       string
 		Fulfilled   bool
 	}, 0)}
 
 	for _, tc := range ctx.task.Tickets() {
 
 		msgData.Tickets = append(msgData.Tickets, struct {
-			Name, Odate string
-			Fulfilled   bool
-		}{tc.name, tc.odate, tc.fulfilled})
+			Name, Odate, Label string
+			Fulfilled          bool
+		}{tc.name, tc.odate, tc.label, tc.fulfilled})
 	}
 
 	msg := events.NewMsg(msgData)
@@ -288,31 +273,48 @@ func (state ostateCheckConditions) processState(ctx *TaskExecutionContext) bool 
 		return false
 	}
 
-	wconds := make([]string, 0)
 	ctx.task.collected = make([]taskInTicket, 0)
 	for _, t := range result.Tickets {
-		ctx.task.collected = append(ctx.task.collected, taskInTicket{t.Name, t.Odate, t.Fulfilled})
-		wconds = append(wconds, fmt.Sprintf("%s %s:%t", t.Name, t.Odate, t.Fulfilled))
+		ctx.task.collected = append(ctx.task.collected, taskInTicket{t.Name, t.Odate, t.Label, t.Fulfilled})
 		ctx.log.Debug(t.Name, "::", t.Odate, "::", t.Fulfilled)
 	}
-	ctx.task.SetWaitingInfo(strings.Join(wconds, ";"))
 
 	var fulfilled bool = false
-	if len(result.Tickets) == 0 {
-		fulfilled = true
+
+	// If relation is described by expression not by simple OR / AND
+	if ctx.task.Relation() == taskdef.InTicketExpr {
+		ex := ctx.task.Expr()
+
+		vars := map[string]interface{}{}
+		for _, elem := range result.Tickets {
+			vars[elem.Label] = elem.Fulfilled
+		}
+
+		if fulfilled, err = expr.Eval(ex, vars); err != nil {
+			n, g, _ := ctx.task.GetInfo()
+			ctx.log.Error(err, g, " ", n)
+			return false
+		}
+
 	} else {
 
-		if ctx.task.Relation() == taskdef.InTicketAND {
+		if len(result.Tickets) == 0 {
 			fulfilled = true
-		}
+		} else {
 
-		for _, t := range result.Tickets {
 			if ctx.task.Relation() == taskdef.InTicketAND {
-				fulfilled = t.Fulfilled && fulfilled
-			} else {
-				fulfilled = t.Fulfilled || fulfilled
+				fulfilled = true
+			}
+
+			for _, t := range result.Tickets {
+				if ctx.task.Relation() == taskdef.InTicketAND {
+					fulfilled = t.Fulfilled && fulfilled
+				} else {
+					fulfilled = t.Fulfilled || fulfilled
+				}
 			}
 		}
+
 	}
 
 	if fulfilled && ctx.isInTime {
@@ -344,7 +346,6 @@ func (state ostateAcquireResources) processState(ctx *TaskExecutionContext) bool
 
 	if !result.Success {
 		ctx.task.SetState(TaskStateWaiting)
-		ctx.task.SetWaitingInfo("FLAG:" + strings.Join(result.Names, ";"))
 		return false
 	}
 
@@ -385,8 +386,6 @@ func (state ostateStarting) processState(ctx *TaskExecutionContext) bool {
 	if result.Status == types.WorkerTaskStatusWorkerBusy {
 
 		ctx.task.SetState(TaskStateWaiting)
-		ctx.task.SetWaitingInfo("Waiting for worker")
-
 		fmsg := buildFlagMsg(ctx.task.Flags())
 		if fmsg != nil {
 
@@ -398,7 +397,6 @@ func (state ostateStarting) processState(ctx *TaskExecutionContext) bool {
 
 	}
 
-	ctx.task.SetWaitingInfo("")
 	stime := ctx.task.SetStartTime()
 
 	pushJournalMessage(ctx.dispatcher, ctx.task.OrderID(), ctx.task.CurrentExecutionID(), stime, fmt.Sprintf(journal.TaskStartingRN, ctx.task.RunNumber()))
@@ -620,6 +618,7 @@ func calcRealOdate(current date.Odate, expect date.OdateValue, schedule taskdef.
 		result = calcDateMonth(current, expect, schedule.Dayvalues, mths)
 	}
 
+	// From end of month, where 1 means last day of month,2 means a day before last day
 	if schedule.OrderType == taskdef.OrderingFromEnd {
 
 		result = calcDateFromEnd(current, expect, schedule.Dayvalues, mths)

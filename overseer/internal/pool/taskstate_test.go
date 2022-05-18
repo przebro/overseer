@@ -204,7 +204,7 @@ func TestStateCheckCond(t *testing.T) {
 			{
 				Name: "TESTABC02", Odate: date.OdateValueDate,
 			},
-		}, "AND").
+		}, "AND", "").
 		Build()
 	if err != nil {
 		t.Fatal("Unable to construct task")
@@ -254,7 +254,7 @@ func TestStateCheckCond(t *testing.T) {
 			{
 				Name: "TESTABC02", Odate: date.OdateValueDate,
 			},
-		}, "OR").Build()
+		}, "OR", "").Build()
 
 	if err != nil {
 		t.Error(err)
@@ -288,7 +288,7 @@ func TestStateCheckCond(t *testing.T) {
 			{
 				Name: "TESTABC02", Odate: date.OdateValueDate,
 			},
-		}, "AND").Build()
+		}, "AND", "").Build()
 
 	if err != nil {
 		t.Error(err)
@@ -311,7 +311,7 @@ func TestStateCheckCond(t *testing.T) {
 			{
 				Name: "TESTABC02", Odate: date.OdateValueDate,
 			},
-		}, "OR").Build()
+		}, "OR", "").Build()
 
 	if err != nil {
 		t.Error(err)
@@ -341,10 +341,91 @@ func TestStateCheckCond(t *testing.T) {
 	}
 
 	_, err = builder.FromTemplate(definition).
-		WithInTicekts([]taskdef.InTicketData{}, "AND").Build()
+		WithInTicekts([]taskdef.InTicketData{}, "AND", "").Build()
 
 	if err != nil {
 		t.Error(err)
+	}
+
+}
+
+func TestStateCheckCond_WithExpr(t *testing.T) {
+
+	var result bool
+	now := time.Now()
+
+	builder := taskdef.DummyTaskBuilder{}
+	definition, err := builder.WithBase("test", "dummy_04", "test task").
+		WithSchedule(taskdef.SchedulingData{OrderType: taskdef.OrderingManual}).
+		WithInTicekts([]taskdef.InTicketData{
+			{
+				Name: "TESTABC01", Odate: date.OdateValueDate, Label: "TEST_01",
+			},
+			{
+				Name: "TESTABC02", Odate: date.OdateValueDate, Label: "TEST_02",
+			},
+		}, "EXPR", "TEST_01 == false || TEST_02 == true").
+		Build()
+	if err != nil {
+		t.Fatal("Unable to construct task")
+	}
+
+	ctx := TaskExecutionContext{
+		log:        log,
+		odate:      date.CurrentOdate(),
+		dispatcher: mDispatcher,
+		time:       now,
+		isInTime:   true,
+	}
+
+	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition, unique.NewID())
+
+	mDispatcher.withError = false
+	state := ostateCheckConditions{}
+	result = state.processState(&ctx)
+
+	if result != true {
+		t.Error("expected result: ", true, " actual:", result, " ")
+	}
+
+}
+func TestStateCheckCond_WithExprFalse(t *testing.T) {
+
+	var result bool
+	now := time.Now()
+
+	builder := taskdef.DummyTaskBuilder{}
+	definition, err := builder.WithBase("test", "dummy_04", "test task").
+		WithSchedule(taskdef.SchedulingData{OrderType: taskdef.OrderingManual}).
+		WithInTicekts([]taskdef.InTicketData{
+			{
+				Name: "TESTABC01", Odate: date.OdateValueDate, Label: "TEST_01",
+			},
+			{
+				Name: "TESTABC02", Odate: date.OdateValueDate, Label: "TEST_02",
+			},
+		}, "EXPR", "TEST_01 == false && TEST_02 == true").
+		Build()
+	if err != nil {
+		t.Fatal("Unable to construct task")
+	}
+
+	ctx := TaskExecutionContext{
+		log:        log,
+		odate:      date.CurrentOdate(),
+		dispatcher: mDispatcher,
+		time:       now,
+		isInTime:   true,
+	}
+
+	ctx.task = newActiveTask(seq.Next(), date.CurrentOdate(), definition, unique.NewID())
+
+	mDispatcher.withError = false
+	state := ostateCheckConditions{}
+	result = state.processState(&ctx)
+
+	if result == true {
+		t.Error("expected result: ", false, " actual:", result, " ")
 	}
 
 }
@@ -614,7 +695,7 @@ func TestStateCheckCalendar(t *testing.T) {
 	}
 
 	state := &ostateCheckCalendar{}
-	submState := &ostateCheckSubmission{}
+	submState := &ostateOrdered{}
 	cancelState := &ostateNotSubmitted{}
 
 	result = state.processState(&ctx)
@@ -791,7 +872,7 @@ func TestStateCheckSubmmision(t *testing.T) {
 
 	builder := taskdef.DummyTaskBuilder{}
 	definition, err := builder.WithBase("test", "dummy_04", "test task").
-		WithSchedule(taskdef.SchedulingData{OrderType: taskdef.OrderingDaily, AllowPastSub: false}).Build()
+		WithSchedule(taskdef.SchedulingData{OrderType: taskdef.OrderingDaily}).Build()
 
 	if err != nil {
 		t.Fatal("Unable to construct task")
@@ -812,7 +893,7 @@ func TestStateCheckSubmmision(t *testing.T) {
 		currentOdate:     date.CurrentOdate(),
 	}
 
-	state := &ostateCheckSubmission{}
+	state := &ostateCheckCalendar{}
 	ordState := &ostateOrdered{}
 	cancelState := &ostateNotSubmitted{}
 
@@ -832,7 +913,7 @@ func TestStateCheckSubmmision(t *testing.T) {
 
 	ctx.ignoreSubmission = false
 	definition, err = builder.FromTemplate(definition).
-		WithSchedule(taskdef.SchedulingData{OrderType: taskdef.OrderingDaily, AllowPastSub: true}).Build()
+		WithSchedule(taskdef.SchedulingData{OrderType: taskdef.OrderingDaily}).Build()
 
 	if err != nil {
 		t.Error(err)
@@ -862,7 +943,7 @@ func TestStatesExecEndHold(t *testing.T) {
 
 	builder := taskdef.DummyTaskBuilder{}
 	definition, err := builder.WithBase("test", "dummy_04", "test task").
-		WithSchedule(taskdef.SchedulingData{OrderType: taskdef.OrderingDaily, AllowPastSub: false}).
+		WithSchedule(taskdef.SchedulingData{OrderType: taskdef.OrderingDaily}).
 		WithOutTickets([]taskdef.OutTicketData{{Action: "REM", Name: "TEST", Odate: "ODATE"}}).
 		Build()
 

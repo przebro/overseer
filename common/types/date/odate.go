@@ -164,6 +164,21 @@ func IsInDayOfMonth(odate Odate, values []int) bool {
 	return false
 }
 
+//IsInFromEnd - check if day of execution is in odate
+func IsInFromEnd(odate Odate, values []int) bool {
+
+	y, m, _ := odate.Ymd()
+	t := time.Date(y, time.Month(m), 1, 0, 0, 0, 0, time.Local)
+	day := t.AddDate(0, 1, 0).AddDate(0, 0, -1).Day()
+	for _, val := range values {
+		if odate.Day() == day-(val-1) {
+			return true
+		}
+	}
+
+	return false
+}
+
 //IsInExactDate check if tasks execiution date is in odate
 func IsInExactDate(odate Odate, values []string) bool {
 

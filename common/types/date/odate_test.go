@@ -285,3 +285,29 @@ func TestFromDateString(t *testing.T) {
 		t.Error("unexpected result:")
 	}
 }
+
+func TestIsEndOfMonth(t *testing.T) {
+
+	r := FromDateString("2020-03-31")
+	if IsInFromEnd(r, []int{1}) != true {
+		t.Error("unexpected result:")
+	}
+	r = FromDateString("2020-03-30")
+	if IsInFromEnd(r, []int{2}) != true {
+		t.Error("unexpected result:")
+	}
+	r = FromDateString("2020-04-30")
+	if IsInFromEnd(r, []int{2}) != false {
+		t.Error("unexpected result:")
+	}
+
+	r = FromDateString("2020-04-30")
+	if IsInFromEnd(r, []int{1}) != true {
+		t.Error("unexpected result:")
+	}
+
+	r = FromDateString("2020-04-29")
+	if IsInFromEnd(r, []int{2}) != true {
+		t.Error("unexpected result:")
+	}
+}

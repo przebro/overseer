@@ -328,6 +328,12 @@ github.com/prometheus/procfs v0.0.0-20190507164030-5867b95ac084/go.mod h1:TjEm7z
 github.com/prometheus/tsdb v0.7.1/go.mod h1:qhTCs0VvXwvX/y3TZrWD7rabWM+ijKTux40TwIPHuXU=
 github.com/przebro/databazaar v0.0.0-20210222233636-a6956fda6d41 h1:00WU83OgsppefT3Iojf7xpr/qPJjaG2lyrM39yEkm6I=
 github.com/przebro/databazaar v0.0.0-20210222233636-a6956fda6d41/go.mod h1:Q7IUKG8A9EavUvNGyXiWAFC6BECCiuc8A2+qd0KFfP4=
+github.com/przebro/expr v0.0.0-20220514223151-7dfd0784976c h1:0Fp5oHFMwErDrsZ7cZt4GgfF1PDHa3vNvKO8HB/aSzE=
+github.com/przebro/expr v0.0.0-20220514223151-7dfd0784976c/go.mod h1:YqqqPnsEnZGhHfGKpv5C0uNeSw9Vkoe2miWwf7IMhQ0=
+github.com/przebro/expr v0.0.0-20220515111217-a57c79b3d76c h1:KGybCFNu6eRA0jkgbT6SCAaUBTzVyvAcTQXCMROVldI=
+github.com/przebro/expr v0.0.0-20220515111217-a57c79b3d76c/go.mod h1:YqqqPnsEnZGhHfGKpv5C0uNeSw9Vkoe2miWwf7IMhQ0=
+github.com/przebro/expr v0.0.0-20220516214410-6a85aaae3e74 h1:u1h6mPsPeobEyLDvT3SSyzdGmmHTV4USYR9RuylPgJE=
+github.com/przebro/expr v0.0.0-20220516214410-6a85aaae3e74/go.mod h1:YqqqPnsEnZGhHfGKpv5C0uNeSw9Vkoe2miWwf7IMhQ0=
 github.com/przebro/localstore v0.0.0-20210223095046-7159d94d8e15 h1:0AMdgx9hr2OcM8D7BjYDkQX/lrsL3Je548/aHUwrXwg=
 github.com/przebro/localstore v0.0.0-20210223095046-7159d94d8e15/go.mod h1:0CS9MOEo0YmSCvu7rhmi12BwBB/HSUFr0uVk2r1WE44=
 github.com/przebro/mongostore v0.0.0-20220415165937-e35a6fab130c h1:S6md8D2EuKKi2GTZeeUsaKQoSb+FBTxRRR/0MmBBfp0=

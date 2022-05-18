@@ -39,12 +39,11 @@ var expect3 TaskDefinition = &baseTaskDefinition{
 	OutTickets:    []OutTicketData{{Name: "OK-COND-02", Action: OutActionAdd, Odate: date.OdateValueDate}},
 	FlagsTab:      []FlagData{{Name: "flag01", Type: FlagExclusive}},
 	Schedule: SchedulingData{
-		OrderType:    OrderingDayOfMonth,
-		FromTime:     "15:30",
-		ToTime:       "",
-		Months:       []time.Month{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
-		Dayvalues:    []int{1, 3, 5},
-		AllowPastSub: false,
+		OrderType: OrderingDayOfMonth,
+		FromTime:  "15:30",
+		ToTime:    "",
+		Months:    []time.Month{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
+		Dayvalues: []int{1, 3, 5},
 	},
 }
 
@@ -61,9 +60,6 @@ func TestLoad(t *testing.T) {
 func TestTaskData(t *testing.T) {
 	if expect3.OrderType() != OrderingDayOfMonth {
 		t.Error("task data invalid order type")
-	}
-	if expect3.AllowPast() != false {
-		t.Error("task data invalid allow past ")
 	}
 	if expect3.Confirm() != false {
 		t.Error("task data invalid  confirmflag")

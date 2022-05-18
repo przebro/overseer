@@ -25,6 +25,7 @@ type RouteTicketCheckMsgFormat struct {
 	Tickets []struct {
 		Name      string
 		Odate     string
+		Label     string
 		Fulfilled bool
 	}
 }

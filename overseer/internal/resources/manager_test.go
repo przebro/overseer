@@ -132,6 +132,7 @@ func TestDispatch_Route_RouteTicketCheck(t *testing.T) {
 		Tickets: []struct {
 			Name      string
 			Odate     string
+			Label     string
 			Fulfilled bool
 		}{
 			{Name: "TEST_CHECK_01"},

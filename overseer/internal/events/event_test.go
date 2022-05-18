@@ -169,6 +169,7 @@ func TestEvent(t *testing.T) {
 		cd := make([]struct {
 			Name      string
 			Odate     string
+			Label     string
 			Fulfilled bool
 		}, 1)
 		ResponseToReceiver(cond, RouteTicketCheckMsgFormat{Tickets: cd})

@@ -3,11 +3,13 @@ package taskdef
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/przebro/expr"
 	"github.com/przebro/overseer/common/types"
 	"github.com/przebro/overseer/common/types/date"
 	"github.com/przebro/overseer/common/validator"
@@ -15,7 +17,7 @@ import (
 )
 
 //InTicketRelation - Restricts possible values of tickets relation.
-//Possible values are: AND, OR
+//Possible values are: AND, OR, EXPR
 type InTicketRelation string
 
 //FlagType - Restricts possible values of flags type
@@ -43,6 +45,7 @@ var (
 //InTicketData - Holds information about the required tickets to start a task
 type InTicketData struct {
 	Name  string          `json:"name" validate:"required,max=32,resname"`
+	Label string          `json:"label" validate:"omitempty,max=32,resname"`
 	Odate date.OdateValue `json:"odate" validate:"odateval"`
 }
 
@@ -74,21 +77,20 @@ func (data VariableData) Expand() string {
 
 //SchedulingData - Holds informations how task should be scheduled.
 type SchedulingData struct {
-	OrderType    SchedulingOption  `json:"type" validate:"required,oneof=manual daily weekday dayofmonth exact fromend"`
-	FromTime     types.HourMinTime `json:"from" validate:"omitempty,hmtime"`
-	ToTime       types.HourMinTime `json:"to" validate:"omitempty,hmtime"`
-	AllowPastSub bool              `json:"pastsub"`
-	Months       []time.Month      `json:"months" validate:"unique"`
-	Exactdates   []string          `json:"exact" validate:"unique"`
-	Dayvalues    []int             `json:"days"  validate:"unique"`
+	OrderType  SchedulingOption  `json:"type" validate:"required,oneof=manual daily weekday dayofmonth exact fromend"`
+	FromTime   types.HourMinTime `json:"from" validate:"omitempty,hmtime"`
+	ToTime     types.HourMinTime `json:"to" validate:"omitempty,hmtime"`
+	Months     []time.Month      `json:"months" validate:"unique"`
+	Exactdates []string          `json:"exact" validate:"unique"`
+	Dayvalues  []int             `json:"days"  validate:"unique"`
 }
 
 //CyclicTaskData -
 type CyclicTaskData struct {
-	IsCycle      bool            `json:"cycle"`
-	MaxRuns      int             `json:"runs" validate:"min=0,max=999"`
 	RunFrom      CycleFromOption `json:"from" validate:"omitempty,oneof=start end schedule"`
+	MaxRuns      int             `json:"runs" validate:"min=0,max=999"`
 	TimeInterval int             `json:"every" validate:"min=0,max=1440"`
+	IsCycle      bool            `json:"cycle"`
 }
 
 type baseTaskDefinition struct {
@@ -101,8 +103,9 @@ type baseTaskDefinition struct {
 	DataRetention int              `json:"retention" validate:"min=0,max=14"`
 	Schedule      SchedulingData   `json:"schedule" validate:"omitempty"`
 	Cyclics       CyclicTaskData   `json:"cyclic" validate:"omitempty"`
+	InRelation    InTicketRelation `json:"relation" validate:"required_with=InTickets,omitempty,oneof=AND OR EXPR"`
+	Expression    string           `json:"expr" validate:"omitempty"`
 	InTickets     []InTicketData   `json:"inticket" validate:"omitempty,dive"`
-	InRelation    InTicketRelation `json:"relation" validate:"required_with=InTickets,omitempty,oneof=AND OR"`
 	FlagsTab      []FlagData       `json:"flags"  validate:"omitempty,dive"`
 	OutTickets    []OutTicketData  `json:"outticket"  validate:"omitempty,dive"`
 	TaskVariables []VariableData   `json:"variables"  validate:"omitempty,dive"`
@@ -144,9 +147,11 @@ const (
 //Relation between input tickets
 //Expect all: COND-1 AND COND-2 AND ...
 //Expect one of them COND-1 OR COND-2 ...
+//Complex evalution
 const (
-	InTicketAND InTicketRelation = "AND"
-	InTicketOR  InTicketRelation = "OR"
+	InTicketAND  InTicketRelation = "AND"
+	InTicketOR   InTicketRelation = "OR"
+	InTicketExpr InTicketRelation = "EXPR"
 )
 
 //TaskScheduling  - Provides information about the schedule of a task.
@@ -154,7 +159,6 @@ type TaskScheduling interface {
 	OrderType() SchedulingOption
 	TimeSpan() (types.HourMinTime, types.HourMinTime)
 	Months() []time.Month
-	AllowPast() bool
 	ExactDate() []string
 	Days() []int
 	Calendar() SchedulingData
@@ -169,9 +173,6 @@ func (task *baseTaskDefinition) TimeSpan() (types.HourMinTime, types.HourMinTime
 func (task *baseTaskDefinition) Months() []time.Month {
 	return task.Schedule.Months
 }
-func (task *baseTaskDefinition) AllowPast() bool {
-	return task.Schedule.AllowPastSub
-}
 
 func (task *baseTaskDefinition) ExactDate() []string {
 	return task.Schedule.Exactdates
@@ -182,6 +183,10 @@ func (task *baseTaskDefinition) Calendar() SchedulingData {
 }
 func (task *baseTaskDefinition) Days() []int {
 	return task.Schedule.Dayvalues
+}
+
+func (task *baseTaskDefinition) Expr() string {
+	return task.Expression
 }
 
 //BaseInfo - returns base informations
@@ -259,6 +264,7 @@ type TaskDefinition interface {
 	TypeName() types.TaskType
 	Confirm() bool
 	Retention() int
+	Expr() string
 	Variables() []VariableData
 	Action() json.RawMessage
 }
@@ -325,6 +331,14 @@ func FromDefinitionFile(path string) (TaskDefinition, error) {
 
 	if n != taskname && group != g {
 		return nil, errors.New("task name and group name does not match filepath")
+	}
+
+	if def.Relation() == InTicketExpr {
+		if def.Expr() != "" {
+			if err := expr.Test(def.Expr()); err != nil {
+				return nil, fmt.Errorf("failed to parse expression:%v", err)
+			}
+		}
 	}
 
 	return def, nil

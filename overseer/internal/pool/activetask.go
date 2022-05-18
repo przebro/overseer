@@ -28,6 +28,7 @@ const (
 type taskInTicket struct {
 	name      string
 	odate     string
+	label     string
 	fulfilled bool
 }
 type taskExecution struct {
@@ -56,7 +57,6 @@ type activeTask struct {
 	tickets    []taskInTicket
 	executions []taskExecution
 	cycle      taskCycle
-	waiting    string
 	lock       sync.RWMutex
 	collected  []taskInTicket
 }
@@ -96,7 +96,7 @@ func newActiveTask(orderID unique.TaskOrderID, odate date.Odate, definition task
 	for _, e := range definition.TicketsIn() {
 
 		realOdat := calcRealOdate(odate, e.Odate, definition.Calendar())
-		tickets = append(tickets, taskInTicket{odate: string(realOdat), name: e.Name, fulfilled: false})
+		tickets = append(tickets, taskInTicket{odate: string(realOdat), name: e.Name, label: e.Label, fulfilled: false})
 	}
 
 	isconfirmed := !definition.Confirm()
@@ -158,7 +158,6 @@ func fromModel(model activeTaskModel, rdr ActiveDefinitionReader) (*activeTask, 
 		confirmed:      model.Confirmed,
 		holded:         model.Holded,
 		cycle:          cycle,
-		waiting:        model.Waiting,
 		collected:      []taskInTicket{},
 	}
 
@@ -278,18 +277,6 @@ func (task *activeTask) WorkerName() string {
 
 	return task.executions[len(task.executions)-1].Worker
 }
-func (task *activeTask) WaitingInfo() string {
-	defer task.lock.RUnlock()
-	task.lock.RLock()
-
-	return task.waiting
-}
-
-func (task *activeTask) SetWaitingInfo(info string) {
-	defer task.lock.Unlock()
-	task.lock.Lock()
-	task.waiting = info
-}
 
 func (task *activeTask) Hold() {
 	defer task.lock.Unlock()
@@ -380,7 +367,6 @@ func (task *activeTask) getModel() activeTaskModel {
 		OrderID:    string(task.orderID),
 		OrderDate:  task.orderDate,
 		Tickets:    []taskInTicketModel{},
-		Waiting:    task.waiting,
 		Executions: []taskExecutionModel{},
 		Cycle:      cycle,
 	}

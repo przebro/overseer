@@ -50,12 +50,6 @@ func TestOrder(t *testing.T) {
 		t.Error("unexpected result, invalid journal entry:", jrnalMsg[0].Msg)
 	}
 
-	pastDate := date.AddDays(date.CurrentOdate(), -1)
-	_, err = activeTaskManagerT.Order(taskdata.GroupNameData{GroupData: taskdata.GroupData{Group: "test"}, Name: "dummy_05"}, pastDate, "user")
-	if err == nil {
-		t.Error("Unexpected result:", err)
-	}
-
 	activeTaskManagerT.pool.tasks.remove(unique.TaskOrderID(id))
 
 }

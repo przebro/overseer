@@ -13,7 +13,7 @@ type TaskBuilder interface {
 	FromTemplate(def TaskDefinition) TaskBuilder
 	WithBase(group, name, description string) TaskBuilder
 	WithSchedule(schedule SchedulingData) TaskBuilder
-	WithInTicekts(in []InTicketData, relation InTicketRelation) TaskBuilder
+	WithInTicekts(in []InTicketData, relation InTicketRelation, expr string) TaskBuilder
 	WithOutTickets(out []OutTicketData) TaskBuilder
 	WithFlags(flags []FlagData) TaskBuilder
 	WithConfirm() TaskBuilder
@@ -54,7 +54,6 @@ func (builder *DummyTaskBuilder) FromTemplate(templ TaskDefinition) TaskBuilder 
 	builder.def.Schedule = SchedulingData{}
 
 	builder.def.Schedule.FromTime, builder.def.Schedule.ToTime = templ.TimeSpan()
-	builder.def.Schedule.AllowPastSub = templ.AllowPast()
 	builder.def.Schedule.OrderType = templ.OrderType()
 	builder.def.Schedule.Months = make([]time.Month, len(templ.Months()))
 	copy(builder.def.Schedule.Months, templ.Months())
@@ -90,10 +89,11 @@ func (builder *DummyTaskBuilder) WithSchedule(schedule SchedulingData) TaskBuild
 }
 
 //WithInTicekts - Adds input tickets to the constructed task.
-func (builder *DummyTaskBuilder) WithInTicekts(in []InTicketData, relation InTicketRelation) TaskBuilder {
+func (builder *DummyTaskBuilder) WithInTicekts(in []InTicketData, relation InTicketRelation, expr string) TaskBuilder {
 
 	builder.def.InRelation = relation
 	builder.def.InTickets = in
+	builder.def.Expression = expr
 
 	return builder
 }

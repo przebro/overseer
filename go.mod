@@ -51,6 +51,7 @@ require (
 	github.com/juju/ansiterm v0.0.0-20180109212912-720a0952cc2a // indirect
 	github.com/klauspost/compress v1.11.4 // indirect
 	github.com/mattn/go-isatty v0.0.12 // indirect
+	github.com/przebro/expr v0.0.0-20220516214410-6a85aaae3e74 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/xdg/scram v0.0.0-20180814205039-7eeb5667e42c // indirect
 	github.com/xdg/stringprep v0.0.0-20180714160509-73f8eece6fdc // indirect
