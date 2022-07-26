@@ -25,7 +25,7 @@ type OvsWorkerServer struct {
 //New - creates a new instance of a OvsWorkerServer
 func New(config config.WorkerConfiguration, es wservices.TaskExecutionServiceServer, log logger.AppLogger) *OvsWorkerServer {
 
-	options, err := buildOptions(config)
+	options, err := buildOptions(config, log)
 
 	if err != nil {
 		zlog := log.Desugar()
@@ -74,12 +74,20 @@ func (srv *OvsWorkerServer) Shutdown() error {
 	return nil
 }
 
-func buildOptions(conf config.WorkerConfiguration) ([]grpc.ServerOption, error) {
+func buildOptions(conf config.WorkerConfiguration, log logger.AppLogger) ([]grpc.ServerOption, error) {
 
 	var options = []grpc.ServerOption{}
 
+	if conf.OverseerCA != "" {
+		if err := cert.RegisterCA(conf.OverseerCA); err != nil {
+			zlog := log.Desugar()
+			zlog.Warn("build options", zap.String("error", err.Error()))
+		}
+
+	}
+
 	if conf.SecurityLevel != types.ConnectionSecurityLevelNone {
-		if creds, err := cert.BuildServerCredentials(conf.OverseerCA, conf.WorkerCert, conf.WorkerKey, conf.WorkerCertPolicy, conf.SecurityLevel); err == nil {
+		if creds, err := cert.BuildServerCredentials(conf.WorkerCert, conf.WorkerKey, conf.WorkerCertPolicy, conf.SecurityLevel); err == nil {
 			options = append(options, creds)
 		} else {
 			return nil, err

@@ -37,9 +37,7 @@ type WorkerManager interface {
 func NewWorkerManager(d events.Dispatcher,
 	conf config.WorkerManagerConfiguration,
 	log logger.AppLogger,
-	overseerCertPath, overseerKeyPath, workerCA string,
-	level types.ConnectionSecurityLevel,
-	policy types.CertPolicy,
+	security config.ServerSecurityConfiguration,
 ) WorkerManager {
 
 	w := &workerManager{}
@@ -62,7 +60,7 @@ func NewWorkerManager(d events.Dispatcher,
 
 	for _, n := range conf.Workers {
 		w.log.Info("Creating service worker:", n.WorkerName, ",", n.WorkerHost, ":", n.WorkerPort)
-		sworker := NewWorkerMediator(n, workerCA, overseerCertPath, overseerKeyPath, level, policy, conf.Timeout, w.resultChannel, log)
+		sworker := NewWorkerMediator(n, security, conf.Timeout, w.resultChannel, log)
 		w.workers[n.WorkerName] = sworker
 	}
 

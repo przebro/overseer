@@ -9,6 +9,7 @@ import (
 	"github.com/przebro/overseer/common/logger"
 	"github.com/przebro/overseer/common/types"
 	"github.com/przebro/overseer/ovsgate/config"
+	"go.uber.org/zap"
 
 	"time"
 
@@ -56,7 +57,12 @@ func (g *OverseerGateway) Start() error {
 		opt = append(opt, grpc.WithInsecure())
 	} else {
 
-		creds, err := cert.BuildClientCredentials(g.config.OverseerCA, g.config.GatewayCert, g.config.GatewayKey, g.config.GatewayCertPolicy, g.config.SecurityLevel)
+		if err := cert.RegisterCA(g.config.OverseerCA); err != nil {
+			zlog := g.log.Desugar()
+			zlog.Warn("start", zap.String("error", err.Error()))
+		}
+
+		creds, err := cert.BuildClientCredentials(g.config.GatewayCert, g.config.GatewayKey, g.config.GatewayCertPolicy, g.config.SecurityLevel)
 		if err != nil {
 			return fmt.Errorf("failed to initialize connection %v", err)
 		}

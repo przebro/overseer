@@ -94,9 +94,9 @@ func buildOptions(conf config.ServerConfiguration) ([]grpc.ServerOption, error) 
 	options = append(options, buildUnaryChain())
 	options = append(options, buildStreamChain())
 
-	if conf.SecurityLevel != types.ConnectionSecurityLevelNone {
+	if conf.Security.SecurityLevel != types.ConnectionSecurityLevelNone {
 
-		if creds, err := buildCredentials(conf.ServerCert, conf.ServerKey, conf.ClientCA, conf.ClientCertPolicy, conf.SecurityLevel); err == nil {
+		if creds, err := buildCredentials(conf.Security.ServerCert, conf.Security.ServerKey, conf.Security.ClientCertPolicy, conf.Security.SecurityLevel); err == nil {
 			options = append(options, creds)
 		} else {
 			return nil, err
@@ -116,11 +116,11 @@ func buildStreamChain() grpc.ServerOption {
 	return grpc.ChainStreamInterceptor(middleware.GetStreamHandlers()...)
 }
 
-func buildCredentials(certpath, keypath, clientCA string, clientPolicy types.CertPolicy, level types.ConnectionSecurityLevel) (grpc.ServerOption, error) {
+func buildCredentials(certpath, keypath string, clientPolicy types.CertPolicy, level types.ConnectionSecurityLevel) (grpc.ServerOption, error) {
 
 	var err error
 
-	creds, err := cert.BuildServerCredentials(clientCA, certpath, keypath, clientPolicy, level)
+	creds, err := cert.BuildServerCredentials(certpath, keypath, clientPolicy, level)
 
 	if err != nil {
 		return nil, err

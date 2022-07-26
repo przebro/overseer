@@ -82,15 +82,7 @@ func New(config config.OverseerConfiguration, lg logger.AppLogger, quiesce bool)
 		daily.DailyProcedure()
 	}
 
-	wrunner := work.NewWorkerManager(ds,
-		config.GetWorkerManagerConfiguration(),
-		lg,
-		config.Server.ServerCert,
-		config.Server.ServerKey,
-		config.Server.ClientCA,
-		config.Server.SecurityLevel,
-		config.Server.ClientCertPolicy,
-	)
+	wrunner := work.NewWorkerManager(ds, config.GetWorkerManagerConfiguration(), lg, config.Server.Security)
 
 	if gs, err = createServiceServer(config.GetServerConfiguration(), ds, rm, dm, pm, pl, jn, dataProvider, config.GetSecurityConfiguration(), lg); err != nil {
 		return nil, err

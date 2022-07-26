@@ -62,7 +62,12 @@ func (cli *OverseerClient) Connect(addr string, serverCA, clientCertPath, client
 	if level == types.ConnectionSecurityLevelNone {
 		opt = append(opt, grpc.WithInsecure())
 	} else {
-		creds, err := cert.BuildClientCredentials(serverCA, clientCertPath, clientKeyPath, policy, level)
+
+		if err := cert.RegisterCA(serverCA); err != nil {
+			fmt.Printf("failed to load ca:%v\n", err)
+		}
+
+		creds, err := cert.BuildClientCredentials(clientCertPath, clientKeyPath, policy, level)
 		if err != nil {
 			return fmt.Sprintf("failed to initialize connection:%v\n", err)
 		}

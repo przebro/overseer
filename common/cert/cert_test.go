@@ -7,38 +7,11 @@ import (
 	"github.com/przebro/overseer/common/types"
 )
 
-func TestGetClientTLSInvalid(t *testing.T) {
-
-	if _, err := getClientTLS("invalid path", false); err == nil {
-		t.Error("unexpected result")
-	}
-
-	fpath := "cert.go"
-
-	if _, err := getClientTLS(fpath, false); err == nil {
-		t.Error("unexpected result")
-	}
-
-}
-
-func TestGetClientTLS(t *testing.T) {
-
-	fpath := "../../docker/cert/root_ca.crt"
-	if _, err := os.Stat(fpath); err != nil {
-		t.Skip("cert file does not exists, run certgen.sh first")
-
-	}
-
-	if _, err := getClientTLS(fpath, false); err != nil {
-		t.Error("unexpected result:", err)
-	}
-
-}
-
 func TestGetServerTLS(t *testing.T) {
 
 	kpath := "../../docker/cert/overseer_srv.key"
 	cpath := "../../docker/cert/overseer_srv.crt"
+
 	if _, err := os.Stat(kpath); err != nil {
 		t.Skip("key file does not exists, run certgen.sh first")
 
@@ -57,7 +30,7 @@ func TestGetServerWithClientCArootTLS(t *testing.T) {
 
 	kpath := "../../docker/cert/overseer_srv.key"
 	cpath := "../../docker/cert/overseer_srv.crt"
-	capath := "../../docker/cert/root_ca.crt"
+	RegisterCA("../../docker/cert/root_ca.crt")
 
 	if _, err := os.Stat(kpath); err != nil {
 		t.Skip("key file does not exists, run certgen.sh first")
@@ -68,20 +41,15 @@ func TestGetServerWithClientCArootTLS(t *testing.T) {
 
 	}
 
-	if _, err := os.Stat(capath); err != nil {
-		t.Skip("cert file does not exists, run certgen.sh first")
-
-	}
-
-	if _, err := getServerWithClientCArootTLS(cpath, kpath, capath, types.CertPolicyNone); err != nil {
+	if _, err := getServerWithClientCArootTLS(cpath, kpath, types.CertPolicyNone); err != nil {
 		t.Error("unexpected result:", err)
 	}
 
-	if _, err := getServerWithClientCArootTLS(cpath, kpath, capath, types.CertPolicyRequired); err != nil {
+	if _, err := getServerWithClientCArootTLS(cpath, kpath, types.CertPolicyRequired); err != nil {
 		t.Error("unexpected result:", err)
 	}
 
-	if _, err := getServerWithClientCArootTLS(cpath, kpath, capath, types.CertPolicyVerify); err != nil {
+	if _, err := getServerWithClientCArootTLS(cpath, kpath, types.CertPolicyVerify); err != nil {
 		t.Error("unexpected result:", err)
 	}
 }
@@ -99,30 +67,12 @@ func TestGetServerTLSInvalid(t *testing.T) {
 	}
 }
 
-func TestGetServerTLSInvalidCAPath(t *testing.T) {
-
-	kpath := "../../docker/cert/overseer_srv.key"
-	cpath := "../../docker/cert/overseer_srv.crt"
-	fpath := "cert.go"
-	if _, err := os.Stat(kpath); err != nil {
-		t.Skip("key file does not exists, run certgen.sh first")
-
-	}
-	if _, err := os.Stat(cpath); err != nil {
-		t.Skip("cert file does not exists, run certgen.sh first")
-
-	}
-
-	if _, err := getServerWithClientCArootTLS(cpath, kpath, fpath, types.CertPolicyRequired); err == nil {
-		t.Error("unexpected result")
-	}
-}
-
 func TestBuildServerCredentials_Errors(t *testing.T) {
 
 	kpath := "cert.go"
 	cpath := "../../docker/cert/overseer_srv.crt"
-	fpath := "cert.go"
+
+	RegisterCA("cert.go")
 
 	if _, err := os.Stat(kpath); err != nil {
 		t.Skip("key file does not exists, run certgen.sh first")
@@ -133,12 +83,12 @@ func TestBuildServerCredentials_Errors(t *testing.T) {
 
 	}
 
-	_, err := BuildServerCredentials(fpath, cpath, kpath, types.CertPolicyRequired, types.ConnectionSecurityLevelClientAndServer)
+	_, err := BuildServerCredentials(cpath, kpath, types.CertPolicyRequired, types.ConnectionSecurityLevelClientAndServer)
 	if err == nil {
 		t.Error("unexpected result,err is nil")
 	}
 
-	_, err = BuildServerCredentials(fpath, cpath, kpath, types.CertPolicyRequired, types.ConnectionSecurityLevelServeOnly)
+	_, err = BuildServerCredentials(cpath, kpath, types.CertPolicyRequired, types.ConnectionSecurityLevelServeOnly)
 	if err == nil {
 		t.Error("unexpected result,err is nil")
 	}
@@ -148,7 +98,6 @@ func TestBuildClientCredentials_Errors(t *testing.T) {
 
 	kpath := "cert.go"
 	cpath := "../../docker/cert/overseer_srv.crt"
-	fpath := "cert.go"
 
 	if _, err := os.Stat(kpath); err != nil {
 		t.Skip("key file does not exists, run certgen.sh first")
@@ -159,12 +108,7 @@ func TestBuildClientCredentials_Errors(t *testing.T) {
 
 	}
 
-	_, err := BuildClientCredentials(fpath, cpath, kpath, types.CertPolicyRequired, types.ConnectionSecurityLevelClientAndServer)
-	if err == nil {
-		t.Error("unexpected result,err is nil")
-	}
-
-	_, err = BuildClientCredentials(fpath, cpath, kpath, types.CertPolicyRequired, types.ConnectionSecurityLevelServeOnly)
+	_, err := BuildClientCredentials(cpath, kpath, types.CertPolicyRequired, types.ConnectionSecurityLevelClientAndServer)
 	if err == nil {
 		t.Error("unexpected result,err is nil")
 	}

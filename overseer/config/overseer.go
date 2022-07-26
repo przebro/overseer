@@ -15,6 +15,7 @@ type WorkerConfiguration struct {
 	WorkerName string `json:"name" validate:"required"`
 	WorkerHost string `json:"workerHost" validate:"ipv4,required"`
 	WorkerPort int    `json:"workerPort" validate:"min=1024,max=65535,required"`
+	WorkerCA   string `json:"workerCA"`
 }
 
 //WorkerManagerConfiguration - setting for worker manager
@@ -53,11 +54,14 @@ type IntervalValue int
 type ServerConfiguration struct {
 	ProcessDirectory string
 	RootDirectory    string
-	ServiceName      string                        `json:"serviceName" validate:"required"`
-	Host             string                        `json:"ovshost" validate:"ipv4,required"`
-	Port             int                           `json:"ovsport" validate:"min=1024,max=65535,required"`
+	ServiceName      string                      `json:"serviceName" validate:"required"`
+	Host             string                      `json:"ovshost" validate:"ipv4,required"`
+	Port             int                         `json:"ovsport" validate:"min=1024,max=65535,required"`
+	Security         ServerSecurityConfiguration `json:"security"`
+}
+
+type ServerSecurityConfiguration struct {
 	SecurityLevel    types.ConnectionSecurityLevel `json:"securityLevel" validate:"oneof=none server clientandserver"`
-	ClientCA         string                        `json:"clientCA"`
 	ServerCert       string                        `json:"cert"`
 	ServerKey        string                        `json:"key"`
 	ClientCertPolicy types.CertPolicy              `json:"clientCertPolicy" validate:"oneof=none required verify"`
@@ -116,8 +120,10 @@ func Load(path string) (OverseerConfiguration, error) {
 
 	config := OverseerConfiguration{
 		Server: ServerConfiguration{
-			ClientCertPolicy: types.CertPolicyNone,
-			SecurityLevel:    types.ConnectionSecurityLevelNone,
+			Security: ServerSecurityConfiguration{
+				ClientCertPolicy: types.CertPolicyNone,
+				SecurityLevel:    types.ConnectionSecurityLevelNone,
+			},
 		},
 	}
 

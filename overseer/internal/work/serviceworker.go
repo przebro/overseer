@@ -30,18 +30,12 @@ type workerMediator struct {
 	timeout    int
 	wdata      workerStatus
 	lock       sync.Mutex
-	level      types.ConnectionSecurityLevel
-	policy     types.CertPolicy
-	clientCA   string
-	clientCert string
-	clientKey  string
+	security   config.ServerSecurityConfiguration
 }
 
 //NewWorkerMediator - Creates a new WorkerMediator.
 func NewWorkerMediator(conf config.WorkerConfiguration,
-	clientCA, clientCert, clientKey string,
-	level types.ConnectionSecurityLevel,
-	policy types.CertPolicy,
+	security config.ServerSecurityConfiguration,
 	timeout int,
 	status chan events.RouteWorkResponseMsg,
 	log logger.AppLogger) WorkerMediator {
@@ -53,14 +47,10 @@ func NewWorkerMediator(conf config.WorkerConfiguration,
 		taskStatus: status,
 		wdata:      workerStatus{},
 		lock:       sync.Mutex{},
-		level:      level,
-		policy:     policy,
-		clientCA:   clientCA,
-		clientCert: clientCert,
-		clientKey:  clientKey,
+		security:   security,
 	}
 
-	if client := worker.connect(conf, level, policy, worker.timeout); client == nil {
+	if client := worker.connect(conf, security.SecurityLevel, security.ClientCertPolicy, worker.timeout); client == nil {
 		worker.wdata.connected = false
 	} else {
 		worker.client = client
@@ -96,7 +86,12 @@ func (worker *workerMediator) connect(conf config.WorkerConfiguration, level typ
 	if level == types.ConnectionSecurityLevelNone {
 		opt = append(opt, grpc.WithInsecure())
 	} else {
-		result, err := cert.BuildClientCredentials(worker.clientCA, worker.clientCert, worker.clientKey, policy, level)
+
+		if err := cert.RegisterCA(conf.WorkerCA); err != nil {
+			worker.log.Desugar().Warn("connect", zap.String("error", err.Error()))
+		}
+
+		result, err := cert.BuildClientCredentials(worker.security.ServerCert, worker.security.ServerKey, policy, level)
 		if err != nil {
 			worker.log.Desugar().Error("connect", zap.String("error", err.Error()))
 			return nil
@@ -131,7 +126,7 @@ func (worker *workerMediator) Available() {
 		w.lock.Unlock()
 
 		if client == nil {
-			if client := w.connect(w.config, w.level, w.policy, w.timeout); client == nil {
+			if client := w.connect(w.config, w.security.SecurityLevel, w.security.ClientCertPolicy, w.timeout); client == nil {
 				worker.log.Desugar().Error("Available", zap.String("error", "connect with worker failed"))
 			} else {
 				w.lock.Lock()
