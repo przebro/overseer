@@ -44,7 +44,7 @@ func New(config config.OverseerConfiguration, lg logger.AppLogger, quiesce bool)
 	var gs *services.OvsGrpcServer
 	var ds = events.NewDispatcher(lg)
 
-	dataProvider, err := datastore.NewDataProvider(config.GetStoreProviderConfiguration(), logger.NewTestLogger())
+	dataProvider, err := datastore.NewDataProvider(config.StoreProvider, logger.NewTestLogger())
 	if err != nil {
 		lg.Error(err)
 		return nil, err
@@ -56,7 +56,7 @@ func New(config config.OverseerConfiguration, lg logger.AppLogger, quiesce bool)
 		defPath = config.DefinitionDirectory
 	}
 
-	if rm, err = resources.NewManager(ds, lg, config.GetResourceConfiguration(), dataProvider); err != nil {
+	if rm, err = resources.NewManager(ds, lg, config.Resources, dataProvider); err != nil {
 		return nil, err
 	}
 
@@ -72,19 +72,19 @@ func New(config config.OverseerConfiguration, lg logger.AppLogger, quiesce bool)
 		return nil, err
 	}
 
-	if jn, err = journal.NewTaskJournal(config.GetJournalConfiguration(), ds, dataProvider, lg); err != nil {
+	if jn, err = journal.NewTaskJournal(config.Journal, ds, dataProvider, lg); err != nil {
 		return nil, err
 	}
 
 	daily := pool.NewDailyExecutor(ds, pm, pl, lg)
 
-	if config.GetActivePoolConfiguration().ForceNewDayProc {
+	if config.PoolConfiguration.ForceNewDayProc {
 		daily.DailyProcedure()
 	}
 
-	wrunner := work.NewWorkerManager(ds, config.GetWorkerManagerConfiguration(), lg, config.Server.Security)
+	wrunner := work.NewWorkerManager(ds, config.WorkerManager, lg, config.Server.Security)
 
-	if gs, err = createServiceServer(config.GetServerConfiguration(), ds, rm, dm, pm, pl, jn, dataProvider, config.GetSecurityConfiguration(), lg); err != nil {
+	if gs, err = createServiceServer(config.Server, ds, rm, dm, pm, pl, jn, dataProvider, config.Security, lg); err != nil {
 		return nil, err
 	}
 

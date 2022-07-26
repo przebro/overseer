@@ -73,7 +73,7 @@ func startOverseer() {
 	}
 
 	//Get log section from configuration
-	logcfg := conf.GetLogConfiguration()
+	logcfg := conf.Log
 
 	if !filepath.IsAbs(logcfg.LogDirectory) {
 		logcfg.LogDirectory = filepath.Join(rootPath, logcfg.LogDirectory)
@@ -89,7 +89,7 @@ func startOverseer() {
 		os.Exit(16)
 	}
 
-	if profile == true {
+	if profile {
 		helpers.StartProfiler(log, profFileName)
 	}
 

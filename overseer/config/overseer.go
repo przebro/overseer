@@ -140,43 +140,43 @@ func Load(path string) (OverseerConfiguration, error) {
 	return config, nil
 }
 
-//GetServerConfiguration - gets main configuration section
-func (cfg *OverseerConfiguration) GetServerConfiguration() ServerConfiguration {
+// //GetServerConfiguration - gets main configuration section
+// func (cfg *OverseerConfiguration) GetServerConfiguration() ServerConfiguration {
 
-	return cfg.Server
-}
+// 	return cfg.Server
+// }
 
-//GetLogConfiguration - Gets a log configuration section
-func (cfg *OverseerConfiguration) GetLogConfiguration() logger.LoggerConfiguration {
-	return cfg.Log
-}
+// //GetLogConfiguration - Gets a log configuration section
+// func (cfg *OverseerConfiguration) GetLogConfiguration() logger.LoggerConfiguration {
+// 	return cfg.Log
+// }
 
-//GetActivePoolConfiguration - Gets an Active Pool configuration section
-func (cfg *OverseerConfiguration) GetActivePoolConfiguration() ActivePoolConfiguration {
-	return cfg.PoolConfiguration
-}
+// //GetActivePoolConfiguration - Gets an Active Pool configuration section
+// func (cfg *OverseerConfiguration) GetActivePoolConfiguration() ActivePoolConfiguration {
+// 	return cfg.PoolConfiguration
+// }
 
-//GetResourceConfiguration - Gets  resource configuration section
-func (cfg *OverseerConfiguration) GetResourceConfiguration() ResourcesConfigurartion {
-	return cfg.Resources
-}
+// //GetResourceConfiguration - Gets  resource configuration section
+// func (cfg *OverseerConfiguration) GetResourceConfiguration() ResourcesConfigurartion {
+// 	return cfg.Resources
+// }
 
-//GetStoreProviderConfiguration - gets provider configuration section
-func (cfg *OverseerConfiguration) GetStoreProviderConfiguration() StoreProviderConfiguration {
-	return cfg.StoreProvider
-}
+// //GetStoreProviderConfiguration - gets provider configuration section
+// func (cfg *OverseerConfiguration) GetStoreProviderConfiguration() StoreProviderConfiguration {
+// 	return cfg.StoreProvider
+// }
 
-//GetSecurityConfiguration - gets security configuration section
-func (cfg *OverseerConfiguration) GetSecurityConfiguration() SecurityConfiguration {
-	return cfg.Security
-}
+// //GetSecurityConfiguration - gets security configuration section
+// func (cfg *OverseerConfiguration) GetSecurityConfiguration() SecurityConfiguration {
+// 	return cfg.Security
+// }
 
-//GetWorkerManagerConfiguration - gets worker manager configuration section
-func (cfg *OverseerConfiguration) GetWorkerManagerConfiguration() WorkerManagerConfiguration {
-	return cfg.WorkerManager
-}
+// //GetWorkerManagerConfiguration - gets worker manager configuration section
+// func (cfg *OverseerConfiguration) GetWorkerManagerConfiguration() WorkerManagerConfiguration {
+// 	return cfg.WorkerManager
+// }
 
-//GetJournalConfiguration - gets journal configuration section
-func (cfg *OverseerConfiguration) GetJournalConfiguration() JournalConfiguration {
-	return cfg.Journal
-}
+// //GetJournalConfiguration - gets journal configuration section
+// func (cfg *OverseerConfiguration) GetJournalConfiguration() JournalConfiguration {
+// 	return cfg.Journal
+// }
