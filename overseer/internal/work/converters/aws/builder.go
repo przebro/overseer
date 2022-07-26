@@ -3,6 +3,7 @@ package aws
 import (
 	"encoding/json"
 
+	"github.com/przebro/overseer/common/types"
 	"github.com/przebro/overseer/overseer/internal/taskdef"
 	converter "github.com/przebro/overseer/overseer/internal/work/converters"
 	"github.com/przebro/overseer/proto/actions"
@@ -14,10 +15,10 @@ type awsTaskDatabuilder interface {
 
 type taskDataBuilder struct {
 	action *actions.AwsTaskAction
-	v      []taskdef.VariableData
+	v      types.EnvironmentVariableList
 }
 
-func newBuilder(v []taskdef.VariableData) *taskDataBuilder {
+func newBuilder(v types.EnvironmentVariableList) *taskDataBuilder {
 	return &taskDataBuilder{action: &actions.AwsTaskAction{}, v: v}
 }
 

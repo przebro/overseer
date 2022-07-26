@@ -21,7 +21,7 @@ type osConverter struct {
 }
 
 //ConvertToMsg - converts os specific data to proto message
-func (c *osConverter) ConvertToMsg(data json.RawMessage, variables []taskdef.VariableData) (*any.Any, error) {
+func (c *osConverter) ConvertToMsg(data json.RawMessage, variables types.EnvironmentVariableList) (*any.Any, error) {
 
 	result := &taskdef.OsTaskData{}
 	if err := json.Unmarshal(data, result); err != nil {

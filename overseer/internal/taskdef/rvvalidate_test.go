@@ -126,21 +126,21 @@ func TestFlagData(t *testing.T) {
 
 func TestVariableData(t *testing.T) {
 
-	variable := VariableData{Name: "%%ABCD", Value: ""}
+	variable := types.EnvironmentVariable{Name: "%%ABCD", Value: ""}
 
 	err := validator.Valid.Validate(variable)
 	if err != nil {
 		t.Error(err)
 	}
 
-	variable = VariableData{Name: "%ABCD", Value: ""}
+	variable = types.EnvironmentVariable{Name: "%ABCD", Value: ""}
 
 	err = validator.Valid.Validate(variable)
 	if err == nil {
 		t.Error(err)
 	}
 
-	variable = VariableData{Name: "%aAAA", Value: ""}
+	variable = types.EnvironmentVariable{Name: "%aAAA", Value: ""}
 
 	err = validator.Valid.Validate(variable)
 	if err == nil {

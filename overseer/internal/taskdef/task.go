@@ -64,17 +64,6 @@ type FlagData struct {
 	Type FlagType `json:"type" validate:"oneof=SHR EXL"`
 }
 
-//VariableData - Holds variables that will be passed to the task.
-type VariableData struct {
-	Name  string `json:"name" validate:"required,max=32,varname"`
-	Value string `json:"value"`
-}
-
-//Expand - Expands name
-func (data VariableData) Expand() string {
-	return strings.Replace(data.Name, "%%", "OVS_", 1)
-}
-
 //SchedulingData - Holds informations how task should be scheduled.
 type SchedulingData struct {
 	OrderType  SchedulingOption  `json:"type" validate:"required,oneof=manual daily weekday dayofmonth exact fromend"`
@@ -94,22 +83,22 @@ type CyclicTaskData struct {
 }
 
 type baseTaskDefinition struct {
-	Revision      string           `json:"rev"`
-	TaskType      types.TaskType   `json:"type" validate:"oneof=dummy os aws filewatch"`
-	Name          string           `json:"name" validate:"required,max=32,resname"`
-	Group         string           `json:"group" validate:"required,max=20,resname"`
-	Description   string           `json:"description" validate:"lte=200"`
-	ConfirmFlag   bool             `json:"confirm"`
-	DataRetention int              `json:"retention" validate:"min=0,max=14"`
-	Schedule      SchedulingData   `json:"schedule" validate:"omitempty"`
-	Cyclics       CyclicTaskData   `json:"cyclic" validate:"omitempty"`
-	InRelation    InTicketRelation `json:"relation" validate:"required_with=InTickets,omitempty,oneof=AND OR EXPR"`
-	Expression    string           `json:"expr" validate:"omitempty"`
-	InTickets     []InTicketData   `json:"inticket" validate:"omitempty,dive"`
-	FlagsTab      []FlagData       `json:"flags"  validate:"omitempty,dive"`
-	OutTickets    []OutTicketData  `json:"outticket"  validate:"omitempty,dive"`
-	TaskVariables []VariableData   `json:"variables"  validate:"omitempty,dive"`
-	Data          json.RawMessage  `json:"spec,omitempty"`
+	Revision      string                        `json:"rev"`
+	TaskType      types.TaskType                `json:"type" validate:"oneof=dummy os aws filewatch"`
+	Name          string                        `json:"name" validate:"required,max=32,resname"`
+	Group         string                        `json:"group" validate:"required,max=20,resname"`
+	Description   string                        `json:"description" validate:"lte=200"`
+	ConfirmFlag   bool                          `json:"confirm"`
+	DataRetention int                           `json:"retention" validate:"min=0,max=14"`
+	Schedule      SchedulingData                `json:"schedule" validate:"omitempty"`
+	Cyclics       CyclicTaskData                `json:"cyclic" validate:"omitempty"`
+	InRelation    InTicketRelation              `json:"relation" validate:"required_with=InTickets,omitempty,oneof=AND OR EXPR"`
+	Expression    string                        `json:"expr" validate:"omitempty"`
+	InTickets     []InTicketData                `json:"inticket" validate:"omitempty,dive"`
+	FlagsTab      []FlagData                    `json:"flags"  validate:"omitempty,dive"`
+	OutTickets    []OutTicketData               `json:"outticket"  validate:"omitempty,dive"`
+	TaskVariables types.EnvironmentVariableList `json:"variables"  validate:"omitempty,dive"`
+	Data          json.RawMessage               `json:"spec,omitempty"`
 }
 
 //Ordering options
@@ -265,7 +254,7 @@ type TaskDefinition interface {
 	Confirm() bool
 	Retention() int
 	Expr() string
-	Variables() []VariableData
+	Variables() types.EnvironmentVariableList
 	Action() json.RawMessage
 }
 
@@ -291,7 +280,7 @@ func (task *baseTaskDefinition) Action() json.RawMessage {
 }
 
 //Variables - Gets variables from tasks definition
-func (task *baseTaskDefinition) Variables() []VariableData {
+func (task *baseTaskDefinition) Variables() types.EnvironmentVariableList {
 	return task.TaskVariables
 }
 

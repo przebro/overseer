@@ -274,7 +274,7 @@ func TestGetTimeSpan(t *testing.T) {
 	def, err := builder.WithBase("test", "dummy_time_span", "description").
 		WithSchedule(schdata).
 		WithFlags([]FlagData{{Name: "FLAG01", Type: FlagShared}}).
-		WithConfirm().WithRetention(1).WithVariables([]VariableData{{Name: "%%VAR", Value: "xx"}}).Build()
+		WithConfirm().WithRetention(1).WithVariables(types.EnvironmentVariableList{{Name: "%%VAR", Value: "xx"}}).Build()
 
 	if err != nil {
 		t.Error("task builder error", err)
@@ -374,7 +374,7 @@ func TestGetAction(t *testing.T) {
 	def, err := builder.WithBase("test", "dummy_time_span", "description").
 		WithSchedule(schdata).
 		WithFlags([]FlagData{{Name: "FLAG01", Type: FlagShared}}).
-		WithConfirm().WithRetention(1).WithVariables([]VariableData{{Name: "%%VAR", Value: "xx"}}).Build()
+		WithConfirm().WithRetention(1).WithVariables(types.EnvironmentVariableList{{Name: "%%VAR", Value: "xx"}}).Build()
 
 	if err != nil {
 		t.Error("task builder error")
@@ -388,7 +388,7 @@ func TestGetAction(t *testing.T) {
 func TestExpandVariable(t *testing.T) {
 
 	expect := "OVS_VARIABLE"
-	variable := VariableData{Name: "%%VARIABLE", Value: ""}
+	variable := types.EnvironmentVariable{Name: "%%VARIABLE", Value: ""}
 	if variable.Expand() != expect {
 		t.Error("Unexpected value expected:", expect, "actual", variable.Expand())
 	}
@@ -401,7 +401,7 @@ func TestBuilder(t *testing.T) {
 	def, err := builder.WithBase("test", "dummy_04", "description").
 		WithFlags([]FlagData{{Name: "FLAG01", Type: FlagShared}}).
 		WithSchedule(SchedulingData{OrderType: OrderingDaily}).
-		WithConfirm().WithRetention(1).WithVariables([]VariableData{{Name: "%%VAR", Value: "xx"}}).Build()
+		WithConfirm().WithRetention(1).WithVariables(types.EnvironmentVariableList{{Name: "%%VAR", Value: "xx"}}).Build()
 
 	if err != nil {
 		t.Error("task builder error")

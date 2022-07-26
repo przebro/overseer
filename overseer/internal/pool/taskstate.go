@@ -44,14 +44,10 @@ type TaskExecutionContext struct {
 	scheduleTime types.HourMinTime
 }
 
-type ostateCheckOtype struct {
-}
-type ostateCheckCalendar struct {
-}
-type ostateOrdered struct {
-}
-type ostateNotSubmitted struct {
-}
+type ostateCheckOtype struct{}
+type ostateCheckCalendar struct{}
+type ostateOrdered struct{}
+type ostateNotSubmitted struct{}
 
 //States for task in Active pool
 //ostateConfirm - Task is ordered but waits for user's confirmation
@@ -373,6 +369,8 @@ func (state ostateStarting) processState(ctx *TaskExecutionContext) bool {
 	ctx.dispatcher.PushEvent(receiver, events.RouteWorkLaunch, msg)
 	result, err := receiver.WaitForResult()
 
+	//work.Manager.Push(data)
+
 	if err != nil {
 
 		pushJournalMessage(ctx.dispatcher, ctx.task.OrderID(), ctx.task.CurrentExecutionID(), time.Now(), journal.TaskStartingFailedErr)
@@ -422,7 +420,6 @@ func (state ostateStarting) processState(ctx *TaskExecutionContext) bool {
 }
 func (state ostateExecuting) processState(ctx *TaskExecutionContext) bool {
 
-	ctx.log.Info("Checking task state")
 	ctx.task.SetState(TaskStateExecuting)
 
 	msg := events.NewMsg(events.WorkRouteCheckStatusMsg{
@@ -433,6 +430,7 @@ func (state ostateExecuting) processState(ctx *TaskExecutionContext) bool {
 
 	receiver := events.NewWorkLaunchReceiver()
 
+	//work.Manager.Status()
 	ctx.dispatcher.PushEvent(receiver, events.RouteWorkCheck, msg)
 
 	result, err := receiver.WaitForResult()
@@ -889,17 +887,17 @@ func getStartOfWeek(current date.Odate, shift int) date.Odate {
 	return date.FromTime(t)
 }
 
-func prepareVaribles(task *activeTask, odate date.Odate) []taskdef.VariableData {
+func prepareVaribles(task *activeTask, odate date.Odate) types.EnvironmentVariableList {
 
-	variables := []taskdef.VariableData{}
+	variables := types.EnvironmentVariableList{}
 	n, _, _ := task.GetInfo()
 	cID := task.CurrentExecutionID()
 
-	variables = append(variables, taskdef.VariableData{Name: "%%ORDERID", Value: string(task.orderID)})
-	variables = append(variables, taskdef.VariableData{Name: "%%RN", Value: fmt.Sprintf("%d", task.RunNumber())})
-	variables = append(variables, taskdef.VariableData{Name: "%%EXECID", Value: cID})
-	variables = append(variables, taskdef.VariableData{Name: "%%ODATE", Value: odate.ODATE()})
-	variables = append(variables, taskdef.VariableData{Name: "%%TASKNAME", Value: n})
+	variables = append(variables, types.EnvironmentVariable{Name: "%%ORDERID", Value: string(task.orderID)})
+	variables = append(variables, types.EnvironmentVariable{Name: "%%RN", Value: fmt.Sprintf("%d", task.RunNumber())})
+	variables = append(variables, types.EnvironmentVariable{Name: "%%EXECID", Value: cID})
+	variables = append(variables, types.EnvironmentVariable{Name: "%%ODATE", Value: odate.ODATE()})
+	variables = append(variables, types.EnvironmentVariable{Name: "%%TASKNAME", Value: n})
 
 	variables = append(variables, task.Variables()...)
 

@@ -21,7 +21,7 @@ type awsConverter struct {
 }
 
 //ConvertToMsg - converts aws task specific data to proto message
-func (c *awsConverter) ConvertToMsg(data json.RawMessage, variables []taskdef.VariableData) (*any.Any, error) {
+func (c *awsConverter) ConvertToMsg(data json.RawMessage, variables types.EnvironmentVariableList) (*any.Any, error) {
 
 	result := &taskdef.AwsTaskData{}
 

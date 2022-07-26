@@ -195,8 +195,8 @@ func (worker *workerMediator) StartTask(msg events.RouteTaskExecutionMsg) {
 
 	}
 	var err error
-
-	smsg.Command, err = converter.ConvertToMsg(msg.Type, msg.Command, msg.Variables)
+	//TODO remove or convert
+	smsg.Command, err = converter.ConvertToMsg(msg.Type, msg.Command, types.EnvironmentVariableList{})
 	if err != nil {
 		worker.log.Desugar().Error("StartTask", zap.String("error", err.Error()))
 		status.Status = types.WorkerTaskStatusFailed

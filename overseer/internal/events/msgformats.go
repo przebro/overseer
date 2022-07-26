@@ -131,11 +131,12 @@ type RouteTaskStatusResponseMsg struct {
 }
 
 //RouteTaskExecutionMsg - Contains informations needed to begin a work on a remoteworker.
+//DEPRECATED
 type RouteTaskExecutionMsg struct {
 	OrderID     unique.TaskOrderID
 	ExecutionID string
 	Type        types.TaskType
-	Variables   []task.VariableData
+	Variables   types.EnvironmentVariableList
 	Command     json.RawMessage
 }
 

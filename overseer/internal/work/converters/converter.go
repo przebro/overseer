@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/przebro/overseer/common/types"
-	"github.com/przebro/overseer/overseer/internal/taskdef"
 
 	any "google.golang.org/protobuf/types/known/anypb"
 )
@@ -19,7 +18,7 @@ var ErrConverterNotRegistered error = errors.New("converter not registered for g
 
 //TaskActionConverter - converts json raw data to any
 type TaskActionConverter interface {
-	ConvertToMsg(data json.RawMessage, variables []taskdef.VariableData) (*any.Any, error)
+	ConvertToMsg(data json.RawMessage, variables types.EnvironmentVariableList) (*any.Any, error)
 }
 
 //RegisterConverter - registers converter for given task type
@@ -28,7 +27,7 @@ func RegisterConverter(taskType types.TaskType, c TaskActionConverter) {
 }
 
 //ConvertToMsg - converts raw json to any
-func ConvertToMsg(taskType types.TaskType, data json.RawMessage, variables []taskdef.VariableData) (*any.Any, error) {
+func ConvertToMsg(taskType types.TaskType, data json.RawMessage, variables types.EnvironmentVariableList) (*any.Any, error) {
 
 	converter, ok := converters[taskType]
 	if !ok {
@@ -39,7 +38,7 @@ func ConvertToMsg(taskType types.TaskType, data json.RawMessage, variables []tas
 }
 
 //ReplaceVariables - replace variables in input data
-func ReplaceVariables(in string, variables []taskdef.VariableData) string {
+func ReplaceVariables(in string, variables types.EnvironmentVariableList) string {
 	reg := regexp.MustCompile(`\%\%[A-Z0-9_]+`)
 
 	out := in

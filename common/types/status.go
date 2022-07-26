@@ -51,3 +51,13 @@ const (
 	//StatusCodeSevereError - something really bad happened
 	StatusCodeSevereError StatusCode = 999
 )
+
+type TaskPriority int32
+
+const (
+	TaskPriorityHighest TaskPriority = 0
+	TaskPriorityHigh    TaskPriority = 1
+	TaskPriorityNormal  TaskPriority = 2
+	TaskPriorityLow     TaskPriority = 3
+	TaskPriorityLowest  TaskPriority = 4
+)

@@ -18,7 +18,7 @@ type TaskBuilder interface {
 	WithFlags(flags []FlagData) TaskBuilder
 	WithConfirm() TaskBuilder
 	WithCyclic(data CyclicTaskData) TaskBuilder
-	WithVariables(vars []VariableData) TaskBuilder
+	WithVariables(vars types.EnvironmentVariableList) TaskBuilder
 	WithRetention(days int) TaskBuilder
 	Build() (TaskDefinition, error)
 }
@@ -123,7 +123,7 @@ func (builder *DummyTaskBuilder) WithConfirm() TaskBuilder {
 }
 
 //WithVariables - Adds variables to the constructed task.
-func (builder *DummyTaskBuilder) WithVariables(vars []VariableData) TaskBuilder {
+func (builder *DummyTaskBuilder) WithVariables(vars types.EnvironmentVariableList) TaskBuilder {
 
 	builder.def.TaskVariables = vars
 	return builder
