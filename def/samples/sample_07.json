@@ -1,20 +1,22 @@
 {
-    "type" : "os",
-    "name" :"sample_07",
-    "group" : "samples",
-    "description" :"sample long runnnig task",
+    "definition":{
+        "type" : "os",
+        "name" :"sample_07",
+        "group" : "samples",
+        "description" :"sample long runnnig task"
+    },
     "confirm" : true,
     "retention" : 3,
-    "inticket" : [
+    "in_tickets" : [
         {"name" : "IN-SAMPLE07","odate" : "PREV" }
     ],
-    "relation" :"AND",
+    "expr" :"AND",
     "flags" : [],
     "variables" : [
         {"name": "%%ABEND","value":"Y"},
         {"name": "%%TIMEOUT","value":"10"}
     ],
-    "outticket" :[
+    "out_tickets" :[
         {"name" : "IN-SAMPLE07","odate" : "PREV" ,"action":"REM"}
     ],
     "schedule" :{

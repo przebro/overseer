@@ -1,145 +1,81 @@
 package datastore
 
 import (
+	"context"
 	"errors"
-	"os"
 	"testing"
 
-	"github.com/przebro/overseer/common/logger"
+	"github.com/przebro/databazaar/store"
+	mockstore "github.com/przebro/overseer/datastore/mock"
 	"github.com/przebro/overseer/overseer/config"
+	"github.com/stretchr/testify/suite"
 )
 
-var resourceString = `{"flags":{"_id":"flags","_rev":"","flags":null},"tickets":{"_id":"tickets","_rev":"","tickets":[]}}`
-
 func init() {
-	f, _ := os.Create("../data/tests/resources.json")
-	f.Write([]byte(resourceString))
-	f.Close()
-}
-
-func TestProvider(t *testing.T) {
-
-	log := logger.NewTestLogger()
-
-	conf := config.StoreProviderConfiguration{
-		Store: []config.StoreConfiguration{
-			{ID: "", ConnectionString: ""},
-		},
-		Collections: []config.CollectionConfiguration{
-			{Name: "", StoreID: ""},
-		},
-	}
-	_, err := NewDataProvider(conf, log)
-
-	if err == nil || !errors.Is(err, ErrStoreConfiguration) {
-		t.Errorf("unexpected result")
-	}
-
-	conf.Store[0] = config.StoreConfiguration{ID: "test1", ConnectionString: "local;/../data/tests?synctime=1"}
-	conf.Store = append(conf.Store, config.StoreConfiguration{ID: "test1", ConnectionString: "local;/../data/tests?synctime=1"})
-
-	_, err = NewDataProvider(conf, log)
-
-	if err == nil || !errors.Is(err, ErrStoreConfiguration) {
-		t.Error("unexpected result:", err)
-	}
-
-	conf.Store[1] = config.StoreConfiguration{ID: "test2", ConnectionString: "local;/data/tests?synctime=1"}
-
-	_, err = NewDataProvider(conf, log)
-
-	if err == nil {
-		t.Error("unexpected result", err)
-	}
-
-	conf.Store = []config.StoreConfiguration{{ID: "test1", ConnectionString: "local;/../data/tests?synctime=1"}}
-
-	_, err = NewDataProvider(conf, log)
-
-	if err == nil {
-		t.Error("unexpected result", err)
-	}
 
 }
 
-func TestProviderCollections(t *testing.T) {
+type DatastoreTestSuite struct {
+	suite.Suite
+	store *mockstore.MockStore
+}
 
-	log := logger.NewTestLogger()
+func TestDatastoreTestSuite(t *testing.T) {
+	suite.Run(t, new(DatastoreTestSuite))
+}
 
-	conf := config.StoreProviderConfiguration{
-		Store: []config.StoreConfiguration{
-			{ID: "test1", ConnectionString: "local;/../data/tests?synctime=1"},
-		},
-		Collections: []config.CollectionConfiguration{
-			{Name: "", StoreID: ""},
-		},
-	}
-	_, err := NewDataProvider(conf, log)
+func (suite *DatastoreTestSuite) SetupSuite() {
 
-	if err == nil {
-		t.Error("unexpected result", err)
-	}
+	suite.store = &mockstore.MockStore{}
 
-	conf.Collections[0] = config.CollectionConfiguration{Name: "resources", StoreID: "test1"}
+	suite.store.On("Collection", "test1").Return(&mockstore.MockCollection{}, nil)
+	suite.store.On("Collection", "noname").Return(nil, errors.New("no collection"))
 
-	_, err = NewDataProvider(conf, log)
+	fn := func(opt store.ConnectionOptions) (store.DataStore, error) {
 
-	if err != nil {
-		t.Error("unexpected result", err)
+		return suite.store, nil
 	}
 
-	conf.Collections = append(conf.Collections, config.CollectionConfiguration{Name: "resources", StoreID: "test1"})
-
-	_, err = NewDataProvider(conf, log)
-
-	if err == nil {
-		t.Error("unexpected result", err)
-	}
+	store.RegisterStoreFactory("mock", fn)
 
 }
 
-func TestGetCollection(t *testing.T) {
+func (suite *DatastoreTestSuite) TestProvider_Successful() {
 
-	log := logger.NewTestLogger()
+	conf := config.StoreConfiguration{ID: "test1", ConnectionString: "mock;;/../data/tests?synctime=1"}
+	_, err := NewDataProvider(conf)
+	suite.NoError(err)
+}
+func (suite *DatastoreTestSuite) TestProvider_NoDriverError() {
+	conf := config.StoreConfiguration{ID: "test1", ConnectionString: "local;;/../data/tests?synctime=1"}
+	_, err := NewDataProvider(conf)
+	suite.NotNil(err)
+}
 
-	conf := config.StoreProviderConfiguration{
-		Store: []config.StoreConfiguration{
-			{ID: "test1", ConnectionString: "local;/../data/tests?synctime=1"},
-		},
-		Collections: []config.CollectionConfiguration{
-			{Name: "resources", StoreID: "test1"},
-		},
-	}
-	p, err := NewDataProvider(conf, log)
+func (suite *DatastoreTestSuite) TestGetCollection_Successful() {
 
-	if err != nil {
-		t.Error("unexpected result", err)
-	}
+	conf := config.StoreConfiguration{ID: "test1", ConnectionString: "mock;;data/tests?synctime=1"}
+	p, err := NewDataProvider(conf)
+	suite.Nil(err)
+	_, err = p.GetCollection(context.Background(), "test1")
+	suite.Nil(err)
 
-	_, err = p.GetCollection("noname")
-	if err == nil {
-		t.Error("unexpected error")
-	}
+}
 
-	col, err := p.GetCollection("resources")
-	if err != nil {
-		t.Error("unexpected error:", err)
-	}
-	if col == nil {
-		t.Error("unexpected error nil collection")
-	}
+func (suite *DatastoreTestSuite) TestGetCollection_NoCollection() {
 
-	conf.Collections = []config.CollectionConfiguration{{Name: "resources2", StoreID: "not_exists"}}
+	conf := config.StoreConfiguration{ID: "test1", ConnectionString: "mock;;data/tests?synctime=1"}
+	p, err := NewDataProvider(conf)
+	suite.Nil(err)
+	_, err = p.GetCollection(context.Background(), "noname")
+	suite.NotNil(err)
+}
 
-	prov, err := NewDataProvider(conf, log)
+func (suite *DatastoreTestSuite) TestGetCollectionDirectory_Successful() {
 
-	if err != nil {
-		t.Error("unexpected result", err)
-	}
+	conf := config.StoreConfiguration{ID: "test1", ConnectionString: "mock;;data/tests?synctime=1"}
+	p, err := NewDataProvider(conf)
+	suite.Nil(err)
+	suite.Equal("data/tests", p.Directory())
 
-	_, err = prov.GetCollection("resources2")
-
-	if err == nil {
-		t.Error("unexpected result")
-	}
 }

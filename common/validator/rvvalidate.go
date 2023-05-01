@@ -10,7 +10,7 @@ func init() {
 
 }
 
-//ResourceNameValidator - validator function  for resource name like task, flag or ticket
+// ResourceNameValidator - validator function  for resource name like task, flag or ticket
 func ResourceNameValidator(fl vl.FieldLevel) bool {
 
 	if val, ok := fl.Field().Interface().(string); ok {
@@ -21,7 +21,7 @@ func ResourceNameValidator(fl vl.FieldLevel) bool {
 	return false
 }
 
-//ResourceValueValidator - validator function  for resource name like task, flag or ticket,
+// ResourceValueValidator - validator function  for resource name like task, flag or ticket,
 // this one is used for search strings and accepts additional * ands ?
 func ResourceValueValidator(fl vl.FieldLevel) bool {
 
@@ -33,11 +33,22 @@ func ResourceValueValidator(fl vl.FieldLevel) bool {
 	return false
 }
 
-//VariableNameValidator - validator function  for variable name
+// VariableNameValidator - validator function  for variable name
 func VariableNameValidator(fl vl.FieldLevel) bool {
 
 	if val, ok := fl.Field().Interface().(string); ok {
 		result, _ := validateValueVariable(val)
+		return result
+	}
+
+	return false
+}
+
+// UsernameValidator - validator function  for username
+func UsernameValidator(fl vl.FieldLevel) bool {
+
+	if val, ok := fl.Field().Interface().(string); ok {
+		result, _ := validateValueUsername(val)
 		return result
 	}
 
@@ -59,5 +70,11 @@ func validateValueResourceValue(resource string) (bool, error) {
 func validateValueVariable(resource string) (bool, error) {
 
 	return regexp.MatchString(`^%%[\dA-Z]*$`, resource)
+
+}
+
+func validateValueUsername(username string) (bool, error) {
+
+	return regexp.MatchString(`^[\w\d]+$`, username)
 
 }

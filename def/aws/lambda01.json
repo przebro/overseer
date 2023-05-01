@@ -1,12 +1,14 @@
 {
-    "type" : "aws",
-    "name" :"lambda01",
-    "group" : "aws",
-    "description" :"sample lambda function task",
-    "inticket" : [],
-    "relation" :"AND",
+    "definition" :{
+        "type" : "aws",
+        "name" :"lambda01",
+        "group" : "aws",
+        "description" :"sample lambda function task"
+    },
+    "in_tickets" : [],
+    "expr" :"AND",
     "flags" : [],
-    "outticket" :[
+    "out_tickets" :[
         {"name" : "OK-LAMBDA01","odate" : "ODATE" ,"action":"ADD"}
     ],
     "schedule" :{

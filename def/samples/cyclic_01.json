@@ -1,18 +1,20 @@
 {
-    "type" : "os",
-    "name" :"cyclic_01",
-    "group" : "samples",
-    "description" :"sample long runnnig task",
-    "inticket" : [
+    "definition" :{
+        "type" : "os",
+        "name" :"cyclic_01",
+        "group" : "samples",
+        "description" :"sample long runnnig task"
+    },
+    "in_tickets" : [
         {"name" : "IN-CYCLIC01","odate" : "ODATE" }
     ],
-    "relation" :"AND",
+    "expr" :"AND",
     "flags" : [],
     "variables" : [
         {"name": "%%ABEND","value":"Y"},
         {"name": "%%TIMEOUT","value":"10"}
     ],
-    "outticket" :[
+    "out_tickets" :[
         {"name" : "OUT-CYCLIC01","odate" : "ODATE" ,"action":"ADD"}
     ],
     "schedule" :{

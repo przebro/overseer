@@ -1,0 +1,17 @@
+{
+    "worker" : {
+        "serviceName" : "ovsworker",
+        "name":"worker_01",
+        "host" : "0.0.0.0",
+        "port" : 7055,
+        "sysoutDirectory" : "/var/ovsworker/sysout",
+        "taskLimit" : 8
+    },
+    "logConfiguration" :{
+        "logLevel" : 1,
+        "sizeLimit" : 2048, 
+        "logDirectory" : "/var/log/ovsworker",
+        "prefix" :"worker_01"
+        }
+        
+}

@@ -5,32 +5,54 @@ import (
 	"fmt"
 
 	"github.com/przebro/overseer/common/core"
-	"github.com/przebro/overseer/common/logger"
 	"github.com/przebro/overseer/common/validator"
 	"github.com/przebro/overseer/overseer/auth"
 	"github.com/przebro/overseer/proto/services"
+	"github.com/rs/zerolog"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	empty "google.golang.org/protobuf/types/known/emptypb"
 )
 
+type UserManager interface {
+	Get(ctx context.Context, username string) (auth.UserModel, bool)
+	Create(ctx context.Context, model auth.UserModel) error
+	Modify(ctx context.Context, model auth.UserModel) error
+	Delete(ctx context.Context, username string) error
+	All(filter string) ([]auth.UserModel, error)
+}
+
+type RoleManager interface {
+	Get(name string) (auth.RoleModel, bool)
+	Create(model auth.RoleModel) error
+	Modify(model auth.RoleModel) error
+	Delete(name string) error
+	All(filter string) ([]auth.RoleModel, error)
+}
+
+type RoleAssociationManager interface {
+	Get(username string) (auth.RoleAssociationModel, bool)
+	Create(model auth.RoleAssociationModel) error
+	Modify(model auth.RoleAssociationModel) error
+	Delete(username string) error
+}
+
 type ovsAdministrationService struct {
-	log         logger.AppLogger
-	umanager    *auth.UserManager
-	rmanager    *auth.RoleManager
-	amanager    *auth.RoleAssociationManager
+	umanager    UserManager
+	rmanager    RoleManager
+	amanager    RoleAssociationManager
 	qcomponents []core.ComponentQuiescer
 	services.UnimplementedAdministrationServiceServer
 }
 
-//NewAdministrationService - returns a new instance of ovsAdministrationService
-func NewAdministrationService(u *auth.UserManager, r *auth.RoleManager, a *auth.RoleAssociationManager, log logger.AppLogger, q ...core.ComponentQuiescer) services.AdministrationServiceServer {
+// NewAdministrationService - returns a new instance of ovsAdministrationService
+func NewAdministrationService(u UserManager, r RoleManager, a RoleAssociationManager, q ...core.ComponentQuiescer) services.AdministrationServiceServer {
 
-	return &ovsAdministrationService{umanager: u, rmanager: r, amanager: a, log: log}
+	return &ovsAdministrationService{umanager: u, rmanager: r, amanager: a}
 }
 
-//CreateUser - Creates a new user
+// CreateUser - Creates a new user
 func (srv *ovsAdministrationService) CreateUser(ctx context.Context, msg *services.CreateUserMsg) (*services.ActionResultMsg, error) {
 
 	response := &services.ActionResultMsg{}
@@ -62,11 +84,6 @@ func (srv *ovsAdministrationService) CreateUser(ctx context.Context, msg *servic
 
 	}
 
-	if _, ok := srv.umanager.Get(model.Username); ok {
-		response.Message = "user already exists"
-		return response, nil
-	}
-
 	pass, err := auth.HashPassword([]byte(model.Password))
 	if err != nil {
 		response.Message = err.Error()
@@ -82,7 +99,7 @@ func (srv *ovsAdministrationService) CreateUser(ctx context.Context, msg *servic
 		}
 	}
 
-	if err := srv.umanager.Create(model); err != nil {
+	if err := srv.umanager.Create(ctx, model); err != nil {
 		response.Message = err.Error()
 		return response, nil
 	}
@@ -103,9 +120,9 @@ func (srv *ovsAdministrationService) CreateUser(ctx context.Context, msg *servic
 	return response, nil
 }
 
-//ModifyUser - Modifies user, this method is available for administrator only, it allows to change password
-//without knowledge about the old one
-func (srv *ovsAdministrationService) ModifyUser(ctx context.Context, msg *services.CreateUserMsg) (*services.ActionResultMsg, error) {
+// ModifyUser - Modifies user, this method is available for administrator only, it allows to change password
+// without knowledge about the old one
+func (srv *ovsAdministrationService) ModifyUser(ctx context.Context, msg *services.ModifyUserMsg) (*services.ActionResultMsg, error) {
 
 	response := &services.ActionResultMsg{}
 	var umodel auth.UserModel
@@ -113,22 +130,13 @@ func (srv *ovsAdministrationService) ModifyUser(ctx context.Context, msg *servic
 	var pass string
 	var err error
 
-	if umodel, ok = srv.umanager.Get(msg.User.Username); !ok {
+	if umodel, ok = srv.umanager.Get(ctx, msg.User.Username); !ok {
 		response.Success = false
 		response.Message = "user does not exists"
 		return response, nil
 	}
 
-	if msg.Password == "" {
-		pass = umodel.Password
-
-	} else {
-		if pass, err = auth.HashPassword([]byte(msg.Password)); err != nil {
-			response.Success = false
-			response.Message = err.Error()
-			return response, nil
-		}
-	}
+	pass = umodel.Password
 
 	model := auth.UserModel{
 		Username: msg.User.Username,
@@ -138,6 +146,8 @@ func (srv *ovsAdministrationService) ModifyUser(ctx context.Context, msg *servic
 		Password: pass,
 	}
 
+	fmt.Println("MOD USER::::::>", model)
+
 	if err := validator.Valid.Validate(model); err != nil {
 
 		response.Message = err.Error()
@@ -145,7 +155,7 @@ func (srv *ovsAdministrationService) ModifyUser(ctx context.Context, msg *servic
 		return response, nil
 	}
 
-	if err = srv.umanager.Modify(model); err != nil {
+	if err = srv.umanager.Modify(ctx, model); err != nil {
 		response.Success = false
 		response.Message = err.Error()
 		return response, nil
@@ -172,12 +182,12 @@ func (srv *ovsAdministrationService) DeleteUser(ctx context.Context, msg *servic
 	response := &services.ActionResultMsg{}
 	response.Success = false
 
-	if _, ok := srv.umanager.Get(msg.Username); !ok {
+	if _, ok := srv.umanager.Get(ctx, msg.Username); !ok {
 		response.Message = "user does not exists"
 		return response, nil
 	}
 
-	if err := srv.umanager.Delete(msg.Username); err != nil {
+	if err := srv.umanager.Delete(ctx, msg.Username); err != nil {
 		response.Message = err.Error()
 		return response, nil
 
@@ -194,24 +204,38 @@ func (srv *ovsAdministrationService) DeleteUser(ctx context.Context, msg *servic
 	return response, nil
 }
 
-//ListUsers - returns a List of users
-func (srv *ovsAdministrationService) ListUsers(ctx context.Context, msg *services.FilterMsg) (*services.ListEntityResultMsg, error) {
+// ListUsers - returns a List of users
+func (srv *ovsAdministrationService) ListUsers(ctx context.Context, msg *services.FilterMsg) (*services.ListUsersMsg, error) {
+
+	log := zerolog.Ctx(ctx)
 
 	var umodel []auth.UserModel
 	var err error
 	if umodel, err = srv.umanager.All(msg.Filter); err != nil {
-		return nil, err
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	result := &services.ListEntityResultMsg{}
+	result := &services.ListUsersMsg{}
 	for _, m := range umodel {
 
-		result.Entity = append(result.Entity, &services.EntityMsg{Name: m.Username, Description: m.Mail})
+		roles, found := srv.amanager.Get(m.Username)
+		if !found {
+			log.Error().Str("username", m.Username).Msg("role for user not found")
+		}
+
+		userInfo := &services.UserInfoMsg{
+			Username: m.Username, Email: m.Mail, Enabled: m.Enabled, Fullname: m.FullName,
+			Roles: roles.Roles,
+		}
+
+		fmt.Println("USER INFO:", userInfo)
+
+		result.Users = append(result.Users, userInfo)
 	}
 
 	return result, nil
 }
-func (srv *ovsAdministrationService) GetUser(ctx context.Context, msg *services.UserMsg) (*services.UserResultMsg, error) {
+func (srv *ovsAdministrationService) GetUser(ctx context.Context, msg *services.UserMsg) (*services.UserInfoMsg, error) {
 
 	var model auth.UserModel
 	var assoc auth.RoleAssociationModel
@@ -222,26 +246,25 @@ func (srv *ovsAdministrationService) GetUser(ctx context.Context, msg *services.
 
 	}
 
-	if model, ok = srv.umanager.Get(msg.Username); !ok {
+	if model, ok = srv.umanager.Get(ctx, msg.Username); !ok {
 
 		return nil, fmt.Errorf("user does not exists:%s", msg.Username)
 	}
 
 	assoc, _ = srv.amanager.Get(msg.Username)
 
-	user := services.UserAccount{
+	result := &services.UserInfoMsg{
 		Username: model.Username,
 		Fullname: model.FullName,
 		Enabled:  model.Enabled,
 		Email:    model.Mail,
 		Roles:    assoc.Roles,
 	}
-	result := &services.UserResultMsg{User: &user}
 
 	return result, nil
 }
 
-//CreateRole - creates a new roles
+// CreateRole - creates a new roles
 func (srv *ovsAdministrationService) CreateRole(ctx context.Context, msg *services.RoleDefinitionMsg) (*services.ActionResultMsg, error) {
 
 	response := &services.ActionResultMsg{}
@@ -290,7 +313,7 @@ func (srv *ovsAdministrationService) CreateRole(ctx context.Context, msg *servic
 	return response, nil
 }
 
-//ModifyRole -  an existing role
+// ModifyRole -  an existing role
 func (srv *ovsAdministrationService) ModifyRole(ctx context.Context, msg *services.RoleDefinitionMsg) (*services.ActionResultMsg, error) {
 
 	response := &services.ActionResultMsg{}
@@ -332,7 +355,7 @@ func (srv *ovsAdministrationService) ModifyRole(ctx context.Context, msg *servic
 
 }
 
-//DeleteRole - Removes a role
+// DeleteRole - Removes a role
 func (srv *ovsAdministrationService) DeleteRole(ctx context.Context, msg *services.RoleMsg) (*services.ActionResultMsg, error) {
 
 	response := &services.ActionResultMsg{}
@@ -354,8 +377,8 @@ func (srv *ovsAdministrationService) DeleteRole(ctx context.Context, msg *servic
 	return response, nil
 }
 
-//ListRoles - returns a list of roles
-func (srv *ovsAdministrationService) ListRoles(ctx context.Context, msg *services.FilterMsg) (*services.ListEntityResultMsg, error) {
+// ListRoles - returns a list of roles
+func (srv *ovsAdministrationService) ListRoles(ctx context.Context, msg *services.FilterMsg) (*services.ListRolesMsg, error) {
 
 	var rmodel []auth.RoleModel
 	var err error
@@ -363,16 +386,16 @@ func (srv *ovsAdministrationService) ListRoles(ctx context.Context, msg *service
 		return nil, err
 	}
 
-	result := &services.ListEntityResultMsg{}
+	result := &services.ListRolesMsg{}
 	for _, m := range rmodel {
 
-		result.Entity = append(result.Entity, &services.EntityMsg{Name: m.Name, Description: m.Description})
+		result.Roles = append(result.Roles, &services.RoleInfoMsg{Name: m.Name, Description: m.Description})
 	}
 
 	return result, nil
 }
 
-//GetRole - returns a role
+// GetRole - returns a role
 func (srv *ovsAdministrationService) GetRole(ctx context.Context, msg *services.RoleMsg) (*services.RoleResultMsg, error) {
 
 	var model auth.RoleModel
@@ -427,7 +450,7 @@ func (srv *ovsAdministrationService) Resume(ctx context.Context, msg *empty.Empt
 	return nil, status.Error(codes.Unimplemented, "not implemented")
 }
 
-//GetAllowedAction - returns allowed action for given method. Implementation of handlers.AccessRestricter
+// GetAllowedAction - returns allowed action for given method. Implementation of handlers.AccessRestricter
 func (srv *ovsAdministrationService) GetAllowedAction(method string) auth.UserAction {
 
 	return auth.ActionAdministration

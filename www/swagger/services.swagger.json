@@ -37,6 +37,546 @@
     "application/json"
   ],
   "paths": {
+    "/api/admin/role": {
+      "post": {
+        "operationId": "AdministrationService_ModifyRole",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/protoActionResultMsg"
+            }
+          },
+          "401": {
+            "description": "An unauthenticated user",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authenticated"
+              }
+            }
+          },
+          "403": {
+            "description": "An unauthorized access",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authorized to perform this action"
+              }
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/protoRoleDefinitionMsg"
+            }
+          }
+        ],
+        "tags": [
+          "AdministrationService"
+        ]
+      },
+      "put": {
+        "operationId": "AdministrationService_CreateRole",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/protoActionResultMsg"
+            }
+          },
+          "401": {
+            "description": "An unauthenticated user",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authenticated"
+              }
+            }
+          },
+          "403": {
+            "description": "An unauthorized access",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authorized to perform this action"
+              }
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/protoRoleDefinitionMsg"
+            }
+          }
+        ],
+        "tags": [
+          "AdministrationService"
+        ]
+      }
+    },
+    "/api/admin/role/{rolename}": {
+      "get": {
+        "operationId": "AdministrationService_GetRole",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/protoRoleResultMsg"
+            }
+          },
+          "401": {
+            "description": "An unauthenticated user",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authenticated"
+              }
+            }
+          },
+          "403": {
+            "description": "An unauthorized access",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authorized to perform this action"
+              }
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "rolename",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "AdministrationService"
+        ]
+      },
+      "delete": {
+        "operationId": "AdministrationService_DeleteRole",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/protoActionResultMsg"
+            }
+          },
+          "401": {
+            "description": "An unauthenticated user",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authenticated"
+              }
+            }
+          },
+          "403": {
+            "description": "An unauthorized access",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authorized to perform this action"
+              }
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "rolename",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "AdministrationService"
+        ]
+      }
+    },
+    "/api/admin/roles": {
+      "get": {
+        "operationId": "AdministrationService_ListRoles",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/protoListRolesMsg"
+            }
+          },
+          "401": {
+            "description": "An unauthenticated user",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authenticated"
+              }
+            }
+          },
+          "403": {
+            "description": "An unauthorized access",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authorized to perform this action"
+              }
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "filter",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "AdministrationService"
+        ]
+      }
+    },
+    "/api/admin/user": {
+      "post": {
+        "operationId": "AdministrationService_ModifyUser",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/protoActionResultMsg"
+            }
+          },
+          "401": {
+            "description": "An unauthenticated user",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authenticated"
+              }
+            }
+          },
+          "403": {
+            "description": "An unauthorized access",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authorized to perform this action"
+              }
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/protoModifyUserMsg"
+            }
+          }
+        ],
+        "tags": [
+          "AdministrationService"
+        ]
+      },
+      "put": {
+        "operationId": "AdministrationService_CreateUser",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/protoActionResultMsg"
+            }
+          },
+          "401": {
+            "description": "An unauthenticated user",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authenticated"
+              }
+            }
+          },
+          "403": {
+            "description": "An unauthorized access",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authorized to perform this action"
+              }
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/protoCreateUserMsg"
+            }
+          }
+        ],
+        "tags": [
+          "AdministrationService"
+        ]
+      }
+    },
+    "/api/admin/user/{username}": {
+      "get": {
+        "operationId": "AdministrationService_GetUser",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/protoUserInfoMsg"
+            }
+          },
+          "401": {
+            "description": "An unauthenticated user",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authenticated"
+              }
+            }
+          },
+          "403": {
+            "description": "An unauthorized access",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authorized to perform this action"
+              }
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "AdministrationService"
+        ]
+      },
+      "delete": {
+        "operationId": "AdministrationService_DeleteUser",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/protoActionResultMsg"
+            }
+          },
+          "401": {
+            "description": "An unauthenticated user",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authenticated"
+              }
+            }
+          },
+          "403": {
+            "description": "An unauthorized access",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authorized to perform this action"
+              }
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "AdministrationService"
+        ]
+      }
+    },
+    "/api/admin/users": {
+      "get": {
+        "operationId": "AdministrationService_ListUsers",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/protoListUsersMsg"
+            }
+          },
+          "401": {
+            "description": "An unauthenticated user",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authenticated"
+              }
+            }
+          },
+          "403": {
+            "description": "An unauthorized access",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authorized to perform this action"
+              }
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "filter",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "AdministrationService"
+        ]
+      }
+    },
     "/api/authorize": {
       "post": {
         "operationId": "AuthenticateService_Authenticate",
@@ -395,6 +935,63 @@
         ]
       }
     },
+    "/api/resources": {
+      "post": {
+        "description": "Returns a list of resources",
+        "operationId": "ResourceService_ListResources",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/protoListResourcesResultMsg"
+            }
+          },
+          "401": {
+            "description": "An unauthenticated user",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authenticated"
+              }
+            }
+          },
+          "403": {
+            "description": "An unauthorized access",
+            "schema": {
+              "$ref": "#/definitions/protoErrorResponse",
+              "title": "service error response"
+            },
+            "examples": {
+              "application/json": {
+                "error": "user not authorized to perform this action"
+              }
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/protoListResourcesMsg"
+            }
+          }
+        ],
+        "tags": [
+          "ResourceService"
+        ]
+      }
+    },
     "/api/resources/flag": {
       "put": {
         "description": "Sets a flag in a given state",
@@ -540,6 +1137,7 @@
     },
     "/api/resources/flags": {
       "post": {
+        "summary": "Should be deprecated new endpoint list resources",
         "description": "Lists flags",
         "operationId": "ResourceService_ListFlags",
         "responses": {
@@ -831,6 +1429,7 @@
     },
     "/api/resources/tickets": {
       "post": {
+        "summary": "Should be deprecated new endpoint list resources",
         "description": "Returns a list of tickets",
         "operationId": "ResourceService_ListTickets",
         "responses": {
@@ -1833,6 +2432,17 @@
         }
       }
     },
+    "protoCreateUserMsg": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "$ref": "#/definitions/protoUserInfoMsg"
+        },
+        "password": {
+          "type": "string"
+        }
+      }
+    },
     "protoDefinitionDetails": {
       "type": "object",
       "properties": {
@@ -1899,17 +2509,6 @@
         }
       }
     },
-    "protoEntityMsg": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string"
-        },
-        "description": {
-          "type": "string"
-        }
-      }
-    },
     "protoErrorResponse": {
       "type": "object",
       "properties": {
@@ -1942,16 +2541,93 @@
           "type": "integer",
           "format": "int32"
         }
-      }
+      },
+      "title": "DEPRECATED"
     },
-    "protoListEntityResultMsg": {
+    "protoFlagProperties": {
       "type": "object",
       "properties": {
-        "entity": {
+        "state": {
+          "type": "string"
+        },
+        "count": {
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
+    "protoListResourcesMsg": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "resourceType": {
+          "type": "string"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "protoListResourcesResultMsg": {
+      "type": "object",
+      "properties": {
+        "resources": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/protoEntityMsg"
+            "$ref": "#/definitions/protoResourceMsg"
           }
+        }
+      }
+    },
+    "protoListRolesMsg": {
+      "type": "object",
+      "properties": {
+        "roles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protoRoleInfoMsg"
+          }
+        }
+      }
+    },
+    "protoListUsersMsg": {
+      "type": "object",
+      "properties": {
+        "users": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protoUserInfoMsg"
+          }
+        }
+      }
+    },
+    "protoModifyUserMsg": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "$ref": "#/definitions/protoUserInfoMsg"
+        }
+      }
+    },
+    "protoResourceMsg": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "resourceType": {
+          "type": "string"
+        },
+        "orderDate": {
+          "type": "string"
+        },
+        "flag": {
+          "$ref": "#/definitions/protoFlagProperties"
         }
       }
     },
@@ -2002,6 +2678,17 @@
         },
         "bypass": {
           "type": "boolean"
+        }
+      }
+    },
+    "protoRoleInfoMsg": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
         }
       }
     },
@@ -2212,9 +2899,10 @@
         "odate": {
           "type": "string"
         }
-      }
+      },
+      "title": "DEPRECATED"
     },
-    "protoUserAccount": {
+    "protoUserInfoMsg": {
       "type": "object",
       "properties": {
         "username": {
@@ -2234,14 +2922,6 @@
           "items": {
             "type": "string"
           }
-        }
-      }
-    },
-    "protoUserResultMsg": {
-      "type": "object",
-      "properties": {
-        "user": {
-          "$ref": "#/definitions/protoUserAccount"
         }
       }
     },

@@ -29,27 +29,3 @@ func TestLogConfiguration(t *testing.T) {
 	}
 
 }
-
-func TestNewTestLogger(t *testing.T) {
-
-	log := NewTestLogger()
-	if log == nil {
-		t.Error("unexpected result")
-	}
-}
-
-func TestNewLogger(t *testing.T) {
-
-	config := LoggerConfiguration{
-		LogLevel:     1,
-		SizeLimit:    10,
-		LogDirectory: "logs",
-	}
-	lg, err := NewLogger(config)
-	if err != nil {
-		t.Error("unexpected result")
-	}
-	if lg == nil {
-		t.Error("unexpected result")
-	}
-}

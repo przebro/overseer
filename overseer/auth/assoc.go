@@ -9,18 +9,18 @@ import (
 	"github.com/przebro/databazaar/collection"
 )
 
-//RoleAssociationManager - provides basic operations on role association model
+// RoleAssociationManager - provides basic operations on role association model
 type RoleAssociationManager struct {
 	col collection.DataCollection
 }
 
-//NewRoleAssociationManager - creates a new RoleAssociationManager
+// NewRoleAssociationManager - creates a new RoleAssociationManager
 func NewRoleAssociationManager(conf config.SecurityConfiguration, provider *datastore.Provider) (*RoleAssociationManager, error) {
 
 	var col collection.DataCollection
 	var err error
 
-	if col, err = provider.GetCollection(conf.Collection); err != nil {
+	if col, err = provider.GetCollection(context.Background(), collectionName); err != nil {
 		return nil, err
 	}
 
@@ -28,7 +28,7 @@ func NewRoleAssociationManager(conf config.SecurityConfiguration, provider *data
 
 }
 
-//Get - gets a role association with given user
+// Get - gets a role association with given user
 func (m *RoleAssociationManager) Get(username string) (RoleAssociationModel, bool) {
 
 	dsassoc := dsRoleAssociationModel{}
@@ -41,7 +41,7 @@ func (m *RoleAssociationManager) Get(username string) (RoleAssociationModel, boo
 
 }
 
-//Create - creates a new role association
+// Create - creates a new role association
 func (m *RoleAssociationManager) Create(model RoleAssociationModel) error {
 
 	dsassoc := dsRoleAssociationModel{RoleAssociationModel: model, ID: idFormatter(assocNamespace, model.UserID)}
@@ -51,7 +51,7 @@ func (m *RoleAssociationManager) Create(model RoleAssociationModel) error {
 
 }
 
-//Modify - modifies a role association
+// Modify - modifies a role association
 func (m *RoleAssociationManager) Modify(model RoleAssociationModel) error {
 
 	dsassoc := dsRoleAssociationModel{}
@@ -66,7 +66,7 @@ func (m *RoleAssociationManager) Modify(model RoleAssociationModel) error {
 
 }
 
-//Delete - deletes a role association
+// Delete - deletes a role association
 func (m *RoleAssociationManager) Delete(username string) error {
 
 	return m.col.Delete(context.Background(), idFormatter(assocNamespace, username))

@@ -11,6 +11,7 @@ import (
 	"github.com/przebro/overseer/common/validator"
 	"github.com/przebro/overseer/overseer"
 	"github.com/przebro/overseer/overseer/config"
+	"github.com/rs/zerolog/log"
 
 	"github.com/spf13/cobra"
 )
@@ -37,7 +38,7 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-//Setup - performs setup
+// Setup - performs setup
 func Setup() {
 	rootCmd.Flags().StringVar(&configFile, "config", "", "path to configuration file")
 	rootCmd.Flags().StringVar(&hostAddr, "host", "", "overseer address")
@@ -46,7 +47,7 @@ func Setup() {
 	rootCmd.Flags().BoolVar(&quiesce, "quiesce", false, "starts overseer as service")
 }
 
-//Execute - executes commands
+// Execute - executes commands
 func Execute(args []string) error {
 
 	rootCmd.SetArgs(args)
@@ -60,7 +61,6 @@ func startOverseer() {
 	var err error
 	var ovs core.RunnableComponent
 	var conf config.OverseerConfiguration
-	var log logger.AppLogger
 
 	if rootPath, progPath, err = helpers.GetDirectories(os.Args[0]); err != nil {
 		fmt.Println(err)
@@ -79,25 +79,22 @@ func startOverseer() {
 		logcfg.LogDirectory = filepath.Join(rootPath, logcfg.LogDirectory)
 	}
 
-	if log, err = logger.NewLogger(logcfg); err != nil {
-		fmt.Println(err)
-		os.Exit(16)
-	}
+	logger.Configure("overseer", logcfg)
 
-	if ovs, err = overseer.New(conf, log, quiesce); err != nil {
-		log.Error(err)
+	if ovs, err = overseer.New(conf, quiesce); err != nil {
+		log.Error().Err(err).Msg("Error creating overseer")
 		os.Exit(16)
 	}
 
 	if profile {
-		helpers.StartProfiler(log, profFileName)
+		helpers.StartProfiler(log.Logger, profFileName)
 	}
 
 	runner := core.NewRunner(ovs)
 	err = runner.Run()
 
 	if err != nil {
-		log.Error(err)
+		log.Error().Err(err).Msg("Error creating overseer")
 		os.Exit(8)
 	}
 

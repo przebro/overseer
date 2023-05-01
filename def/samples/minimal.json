@@ -1,7 +1,11 @@
 {
-    "type" : "dummy",
-    "name" :"minimal",
-    "group" : "samples",
+    "definition":{
+        "type" : "dummy",
+        "name" :"minimal",
+        "group" : "samples",
+        "description" : "Minimal dummy job definition",
+        "rev" : "1"
+    },
     "schedule" :{
         "type" : "manual"
     }

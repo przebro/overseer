@@ -10,6 +10,7 @@ import (
 	"github.com/przebro/overseer/common/validator"
 	"github.com/przebro/overseer/ovsgate"
 	"github.com/przebro/overseer/ovsgate/config"
+	"github.com/rs/zerolog/log"
 
 	"github.com/spf13/cobra"
 )
@@ -27,7 +28,7 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-//Setup - initializes root command
+// Setup - initializes root command
 func Setup() {
 
 	rootCmd.Flags().StringVar(&configFile, "config", "", "path to configuration file")
@@ -37,7 +38,7 @@ func Setup() {
 
 }
 
-//Execute - executes commands
+// Execute - executes commands
 func Execute(args []string) error {
 
 	rootCmd.SetArgs(args)
@@ -50,7 +51,6 @@ func startGateway() {
 	var progPath string
 	var err error
 	var gate *ovsgate.OverseerGateway
-	var log logger.AppLogger
 	var conf config.OverseerGatewayConfig
 
 	if rootPath, progPath, err = helpers.GetDirectories(os.Args[0]); err != nil {
@@ -66,21 +66,17 @@ func startGateway() {
 	if !filepath.IsAbs(conf.LogConfiguration.LogDirectory) {
 		conf.LogConfiguration.LogDirectory = filepath.Join(rootPath, conf.LogConfiguration.LogDirectory)
 	}
+	logger.Configure("ovs_gateway", conf.LogConfiguration)
 
-	if log, err = logger.NewLogger(conf.LogConfiguration); err != nil {
-		fmt.Println(err)
-		os.Exit(16)
-	}
-
-	if gate, err = ovsgate.NewInstance(conf, log); err != nil {
-		log.Error(err)
+	if gate, err = ovsgate.NewInstance(conf); err != nil {
+		log.Error().Err(err).Msg("Error creating gateway")
 		os.Exit(16)
 	}
 
 	err = gate.Start()
 
 	if err != nil {
-		log.Error(err)
+		log.Error().Err(err).Msg("Error starting gateway")
 		os.Exit(8)
 	}
 

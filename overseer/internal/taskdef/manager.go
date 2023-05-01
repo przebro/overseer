@@ -5,16 +5,17 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
 
-	"github.com/przebro/overseer/common/logger"
-	"github.com/przebro/overseer/overseer/internal/unique"
+	"github.com/przebro/overseer/common/types/unique"
 	"github.com/przebro/overseer/overseer/taskdata"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	"gopkg.in/yaml.v3"
 )
 
 var (
@@ -37,28 +38,28 @@ type taskManager struct {
 	dirPath       string
 	activeTaskDir string
 	lock          sync.Mutex
-	log           logger.AppLogger
+	log           zerolog.Logger
 }
 
-//TaskDefinitionManager - main component responsible for a task CRUD
+// DefinitionManager - main component responsible for a task CRUD
 type TaskDefinitionManager interface {
 	GetTasks(tasks ...taskdata.GroupNameData) []TaskDefinition
-	GetTask(task taskdata.GroupNameData) (TaskDefinition, error)
+	GetTask(task taskdata.GroupNameData) (*TaskDefinition, error)
 	GetGroups() ([]string, error)
 	GetTasksFromGroup(groups []string) ([]taskdata.GroupNameData, error)
 	GetTaskModelList(group taskdata.GroupData) ([]taskdata.TaskNameModel, error)
-	Create(task TaskDefinition) error
+	Create(task *TaskDefinition) error
 	CreateGroup(name string) error
 	Update(task TaskDefinition) error
 	Delete(task taskdata.GroupNameData) error
 	DeleteGroup(name string) error
-	GetActiveDefinition(refID string) (TaskDefinition, error)
-	WriteActiveDefinition(def TaskDefinition, id unique.MsgID) error
+	GetActiveDefinition(refID string) (*TaskDefinition, error)
+	WriteActiveDefinition(def *TaskDefinition, id unique.MsgID) error
 	RemoveActiveDefinition(id string) error
 }
 
-//NewManager - returns new instance of a TaskDefinitionManager
-func NewManager(path string, log logger.AppLogger) (TaskDefinitionManager, error) {
+// NewManager - returns new instance of a DefinitionManager
+func NewManager(path string) (TaskDefinitionManager, error) {
 
 	if _, err := os.Stat(path); err != nil {
 		return nil, err
@@ -74,17 +75,17 @@ func NewManager(path string, log logger.AppLogger) (TaskDefinitionManager, error
 
 	t.dirPath = path
 	t.activeTaskDir = poolDirectoryName
-	t.log = log
+	t.log = log.With().Str("component", "taskdef-manager").Logger()
 
 	return t, nil
 }
-func (m *taskManager) GetTask(task taskdata.GroupNameData) (TaskDefinition, error) {
+func (m *taskManager) GetTask(task taskdata.GroupNameData) (*TaskDefinition, error) {
 
 	var err error
-	var result TaskDefinition
+	var result *TaskDefinition
 
 	defPath := filepath.Join(m.dirPath, task.Group, fmt.Sprintf("%v.json", task.Name))
-	if result, err = FromDefinitionFile(defPath); err != nil {
+	if result, err = ReadFromFile(defPath); err != nil {
 		return nil, err
 	}
 
@@ -96,9 +97,9 @@ func (m *taskManager) GetTasks(tasks ...taskdata.GroupNameData) []TaskDefinition
 	for _, n := range tasks {
 
 		if t, err := m.GetTask(n); err == nil {
-			result = append(result, t)
+			result = append(result, *t)
 		} else {
-			m.log.Error("GetTasks:", err)
+			m.log.Error().Err(err).Msg("get_tasks")
 		}
 
 	}
@@ -112,7 +113,7 @@ func (m *taskManager) GetTasksFromGroup(groups []string) ([]taskdata.GroupNameDa
 	for _, grp := range groups {
 
 		pth := filepath.Join(m.dirPath, grp)
-		info, err := ioutil.ReadDir(pth)
+		info, err := os.ReadDir(pth)
 		if err != nil {
 			return nil, errors.New("can't find group with given name")
 		}
@@ -131,13 +132,13 @@ func (m *taskManager) GetTasksFromGroup(groups []string) ([]taskdata.GroupNameDa
 }
 func (m *taskManager) GetTaskModelList(group taskdata.GroupData) ([]taskdata.TaskNameModel, error) {
 
-	var info []os.FileInfo
+	var info []os.DirEntry
 	var err error
-	var definition TaskDefinition
+	var definition *TaskDefinition
 	result := []taskdata.TaskNameModel{}
 
 	pth := filepath.Join(m.dirPath, group.Group)
-	if info, err = ioutil.ReadDir(pth); err != nil {
+	if info, err = os.ReadDir(pth); err != nil {
 		return nil, err
 	}
 
@@ -145,7 +146,7 @@ func (m *taskManager) GetTaskModelList(group taskdata.GroupData) ([]taskdata.Tas
 
 		if !nfo.IsDir() {
 			fpath := filepath.Join(pth, nfo.Name())
-			if definition, err = FromDefinitionFile(fpath); err != nil {
+			if definition, err = ReadFromFile(fpath); err != nil {
 				continue
 			}
 			n, g, d := definition.GetInfo()
@@ -160,9 +161,9 @@ func (m *taskManager) GetGroups() ([]string, error) {
 
 	groups := make([]string, 0)
 
-	info, err := ioutil.ReadDir(m.dirPath)
+	info, err := os.ReadDir(m.dirPath)
 	if err != nil {
-		m.log.Error("Get groups:", err)
+		m.log.Error().Err(err).Msg("get_groups")
 		return []string{}, ErrGroupDirInvalid
 	}
 
@@ -174,11 +175,11 @@ func (m *taskManager) GetGroups() ([]string, error) {
 
 	return groups, nil
 }
-func (m *taskManager) Create(task TaskDefinition) error {
+func (m *taskManager) Create(task *TaskDefinition) error {
 	defer m.lock.Unlock()
 	m.lock.Lock()
 
-	nm, grp, _ := task.GetInfo()
+	nm, grp := task.Definition.Name, task.Definition.Group
 	path := filepath.Join(m.dirPath, grp, fmt.Sprintf("%v.json", nm))
 
 	_, err := os.Stat(path)
@@ -186,15 +187,15 @@ func (m *taskManager) Create(task TaskDefinition) error {
 		return errors.New("unable to create, definition already exists")
 	}
 
-	if task.Rev() == "" {
-		task.SetRevision(unique.NewID())
+	if task.Definition.Rev == "" {
+		task.Definition.Rev = unique.NewID().Hex()
 	}
 
 	data, err := json.Marshal(task)
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(path, data, 0640)
+	err = os.WriteFile(path, data, 0640)
 
 	return err
 }
@@ -216,7 +217,7 @@ func (m *taskManager) Update(task TaskDefinition) error {
 	m.lock.Lock()
 
 	var err error
-	name, grp, _ := task.GetInfo()
+	name, grp := task.Definition.Name, task.Definition.Group
 
 	if name == "" {
 		return ErrTaskNameEmpty
@@ -229,14 +230,12 @@ func (m *taskManager) Update(task TaskDefinition) error {
 
 	opath := filepath.Join(m.dirPath, g, fmt.Sprintf("%v.json", n))
 
-	oldDef, err := FromDefinitionFile(opath)
+	oldDef, err := ReadFromFile(opath)
 	if err != nil {
 		return err
 	}
-	//ummy_update_03@test@16be1f583874c7cf61b6be1f
-	//ummy_update_03@test@16be1f583874c7cf61b6be1f
 
-	if oldDef.Rev() != task.Rev() {
+	if oldDef.Definition.Rev != task.Definition.Rev {
 		return ErrTaskRevDiff
 	}
 
@@ -254,7 +253,7 @@ func (m *taskManager) Update(task TaskDefinition) error {
 
 	var result string
 
-	if result, err = SerializeDefinition(task); err != nil {
+	if result, err = SerializeDefinition(&task); err != nil {
 		return err
 	}
 
@@ -313,45 +312,48 @@ func (m *taskManager) DeleteGroup(name string) error {
 	return nil
 }
 
-func (m *taskManager) WriteActiveDefinition(task TaskDefinition, id unique.MsgID) error {
+// Writes active definition(stamp copy) to active pool directory
+func (m *taskManager) WriteActiveDefinition(task *TaskDefinition, id unique.MsgID) error {
 
 	var data []byte
 	var err error
 	path := filepath.Join(m.dirPath, m.activeTaskDir, fmt.Sprintf("%s.json", id.Hex()))
 
-	if data, err = json.Marshal(task); err != nil {
+	if data, err = yaml.Marshal(task); err != nil {
 		return err
 	}
 
-	return ioutil.WriteFile(path, data, 0644)
+	return os.WriteFile(path, data, 0644)
 }
 func (m *taskManager) RemoveActiveDefinition(id string) error {
 
 	path := filepath.Join(m.dirPath, m.activeTaskDir, fmt.Sprintf("%s.json", id))
 	return os.Remove(path)
 }
-func (m *taskManager) GetActiveDefinition(id string) (TaskDefinition, error) {
+
+// Reads active definition(stamp copy) from active pool directory
+func (m *taskManager) GetActiveDefinition(id string) (*TaskDefinition, error) {
 
 	var err error
-	var result TaskDefinition
+	var result *TaskDefinition
 
 	if id == "" {
 		return nil, ErrReferenceEmpty
 	}
 
 	path := filepath.Join(m.dirPath, m.activeTaskDir, fmt.Sprintf("%s.json", id))
-	if result, err = FromPoolDirectory(path); err != nil {
+	if result, err = ReadFromPoolDirectory(path); err != nil {
 		return nil, err
 	}
 
 	return result, nil
 }
 
-//getNameGroupFrovRev - gets name of a task, group that belongs and unique idetifier,
-//returns error if revision is not  valid format which is: task_name@task_group@unique_id
+// getNameGroupFrovRev - gets name of a task, group that belongs and unique idetifier,
+// returns error if revision is not  valid format which is: task_name@task_group@unique_id
 func getNameGroupIdFromDefinition(task TaskDefinition) (string, string, string, error) {
 
-	rev := task.Rev()
+	rev := task.Definition.Rev
 
 	if rev == "" {
 		return "", "", "", ErrTaskRevEmpty

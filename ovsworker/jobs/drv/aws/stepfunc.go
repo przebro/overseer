@@ -10,12 +10,11 @@ import (
 	"github.com/przebro/overseer/common/types"
 	"github.com/przebro/overseer/ovsworker/jobs"
 	"github.com/przebro/overseer/ovsworker/status"
+	"github.com/rs/zerolog"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sfn"
 	awstypes "github.com/aws/aws-sdk-go-v2/service/sfn/types"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
 type awsStepFuncCaller struct {
@@ -26,8 +25,6 @@ type awsStepFuncCaller struct {
 	machineARN    string
 	executionName string
 }
-
-const logCallStepfuncHeader = "call-stepfunc"
 
 func newStepFunctionCaller(conf aws.Config, job jobs.Job, machineARN, executionName string, payloadReader awsPayloadReader) awsServiceCaller {
 
@@ -40,17 +37,18 @@ func newStepFunctionCaller(conf aws.Config, job jobs.Job, machineARN, executionN
 }
 func (c *awsStepFuncCaller) Call(ctx context.Context, stat chan<- status.JobExecutionStatus) status.JobExecutionStatus {
 
+	log := zerolog.Ctx(ctx)
 	fpath := filepath.Join(c.job.SysoutDir, c.job.ExecutionID)
 
 	file, err := os.Create(fpath)
 	if err != nil {
-		c.job.Log.Desugar().Error(logCallStepfuncHeader, c.fields(zap.String("error", err.Error()), zap.String("path", fpath))...)
+		log.Error().Err(err).Str("path", fpath).Msg("newStepFunctionCaller")
 		return status.StatusFailed(c.job.TaskID, c.job.ExecutionID, err.Error())
 	}
 
 	payload, err := c.payloadReader.Read()
 	if err != nil {
-		c.job.Log.Desugar().Error(logCallStepfuncHeader, c.fields(zap.String("error", err.Error()))...)
+		log.Error().Err(err).Msg("newStepFunctionCaller")
 		return status.StatusFailed(c.job.TaskID, c.job.ExecutionID, err.Error())
 	}
 
@@ -66,7 +64,7 @@ func (c *awsStepFuncCaller) Call(ctx context.Context, stat chan<- status.JobExec
 
 	if err != nil {
 		defer file.Close()
-		c.job.Log.Desugar().Error(logCallStepfuncHeader, c.fields(zap.String("error", err.Error()))...)
+		log.Error().Err(err).Msg("newStepFunctionCaller")
 		return status.StatusFailed(c.job.TaskID, c.job.ExecutionID, err.Error())
 	}
 
@@ -76,6 +74,8 @@ func (c *awsStepFuncCaller) Call(ctx context.Context, stat chan<- status.JobExec
 }
 
 func (c *awsStepFuncCaller) waitForExecutionEnd(ctx context.Context, f *os.File, executionARN string, stat chan<- status.JobExecutionStatus) {
+
+	log := zerolog.Ctx(ctx)
 
 	defer f.Close()
 	defer c.cancelFunc()
@@ -94,7 +94,7 @@ func (c *awsStepFuncCaller) waitForExecutionEnd(ctx context.Context, f *os.File,
 				})
 
 				if err != nil {
-					c.job.Log.Desugar().Error(logCallStepfuncHeader, c.fields(zap.String("error", err.Error()))...)
+					log.Error().Err(err).Msg("newStepFunctionCaller")
 					stat <- status.StatusFailed(c.job.TaskID, c.job.ExecutionID, err.Error())
 				}
 
@@ -161,15 +161,4 @@ func (c *awsStepFuncCaller) JobTaskID() string {
 }
 func (c *awsStepFuncCaller) JobExecutionID() string {
 	return c.job.ExecutionID
-}
-
-func (c *awsStepFuncCaller) fields(fields ...zapcore.Field) []zap.Field {
-	f := []zapcore.Field{
-		zap.String("taskID", c.job.TaskID), zap.String("executionID", c.job.ExecutionID),
-		zap.String("stateMachineARN", c.machineARN), zap.String("executionName", c.executionName),
-	}
-
-	fields = append(fields, f...)
-
-	return fields
 }

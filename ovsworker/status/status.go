@@ -2,11 +2,9 @@ package status
 
 import (
 	"github.com/przebro/overseer/common/types"
-
-	"go.uber.org/zap/zapcore"
 )
 
-//JobExecutionStatus - Contains inforamtion about a task status.
+// JobExecutionStatus - Contains inforamtion about a task status.
 type JobExecutionStatus struct {
 	TaskID      string
 	ExecutionID string
@@ -17,22 +15,22 @@ type JobExecutionStatus struct {
 	Reason      string
 }
 
-//MarshalLogObject - MarshalLogObject
-func (s *JobExecutionStatus) MarshalLogObject(e zapcore.ObjectEncoder) error {
+// //MarshalLogObject - MarshalLogObject
+// func (s *JobExecutionStatus) MarshalLogObject(e zapcore.ObjectEncoder) error {
 
-	e.AddString("taskID", s.TaskID)
-	e.AddString("executionID", s.ExecutionID)
-	e.AddInt("rc", s.ReturnCode)
-	e.AddInt32("stausCode", s.StatusCode)
-	e.AddString("state", types.RemoteTaskStatusInfo[s.State])
-	e.AddInt("stateCode", int(s.State))
-	e.AddInt("pid", s.PID)
-	e.AddString("reason", s.Reason)
+// 	e.AddString("taskID", s.TaskID)
+// 	e.AddString("executionID", s.ExecutionID)
+// 	e.AddInt("rc", s.ReturnCode)
+// 	e.AddInt32("stausCode", s.StatusCode)
+// 	e.AddString("state", types.RemoteTaskStatusInfo[s.State])
+// 	e.AddInt("stateCode", int(s.State))
+// 	e.AddInt("pid", s.PID)
+// 	e.AddString("reason", s.Reason)
 
-	return nil
-}
+// 	return nil
+// }
 
-//StatusExecuting - helper method, creates status message - executing
+// StatusExecuting - helper method, creates status message - executing
 func StatusExecuting(taskID, executionID string) JobExecutionStatus {
 	return JobExecutionStatus{
 		TaskID:      taskID,
@@ -44,7 +42,7 @@ func StatusExecuting(taskID, executionID string) JobExecutionStatus {
 
 }
 
-//StatusEnded - helper method, creates status message - ended
+// StatusEnded - helper method, creates status message - ended
 func StatusEnded(taskID, executionID string, returnCode, pid int, statusCode int32) JobExecutionStatus {
 	return JobExecutionStatus{
 		TaskID:      taskID,
@@ -56,7 +54,7 @@ func StatusEnded(taskID, executionID string, returnCode, pid int, statusCode int
 	}
 }
 
-//StatusFailed - helper method, creates status message - failed
+// StatusFailed - helper method, creates status message - failed
 func StatusFailed(taskID, executionID, reason string) JobExecutionStatus {
 	return JobExecutionStatus{
 		TaskID:      taskID,

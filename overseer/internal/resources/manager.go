@@ -1,414 +1,335 @@
 package resources
 
 import (
+	"context"
 	"errors"
-	"regexp"
-	"sort"
+	"fmt"
+	"strings"
 	"sync"
 
-	"github.com/przebro/overseer/common/core"
-	"github.com/przebro/overseer/common/logger"
+	"github.com/przebro/overseer/common/types"
 	"github.com/przebro/overseer/common/types/date"
 	"github.com/przebro/overseer/datastore"
 	"github.com/przebro/overseer/overseer/config"
-	"github.com/przebro/overseer/overseer/internal/events"
-	"github.com/przebro/overseer/overseer/internal/taskdef"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
-type resourceManager struct {
-	dispatcher events.Dispatcher
-	log        logger.AppLogger
-	tstore     *resourceStore
-	fstore     *resourceStore
-	flock      sync.Mutex
+const collectionName = "resources"
+
+type ResourceManagerImpl struct {
+	log   zerolog.Logger
+	flock sync.Mutex
+	rw    *resourceReadWriter
 }
 
-//TicketManager - base resources required by task to run
+// TicketManager - base resources required by task to run
 type TicketManager interface {
-	Add(name string, odate date.Odate) (bool, error)
-	Delete(name string, odate date.Odate) (bool, error)
-	Check(name string, odate date.Odate) bool
-	ListTickets(name string, datestr string) []TicketResource
+	Add(ctx context.Context, name string, odate date.Odate) (bool, error)
+	Delete(ctx context.Context, name string, odate date.Odate) (bool, error)
 }
 
-//FlagManager - Resource that helps run tasks
+// FlagManager - Resource that helps run tasks
 type FlagManager interface {
-	Set(name string, policy FlagResourcePolicy) (bool, error)
-	Unset(name string) (bool, error)
-	DestroyFlag(name string) (bool, error)
-	ListFlags(name string) []FlagResource
+	Set(ctx context.Context, name string, policy uint8) (bool, error)
+	DestroyFlag(ctx context.Context, name string) (bool, error)
 }
 
-//ResourceManager - manages resources that are required by tasks
+// ResourceManager - manages resources that are required by tasks
 type ResourceManager interface {
 	TicketManager
 	FlagManager
-	core.OverseerComponent
+	ListResources(ctx context.Context, filter ResourceFilter) []ResourceModel
 }
 
-//NewManager - crates new resources manager
-func NewManager(dispatcher events.Dispatcher, log logger.AppLogger, rconfig config.ResourcesConfigurartion, provider *datastore.Provider) (ResourceManager, error) {
+// NewManager - crates new resources manager
+func NewManager(rconfig config.ResourcesConfigurartion, provider *datastore.Provider) (*ResourceManagerImpl, error) {
 
 	var err error
 
-	var tstore *resourceStore
-	var fstore *resourceStore
-
-	trw, err := newTicketReadWriter(rconfig.TicketSource.Collection, "tickets", provider)
+	rw, err := newResourceReadWriter(collectionName, provider)
 	if err != nil {
 		return nil, err
 	}
 
-	tstore, err = newStore(trw, rconfig.TicketSource.Sync)
-	if err != nil {
-		return nil, err
+	rm := &ResourceManagerImpl{
+		log:   log.With().Str("component", "resource-manager").Logger(),
+		rw:    rw,
+		flock: sync.Mutex{},
 	}
-
-	frw, err := newFlagReadWriter(rconfig.FlagSource.Collection, "flags", provider)
-	if err != nil {
-		return nil, err
-	}
-
-	fstore, err = newStore(frw, rconfig.FlagSource.Sync)
-	if err != nil {
-		return nil, err
-	}
-
-	rm := &resourceManager{
-		log:        log,
-		dispatcher: dispatcher,
-		tstore:     tstore,
-		fstore:     fstore,
-		flock:      sync.Mutex{},
-	}
-
-	//Subscribe for incoming messages about requests for tickets
-	rm.dispatcher.Subscribe(events.RouteTicketCheck, rm)
-	rm.dispatcher.Subscribe(events.RouteTicketIn, rm)
-	rm.dispatcher.Subscribe(events.RouteFlagAcquire, rm)
-	rm.dispatcher.Subscribe(events.RouteFlagRelase, rm)
 
 	return rm, nil
 }
+func (rm *ResourceManagerImpl) Add(ctx context.Context, name string, odate date.Odate) (bool, error) {
 
-func (rm *resourceManager) Add(name string, odate date.Odate) (bool, error) {
+	var odateval int64 = 0
+	if odate != date.OdateNone {
+		odateval = odate.ToUnix()
+	}
+	err := rm.rw.Insert(ctx, &ResourceModel{
+		ID:    getkey(ResourceTypeTicket, name, string(odate)),
+		Type:  ResourceTypeTicket,
+		Value: odateval,
+	})
 
-	err := rm.tstore.Insert(name+string(odate), TicketResource{Name: name, Odate: odate})
 	if err != nil {
 		return false, errors.New("ticket with given name and odate already exists")
 	}
-	rm.log.Info("TICKET:", name, odate)
+	rm.log.Info().Msg(fmt.Sprintf("ticket:%s,odate:%s", name, odate))
 
 	return true, nil
 }
-func (rm *resourceManager) Delete(name string, odate date.Odate) (bool, error) {
 
-	key := name + string(odate)
-	if err := rm.tstore.Delete(key); err != nil {
+func (rm *ResourceManagerImpl) Delete(ctx context.Context, name string, odate date.Odate) (bool, error) {
+
+	key := getkey(ResourceTypeTicket, name, string(odate))
+
+	if err := rm.rw.Delete(ctx, key); err != nil {
+		return false, err
+	}
+
+	return true, nil
+
+}
+
+func (rm *ResourceManagerImpl) CheckTickets(in []types.CollectedTicketModel) []types.CollectedTicketModel {
+
+	result := make([]types.CollectedTicketModel, 0, len(in))
+	for _, item := range in {
+		model := ResourceModel{}
+		key := getkey(ResourceTypeTicket, item.Name, string(item.Odate))
+		exists := false
+		if err := rm.rw.Get(context.TODO(), key, &model); err == nil {
+			exists = true
+		}
+
+		result = append(result, types.CollectedTicketModel{Name: item.Name, Odate: item.Odate, Exists: exists})
+	}
+
+	return result
+}
+
+func (rm *ResourceManagerImpl) Set(ctx context.Context, name string, policy uint8) (bool, error) {
+
+	defer rm.flock.Unlock()
+	rm.flock.Lock()
+
+	key := getkey(ResourceTypeTicket, name, "")
+	v := ResourceModel{}
+
+	if err := rm.rw.Get(ctx, key, &v); err != nil {
+		rm.rw.Insert(ctx, &ResourceModel{
+			ID:    getkey(ResourceTypeTicket, name, ""),
+			Type:  ResourceTypeFlag,
+			Value: pack(policy, 0),
+		})
+
+		return true, nil
+	}
+
+	p, cnt := unpack(v.Value)
+
+	if p == FlagPolicyExclusive {
+
+		rm.log.Debug().Str("name", name).Str("type", "EXL").Msg("ACQ ERR FLAG")
+		return false, errors.New("flag in use with exclusive policy")
+	}
+
+	if p == FlagPolicyShared && policy == FlagPolicyExclusive && cnt != 0 {
+		rm.log.Debug().Str("name", name).Str("type", "SHR").Msg("ACQ ERR FLAG")
+		return false, errors.New("unable to set shared, flag in use with exclusive policy")
+	}
+
+	cnt++
+	p = policy
+	v.Value = pack(p, cnt)
+	rm.log.Debug().Str("name", v.ID).Str("type", "SHR").Msg("ACQ FLAG SUCCESS")
+	rm.rw.Update(ctx, &v)
+
+	return true, nil
+}
+
+// Unset - remove a flag
+func (rm *ResourceManagerImpl) unset(name string) (bool, error) {
+
+	defer rm.flock.Unlock()
+	rm.flock.Lock()
+
+	v := ResourceModel{}
+
+	key := getkey(ResourceTypeFlag, name, "")
+	if err := rm.rw.Get(context.TODO(), key, &v); err != nil {
+		return false, errors.New("flag with given name does not exists")
+	}
+
+	_, cnt := unpack(v.Value)
+	cnt--
+
+	rm.log.Debug().Str("flag", string(v.ID)).Int64("count", v.Value).Msg("unset")
+	if cnt == 0 {
+		rm.rw.Delete(context.TODO(), key)
+		rm.log.Debug().Str("flag", string(v.ID)).Msg("flag removed")
+	} else {
+		v.Value--
+		rm.rw.Update(context.TODO(), &v)
+	}
+
+	return true, nil
+
+}
+
+func (rm *ResourceManagerImpl) DestroyFlag(ctx context.Context, name string) (bool, error) {
+
+	defer rm.flock.Unlock()
+	rm.flock.Lock()
+
+	key := getkey(ResourceTypeFlag, name, "")
+	v := ResourceModel{}
+	if err := rm.rw.Get(ctx, key, &v); err != nil {
+		return false, errors.New("flag with given name does not exists")
+	}
+
+	if err := rm.rw.Delete(ctx, key); err != nil {
 		return false, err
 	}
 
 	return true, nil
 }
-func (rm *resourceManager) Check(name string, odate date.Odate) bool {
 
-	key := name + string(odate)
-	_, ok := rm.tstore.Get(key)
-	return ok
-}
+func (rm *ResourceManagerImpl) ListResources(ctx context.Context, filter ResourceFilter) []ResourceModel {
 
-//ListTickets - return a list of tickets restricted to given name and odate
-func (rm *resourceManager) ListTickets(name string, datestr string) []TicketResource {
+	result := []ResourceModel{}
 
-	tickets := rm.tstore.All()
-	var matchName bool
-	var matchDate bool
-	var err error
+	for _, rtype := range filter.Type {
 
-	result := make([]TicketResource, 0)
-	nexpr := buildExpr(name)
-	dexpr := buildDateExpr(datestr)
-
-	for _, n := range tickets {
-
-		if matchName, err = regexp.Match(nexpr, []byte(n.(TicketResource).Name)); err != nil {
-			return []TicketResource{}
+		if rtype == ResourceTypeTicket {
+			if filter.TicketFilterOptions != nil {
+				result = append(result, rm.findTickets(ctx, filter.Name, filter.TicketFilterOptions)...)
+			}
 		}
-
-		if matchDate, err = regexp.Match(dexpr, []byte(n.(TicketResource).Odate)); err != nil {
-			return []TicketResource{}
-		}
-
-		if matchName && matchDate {
-			result = append(result, n.(TicketResource))
-		}
-
-	}
-
-	sort.Sort(ticketSorter{result})
-
-	return result
-}
-
-//Set - change a value of a flag
-func (rm *resourceManager) Set(name string, policy FlagResourcePolicy) (bool, error) {
-
-	defer rm.flock.Unlock()
-	rm.flock.Lock()
-
-	var v interface{}
-	var ok bool
-
-	if v, ok = rm.fstore.Get(name); !ok {
-		rm.log.Debug("CREATE FLAG:", name, "COUNT:", 1, "TYPE:", policy)
-		rm.fstore.Insert(name, FlagResource{Name: name, Policy: policy, Count: 1})
-		return true, nil
-	}
-
-	flag := v.(FlagResource)
-	if flag.Policy == FlagPolicyExclusive {
-		rm.log.Debug("ACQ ERR FLAG:", name, "TYPE:", policy, "flag in use with exclusive policy")
-		return false, errors.New("flag in use with exclusive policy")
-	}
-
-	if flag.Policy == FlagPolicyShared && policy == FlagPolicyExclusive && flag.Count != 0 {
-		rm.log.Debug("ACQ ERR FLAG SHR:", name, "TYPE:", flag.Policy, "flag in use with shared,trying exclusive")
-		return false, errors.New("unable to set shared, flag in use with exclusive policy")
-	}
-
-	flag.Count++
-	flag.Policy = policy
-	rm.log.Debug("ACQ FLAG SUCCESS:", flag.Name, "TYPE:", flag.Policy, "COUNT:", flag.Count)
-	rm.fstore.Update(flag.Name, flag)
-
-	return true, nil
-}
-
-//Unset - remove a flag
-func (rm *resourceManager) Unset(name string) (bool, error) {
-
-	defer rm.flock.Unlock()
-	rm.flock.Lock()
-
-	var v interface{}
-	var ok bool
-
-	if v, ok = rm.fstore.Get(name); !ok {
-		return false, errors.New("flag with given name does not exists")
-	}
-
-	flag := v.(FlagResource)
-	flag.Count--
-	rm.log.Debug("UNSET FLAG:", flag.Name, "COUNT:", flag.Count)
-	if flag.Count == 0 {
-		rm.fstore.Delete(name)
-		rm.log.Debug("FLAG REMOVED")
-	} else {
-		rm.fstore.Update(flag.Name, flag)
-	}
-
-	return true, nil
-
-}
-
-//DestroyFlag - forcefully removes a flag
-func (rm *resourceManager) DestroyFlag(name string) (bool, error) {
-
-	defer rm.flock.Unlock()
-	rm.flock.Lock()
-
-	var ok bool
-
-	if _, ok = rm.fstore.Get(name); !ok {
-		return false, errors.New("flag with given name does not exists")
-	}
-
-	rm.fstore.Delete(name)
-
-	return true, nil
-
-}
-
-func (rm *resourceManager) ListFlags(name string) []FlagResource {
-
-	var matchName bool
-	var err error
-	flags := rm.fstore.All()
-	result := make([]FlagResource, 0)
-
-	nexpr := buildExpr(name)
-
-	for _, n := range flags {
-
-		if matchName, err = regexp.Match(nexpr, []byte(n.(FlagResource).Name)); err != nil {
-			return []FlagResource{}
-		}
-
-		if matchName {
-			result = append(result, n.(FlagResource))
+		if rtype == ResourceTypeFlag {
+			if filter.FlagFilterOptions != nil {
+				result = append(result, rm.findFlags(ctx, filter.Name, filter.FlagFilterOptions)...)
+			}
 		}
 	}
 
 	return result
 }
 
-//Start - starts the task pool
-func (rm *resourceManager) Start() error {
+func (rm *ResourceManagerImpl) ProcessTicketAction(tickets []types.TicketActionModel) bool {
 
-	rm.tstore.start()
-	rm.fstore.start()
-	return nil
-}
+	var result bool = true
 
-//Shutdown - shutdowns task pool
-func (rm *resourceManager) Shutdown() error {
-
-	rm.tstore.shutdown()
-	rm.fstore.shutdown()
-
-	return nil
-}
-
-func (rm *resourceManager) Process(receiver events.EventReceiver, route events.RouteName, msg events.DispatchedMessage) {
-
-	switch route {
-	case events.RouteTicketCheck:
-		{
-			rm.log.Debug("receiving from route:", route, msg.MsgID(), ",", msg.Created())
-			data, isOk := msg.Message().(events.RouteTicketCheckMsgFormat)
-			if !isOk {
-				rm.log.Error("ResourceManager: route processing error, unexpected msg format")
-				if receiver != nil {
-					receiver.Done(events.ErrUnrecognizedMsgFormat)
-				}
-				return
+	for _, ticket := range tickets {
+		if ticket.Action == "ADD" {
+			if ok, e := rm.Add(context.TODO(), ticket.Name, ticket.Odate); !ok {
+				rm.log.Error().Str("action", string(ticket.Action)).Err(e).Msg("ticket action error")
+				result = false
 			}
-
-			rm.processCheckTicketEvent(data)
-			events.ResponseToReceiver(receiver, data)
-		}
-	case events.RouteTicketIn:
-		{
-			data, isOk := msg.Message().(events.RouteTicketInMsgFormat)
-			if !isOk {
-				rm.log.Error("ResourceManager: route processing error, unexpected msg format")
-				if receiver != nil {
-					receiver.Done(events.ErrUnrecognizedMsgFormat)
-				}
-
+		} else {
+			if ok, e := rm.Delete(context.TODO(), ticket.Name, ticket.Odate); !ok {
+				rm.log.Error().Str("action", string(ticket.Action)).Err(e).Msg("ticket action error")
+				result = false
 			}
-			rm.processInTicketEvent(data)
-			events.ResponseToReceiver(receiver, data)
-		}
-	case events.RouteFlagAcquire:
-		{
-			data, ok := msg.Message().(events.RouteFlagAcquireMsg)
-			if !ok {
-				rm.log.Error("ResourceManager: route processing error, unexpected msg format")
-				if receiver != nil {
-					receiver.Done(events.ErrUnrecognizedMsgFormat)
-				}
-			}
-
-			result := rm.processAcquireFlag(data)
-			events.ResponseToReceiver(receiver, result)
-
-		}
-	case events.RouteFlagRelase:
-		{
-			data, ok := msg.Message().(events.RouteFlagAcquireMsg)
-			if !ok {
-				rm.log.Error("ResourceManager: route processing error, unexpected msg format")
-				if receiver != nil {
-					receiver.Done(events.ErrUnrecognizedMsgFormat)
-				}
-			}
-
-			result := rm.processReleaseFlag(data)
-			events.ResponseToReceiver(receiver, result)
-		}
-	default:
-		{
-			err := events.ErrInvalidRouteName
-			rm.log.Debug(err)
-			events.ResponseToReceiver(receiver, err)
 		}
 	}
-
-}
-func (rm *resourceManager) processCheckTicketEvent(data events.RouteTicketCheckMsgFormat) {
-
-	for idx, d := range data.Tickets {
-		data.Tickets[idx].Fulfilled = rm.Check(d.Name, date.Odate(d.Odate))
-	}
+	return result
 }
 
-func (rm *resourceManager) processAcquireFlag(data events.RouteFlagAcquireMsg) events.RouteFlagActionResponse {
-
+func (rm *ResourceManagerImpl) ProcessAcquireFlag(input []types.FlagModel) (bool, []string) {
 	var requiredFlagNames []string = []string{}
 	ok := true
 
-	aflags := []struct {
-		Name   string
-		Policy FlagResourcePolicy
-	}{}
+	aflags := []string{}
 
-	for _, f := range data.Flags {
-		policy := FlagResourcePolicy(f.Policy)
+	for _, f := range input {
+		policy := f.Policy
 		// if flag is not acquired, rollback changes that were made
-		if ok, _ = rm.Set(f.Name, policy); !ok {
+		if ok, _ = rm.Set(context.TODO(), f.Name, policy); !ok {
 			requiredFlagNames = append(requiredFlagNames, f.Name)
 			break
 		}
-		aflags = append(aflags, struct {
-			Name   string
-			Policy FlagResourcePolicy
-		}{Name: f.Name, Policy: policy})
+		aflags = append(aflags, f.Name)
 	}
 
 	if !ok {
 
 		for _, f := range aflags {
-			rm.Unset(f.Name)
+			rm.unset(f)
 		}
 	}
 
-	return events.RouteFlagActionResponse{Success: ok, Names: requiredFlagNames}
+	return ok, requiredFlagNames
 }
-
-func (rm *resourceManager) processReleaseFlag(data events.RouteFlagAcquireMsg) events.RouteFlagActionResponse {
+func (rm *ResourceManagerImpl) ProcessReleaseFlag(input []string) (bool, []string) {
+	ok := true
 
 	var flagNames []string = []string{}
 	var success bool = true
 
-	for _, f := range data.Flags {
-		if ok, _ := rm.Unset(f.Name); !ok {
-			flagNames = append(flagNames, f.Name)
+	for _, f := range input {
+		if ok, _ := rm.unset(f); !ok {
+			flagNames = append(flagNames, f)
 			success = success && false
 		} else {
 			success = success && true
 		}
 	}
 
-	return events.RouteFlagActionResponse{Success: success, Names: flagNames}
+	return ok, flagNames
 }
 
-func (rm *resourceManager) processInTicketEvent(data events.RouteTicketInMsgFormat) {
+// Start - starts the task pool
+func (rm *ResourceManagerImpl) Start() error {
 
-	for _, item := range data.Tickets {
-		if item.Action == taskdef.OutActionAdd {
-			_, err := rm.Add(item.Name, item.Odate)
-			if err != nil {
-				rm.log.Error(err)
-			}
-		}
-		if item.Action == taskdef.OutActionRemove {
-			_, err := rm.Delete(item.Name, item.Odate)
-			if err != nil {
-				rm.log.Error(err)
-			}
-		}
+	return nil
+}
+
+// Shutdown - shutdowns task pool
+func (rm *ResourceManagerImpl) Shutdown() error {
+
+	return nil
+}
+
+func (rm *ResourceManagerImpl) findTickets(ctx context.Context, name string, options *TicketFilterOptions) []ResourceModel {
+
+	result := []ResourceModel{}
+
+	crsr, err := rm.rw.AllTickets(ctx)
+	if err != nil {
+		return result
 	}
+	for crsr.Next(ctx) {
+		var v ResourceModel
+		if err := crsr.Decode(&v); err != nil {
+			continue
+		}
+		v.ID = getname(v.ID)
+		result = append(result, v)
+	}
+
+	return result
+}
+
+func (rm *ResourceManagerImpl) findFlags(ctx context.Context, name string, options *FlagFilterOptions) []ResourceModel {
+
+	result := []ResourceModel{}
+
+	crsr, err := rm.rw.AllFlags(ctx)
+	if err != nil {
+		return result
+	}
+	for crsr.Next(ctx) {
+		var v ResourceModel
+		if err := crsr.Decode(&v); err != nil {
+			continue
+		}
+		v.ID = getname(v.ID)
+		result = append(result, v)
+	}
+
+	return result
 }
 
 func buildExpr(value string) string {
@@ -467,4 +388,25 @@ func buildDateExpr(value string) string {
 	expr += "$"
 
 	return expr
+}
+
+func getname(key string) string {
+	return strings.Split(key, ":")[1]
+}
+func getkey(rtype ResourceType, name, value string) string {
+	if rtype == ResourceTypeTicket {
+		return "t:" + name + ":" + value
+	}
+
+	return "f:" + name
+}
+
+// pack - packs the cnt in lower 32 bits and p in upper 32 bits
+func pack(p uint8, cnt uint32) int64 {
+	return int64(p)<<32 | int64(cnt)
+
+}
+
+func unpack(p int64) (uint8, uint32) {
+	return uint8(p >> 32), uint32(p)
 }

@@ -1,0 +1,13 @@
+{
+    "gateAddress": "0.0.0.0",
+    "gatePort" : 7054,
+    "overseerAddress" :"127.0.0.1",
+    "overseerPort" :7053,
+    "LogConfiguration" :{
+        "logLevel" : 1,
+        "sizeLimit" : 2048, 
+        "logDirectory" : "./logs",
+        "prefix" :""
+    }
+
+}

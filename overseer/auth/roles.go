@@ -10,25 +10,25 @@ import (
 	"github.com/przebro/databazaar/collection"
 )
 
-//RoleManager - provides basic operations on role model
+// RoleManager - provides basic operations on role model
 type RoleManager struct {
 	col collection.DataCollection
 }
 
-//NewRoleManager - creates a new instance of RoleManager
+// NewRoleManager - creates a new instance of RoleManager
 func NewRoleManager(conf config.SecurityConfiguration, provider *datastore.Provider) (*RoleManager, error) {
 
 	var col collection.DataCollection
 	var err error
 
-	if col, err = provider.GetCollection(conf.Collection); err != nil {
+	if col, err = provider.GetCollection(context.Background(), collectionName); err != nil {
 		return nil, err
 	}
 
 	return &RoleManager{col: col}, nil
 }
 
-//Get - gets a role
+// Get - gets a role
 func (m *RoleManager) Get(name string) (RoleModel, bool) {
 
 	dsrole := dsRoleModel{}
@@ -40,7 +40,7 @@ func (m *RoleManager) Get(name string) (RoleModel, bool) {
 	return dsrole.RoleModel, true
 }
 
-//Create - creates a new role
+// Create - creates a new role
 func (m *RoleManager) Create(model RoleModel) error {
 
 	dsrole := dsRoleModel{RoleModel: model, ID: idFormatter(rolesNamespace, model.Name)}
@@ -50,7 +50,7 @@ func (m *RoleManager) Create(model RoleModel) error {
 	return err
 }
 
-//Modify - modifies a role
+// Modify - modifies a role
 func (m *RoleManager) Modify(model RoleModel) error {
 
 	dsrole := dsRoleModel{}
@@ -65,13 +65,13 @@ func (m *RoleManager) Modify(model RoleModel) error {
 
 }
 
-//Delete - deletes a role
+// Delete - deletes a role
 func (m *RoleManager) Delete(name string) error {
 
 	return m.col.Delete(context.Background(), idFormatter(rolesNamespace, name))
 }
 
-//All - returns all roles
+// All - returns all roles
 func (m *RoleManager) All(filter string) ([]RoleModel, error) {
 
 	crsr, err := m.col.All(context.Background())

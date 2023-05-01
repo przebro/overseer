@@ -164,6 +164,7 @@ service ResourceService {
 			}
         };
     }
+    //Should be deprecated new endpoint list resources
     rpc ListTickets(TicketActionMsg) returns (stream TicketListResultMsg){
         option (google.api.http) = {
             post : "/api/resources/tickets"
@@ -238,6 +239,7 @@ service ResourceService {
 			}
         };
     }
+    //Should be deprecated new endpoint list resources
     rpc ListFlags(FlagActionMsg) returns (stream FlagListResultMsg){
         option (google.api.http) = {
             post : "/api/resources/flags"
@@ -261,6 +263,15 @@ service ResourceService {
                     }    
 				}
 			}
+        };
+    }
+    rpc ListResources(ListResourcesMsg) returns (ListResourcesResultMsg){
+        option (google.api.http) = {
+            post : "/api/resources"
+            body : "*"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            description : "Returns a list of resources"
         };
     }
 }
@@ -743,17 +754,61 @@ service DefinitionService{
 }
 
 service AdministrationService{
-    rpc CreateUser(CreateUserMsg) returns (ActionResultMsg){}
-    rpc ModifyUser(CreateUserMsg) returns (ActionResultMsg){}
-    rpc DeleteUser(UserMsg) returns (ActionResultMsg){}
-    rpc ListUsers(FilterMsg)  returns (ListEntityResultMsg){}
-    rpc GetUser(UserMsg) returns (UserResultMsg){}
+    rpc CreateUser(CreateUserMsg) returns (ActionResultMsg){
+        option (google.api.http) = {
+            put : "/api/admin/user"
+            body : "*"
+        };
+    }
+    rpc ModifyUser(ModifyUserMsg) returns (ActionResultMsg){
+        option (google.api.http) = {
+            post : "/api/admin/user"
+            body : "*"
+        };
+    }
+    rpc DeleteUser(UserMsg) returns (ActionResultMsg){
+        option (google.api.http) = {
+            delete : "/api/admin/user/{username}"
+        };
+    }
+    rpc ListUsers(FilterMsg)  returns (ListUsersMsg){
+        option (google.api.http) = {
+            get : "/api/admin/users"
+        };
+    }
+    rpc GetUser(UserMsg) returns (UserInfoMsg){
+        option (google.api.http) = {
+            get : "/api/admin/user/{username}"
+        };
+    }
 
-    rpc CreateRole(RoleDefinitionMsg) returns (ActionResultMsg){}
-    rpc ModifyRole(RoleDefinitionMsg) returns (ActionResultMsg){}
-    rpc DeleteRole(RoleMsg) returns (ActionResultMsg){}
-    rpc ListRoles(FilterMsg)  returns (ListEntityResultMsg){}
-    rpc GetRole(RoleMsg) returns (RoleResultMsg){}
+    rpc CreateRole(RoleDefinitionMsg) returns (ActionResultMsg){
+        option (google.api.http) = {
+            put : "/api/admin/role"
+            body : "*"
+        };
+    }
+    rpc ModifyRole(RoleDefinitionMsg) returns (ActionResultMsg){
+        option (google.api.http) = {
+            post : "/api/admin/role"
+            body : "*"
+        };
+    }
+    rpc DeleteRole(RoleMsg) returns (ActionResultMsg){
+        option (google.api.http) = {
+            delete : "/api/admin/role/{rolename}"
+        };
+    }
+    rpc ListRoles(FilterMsg)  returns (ListRolesMsg){
+        option (google.api.http) = {
+            get : "/api/admin/roles"
+        };
+    }
+    rpc GetRole(RoleMsg) returns (RoleResultMsg){
+        option (google.api.http) = {
+            get : "/api/admin/role/{rolename}"
+        };
+    }
     rpc Quiesce(google.protobuf.Empty) returns (ActionResultMsg){}
     rpc Resume(google.protobuf.Empty) returns (ActionResultMsg){}
 }
@@ -828,10 +883,13 @@ message ActionResultMsg{
     bool success = 1;
     string message = 2; 
 }
+
+//DEPRECATED
 message FlagListResultMsg{
     string flagName = 1;
     int32 state = 2;    
 }
+//DEPRECATED
 message TicketListResultMsg{
     string name = 1;
     string odate = 2;    
@@ -892,48 +950,43 @@ message DefinitionListResultMsg{
     repeated DefinitionListMsg definitions = 1;
 }
 
-message UserAccount{
-    string username = 1;
-    string fullname = 2;
-    string email    = 4;
-    bool   enabled  = 5;
-    repeated string roles = 7;
-}
-
 message ChangePassword{
     string oldPassword = 1;
     string newPassword = 2;
-}
-
-message CreateUserMsg {
-    UserAccount user = 1;
-    string password = 2;
-}
-
-message ModifyUserMsg{
-    UserAccount    user = 1;
-    ChangePassword password = 2;
-}
-
-message UserResultMsg{
-    UserAccount user = 1;
 }
 
 message UserMsg{
     string username = 1;
 }
 
-message UserAccountMsg{
-    UserAccount    user = 1;
-} 
+message UserInfoMsg{
+    string username = 1;
+    string fullname = 2;
+    string email    = 3;
+    bool   enabled  = 4;
+    repeated string roles = 6;
+}
 
-message EntityMsg {
+message ListUsersMsg {
+    repeated UserInfoMsg users = 1;
+}
+
+message CreateUserMsg {
+    UserInfoMsg user = 1;
+    string password = 2;
+}
+
+message ModifyUserMsg{
+    UserInfoMsg user = 1;
+}
+
+message RoleInfoMsg {
     string name  = 1;
     string description = 2;
 }
 
-message ListEntityResultMsg{
-    repeated EntityMsg entity = 1;
+message ListRolesMsg{
+    repeated RoleInfoMsg roles = 1;
 }
 
 message RoleMsg{
@@ -960,4 +1013,28 @@ message RoleDefinitionMsg{
 
 message RoleResultMsg{
     RoleDefinitionMsg role  = 1;
+}
+
+message ResourceMsg{
+    string name  = 1;
+    string resourceType = 2;
+    oneof properties {
+        string orderDate = 4;
+        FlagProperties flag = 5;
+    }
+}
+
+message FlagProperties{
+    string state = 1;
+    uint32 count = 2;
+}
+
+message ListResourcesMsg{
+    string name = 1;
+    string resourceType = 2; 
+    map<string,string> properties = 3;
+}
+
+message ListResourcesResultMsg{
+   repeated ResourceMsg resources = 1;
 }

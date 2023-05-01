@@ -1,0 +1,5 @@
+FROM alpine:latest
+EXPOSE 7055
+COPY ./bin/ovswork-linux-amd64 overseer/ovswork-linux-amd64
+COPY ./config/worker_config.json overseer/worker.json
+CMD ["/overseer/ovswork-linux-amd64","--config","/overseer/worker.json"]

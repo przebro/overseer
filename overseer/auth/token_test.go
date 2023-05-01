@@ -4,7 +4,8 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
-	"io/ioutil"
+	"io"
+
 	"strings"
 	"testing"
 	"time"
@@ -67,7 +68,7 @@ func TestCreatorCreate(t *testing.T) {
 	br := bytes.NewReader([]byte(tb[1]))
 
 	rdr := base64.NewDecoder(base64.RawStdEncoding, br)
-	data, _ := ioutil.ReadAll(rdr)
+	data, _ := io.ReadAll(rdr)
 	result := struct {
 		Iat     int
 		Iss     string

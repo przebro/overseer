@@ -4,16 +4,15 @@ Package helpers - contains miscelanous helpers methods
 package helpers
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"runtime/pprof"
 	"time"
 
-	"github.com/przebro/overseer/common/logger"
+	"github.com/rs/zerolog"
 )
 
-//GetDirectories - Gets the root and programs catalog
+// GetDirectories - Gets the root and programs catalog
 func GetDirectories(base string) (string, string, error) {
 
 	prog, err := filepath.Abs(filepath.Dir(base))
@@ -25,17 +24,17 @@ func GetDirectories(base string) (string, string, error) {
 	return root, prog, nil
 }
 
-//StartProfiler - starts profiler
-func StartProfiler(log logger.AppLogger, profile string) {
-	log.Info("Start profiler")
-	f, _ := os.Create(fmt.Sprintf("%s", profile))
+// StartProfiler - starts profiler
+func StartProfiler(log zerolog.Logger, profile string) {
+	log.Info().Msg("Start profiler")
+	f, _ := os.Create(profile)
 	pprof.StartCPUProfile(f)
 
 	go func() {
 		time.Sleep(60 * time.Second)
 		pprof.StopCPUProfile()
 		f.Close()
-		log.Info("profiler stoped")
+		log.Info().Msg("profiler stoped")
 
 	}()
 

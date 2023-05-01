@@ -20,8 +20,8 @@ func init() {
 type awsConverter struct {
 }
 
-//ConvertToMsg - converts aws task specific data to proto message
-func (c *awsConverter) ConvertToMsg(data json.RawMessage, variables types.EnvironmentVariableList) (*any.Any, error) {
+// ConvertToMsg - converts aws task specific data to proto message
+func (c *awsConverter) ConvertToMsg(data []byte, variables types.EnvironmentVariableList) (*any.Any, error) {
 
 	result := &taskdef.AwsTaskData{}
 
@@ -74,6 +74,67 @@ func (c *awsConverter) ConvertToMsg(data json.RawMessage, variables types.Enviro
 	} else {
 		return nil, errors.New("unknown payload type")
 	}
+
+	act := b.build()
+
+	out, err := proto.Marshal(act)
+	if err != nil {
+		return nil, err
+	}
+
+	return &any.Any{TypeUrl: string(act.ProtoReflect().Descriptor().FullName()), Value: out}, nil
+}
+
+func CreateMessage(object interface{}, variables types.EnvironmentVariableList) (*any.Any, error) {
+
+	switch v := object.(type) {
+	case *taskdef.AwsLambdaTaskData:
+		return createLambdaMessage(v, variables)
+	case *taskdef.AwsStepFunctionTaskData:
+		return createStepFunctionMessage(v, variables)
+	}
+
+	return nil, errors.New("unknown type")
+}
+
+func createLambdaMessage(object *taskdef.AwsLambdaTaskData, variables types.EnvironmentVariableList) (*any.Any, error) {
+
+	b := newBuilder(variables)
+
+	if v, ok := object.IsConnection_AwsConnectionProperties(); ok {
+		b.withConnectionProperties(v)
+	} else if v, ok := object.IsConnection_String(); ok {
+		b.withConnectionName(v)
+	} else {
+		return nil, errors.New("unknown connection type")
+	}
+
+	b.withLambda(*object)
+
+	act := b.build()
+
+	out, err := proto.Marshal(act)
+	if err != nil {
+		return nil, err
+	}
+
+	return &any.Any{TypeUrl: string(act.ProtoReflect().Descriptor().FullName()), Value: out}, nil
+}
+
+func createStepFunctionMessage(object *taskdef.AwsStepFunctionTaskData, variables types.EnvironmentVariableList) (*any.Any, error) {
+
+	b := newBuilder(variables)
+
+	if v, ok := object.IsConnection_AwsConnectionProperties(); ok {
+		b.withConnectionProperties(v)
+
+	} else if v, ok := object.IsConnection_String(); ok {
+		b.withConnectionName(v)
+	} else {
+		return nil, errors.New("unknown connection type")
+	}
+
+	b.withStepFunction(*object)
 
 	act := b.build()
 

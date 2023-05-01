@@ -1,0 +1,29 @@
+---
+definition:
+  type: os
+  name: sample_07y
+  group: samples
+  description: sample os task yaml version
+schedule:
+  type: manual
+confirm: true
+expr: AND
+in_tickets: 
+  - name: "IN-SAMPLE07"
+    odate: PREV
+out_tickets:
+  - name: "IN-SAMPLE07"
+    odate: PREV
+    action: REM
+variables:
+  - name: %%ABEND
+  - value: "Y"
+  - name: %%TIMEOUT
+  - value: 10
+spec:
+    steps:
+      step_1:
+        exec: ./chkprg argument
+      step_2:
+        exec: ./chkprg argument
+

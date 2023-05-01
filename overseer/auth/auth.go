@@ -7,6 +7,7 @@ import (
 
 	"github.com/przebro/overseer/datastore"
 	"github.com/przebro/overseer/overseer/config"
+	"github.com/rs/zerolog/log"
 
 	"golang.org/x/crypto/bcrypt"
 
@@ -17,12 +18,18 @@ const (
 	rolesNamespace = "role"
 	userNamespace  = "user"
 	assocNamespace = "assoc"
+	collectionName = "auth"
+
+	defaultRoleSuperuser     = "Superuser"
+	defaultRoleAdministrator = "Admnistrator"
+	defaultRoleOperator      = "Operator"
+	defaultRoleCreator       = "Creator"
 )
 
-//UserAction - type for user action
+// UserAction - type for user action
 type UserAction int
 
-//Defines possible user actions
+// Defines possible user actions
 const (
 	ActionBrowse UserAction = iota
 	ActionAdministration
@@ -49,30 +56,25 @@ func idFormatter(prefix, id string) string {
 	return fmt.Sprintf("%s@%s", prefix, id)
 }
 
-//AuthenticationManager - Authenticate users
-type AuthenticationManager interface {
-	Authenticate(ctx context.Context, username string, password string) (bool, error)
-}
-
-//AuthorizationManager - Provides
+// AuthorizationManager - Provides
 type AuthorizationManager struct {
 	col collection.DataCollection
 }
 
-//NewAuthorizationManager - creates a new instance of AuthorizationManager
+// NewAuthorizationManager - creates a new instance of AuthorizationManager
 func NewAuthorizationManager(conf config.SecurityConfiguration, provider *datastore.Provider) (*AuthorizationManager, error) {
 
 	var col collection.DataCollection
 	var err error
 
-	if col, err = provider.GetCollection(conf.Collection); err != nil {
+	if col, err = provider.GetCollection(context.Background(), collectionName); err != nil {
 		return nil, err
 	}
 
 	return &AuthorizationManager{col: col}, nil
 }
 
-//VerifyAction - verifies if a given user is eligible to perform a specified action
+// VerifyAction - verifies if a given user is eligible to perform a specified action
 func (m *AuthorizationManager) VerifyAction(ctx context.Context, action UserAction, username string) (bool, error) {
 
 	if ctx == nil {
@@ -86,13 +88,12 @@ func (m *AuthorizationManager) VerifyAction(ctx context.Context, action UserActi
 	roles := []RoleModel{}
 
 	for x := range model.Roles {
-
-		rmodel := RoleModel{}
+		rmodel := dsRoleModel{}
 		if err := m.col.Get(ctx, idFormatter(rolesNamespace, model.Roles[x]), &rmodel); err != nil {
 			return false, fmt.Errorf("unable to verify action, role %s does not exists", model.Roles[x])
 		}
 
-		roles = append(roles, rmodel)
+		roles = append(roles, rmodel.RoleModel)
 	}
 
 	finalRole := m.getEffectiveRights(roles)
@@ -131,7 +132,7 @@ func (m *AuthorizationManager) VerifyAction(ctx context.Context, action UserActi
 	return false, ErrUnableFindAction
 }
 
-//getEffectiveRights - returns a sum of rights from all roles
+// getEffectiveRights - returns a sum of rights from all roles
 func (m *AuthorizationManager) getEffectiveRights(roles []RoleModel) RoleModel {
 
 	finalModel := RoleModel{}
@@ -161,13 +162,13 @@ type userAuthenticationManager struct {
 	col collection.DataCollection
 }
 
-//NewAuthenticationManager - creates a new instance of AuthenticationManager
-func NewAuthenticationManager(collectionName string, provider *datastore.Provider) (AuthenticationManager, error) {
+// NewAuthenticationManager - creates a new instance of AuthenticationManager
+func NewAuthenticationManager(provider *datastore.Provider) (*userAuthenticationManager, error) {
 
 	var col collection.DataCollection
 	var err error
 
-	if col, err = provider.GetCollection(collectionName); err != nil {
+	if col, err = provider.GetCollection(context.Background(), collectionName); err != nil {
 		return nil, err
 	}
 
@@ -175,7 +176,7 @@ func NewAuthenticationManager(collectionName string, provider *datastore.Provide
 
 }
 
-//Authenticate - authenticates the user
+// Authenticate - authenticates the user
 func (m *userAuthenticationManager) Authenticate(ctx context.Context, username string, password string) (bool, error) {
 
 	if ctx == nil {
@@ -198,7 +199,7 @@ func (m *userAuthenticationManager) Authenticate(ctx context.Context, username s
 	return true, nil
 }
 
-//HashPassword - creates a new hash from given password
+// HashPassword - creates a new hash from given password
 func HashPassword(password []byte) (string, error) {
 
 	pass, err := bcrypt.GenerateFromPassword(password, bcrypt.MinCost)
@@ -208,4 +209,127 @@ func HashPassword(password []byte) (string, error) {
 	}
 
 	return string(pass), nil
+}
+
+func FirstRun(provider *datastore.Provider) error {
+
+	var col collection.DataCollection
+	var err error
+	if exists := provider.Exists(context.Background(), collectionName); exists {
+		log.Info().Msg("First run not detected, skipping default roles and users creation")
+		return nil
+	}
+
+	log.Info().Msg("First run detected, creating default roles and users")
+
+	if col, err = provider.GetCollection(context.Background(), collectionName); err != nil {
+		return err
+	}
+
+	createDefaultRoles(col)
+
+	password, _ := HashPassword([]byte("admin"))
+
+	user := dsUserModel{
+		ID: idFormatter(userNamespace, "admin"),
+		UserModel: UserModel{
+			Username: "admin",
+			Password: password,
+			Enabled:  true,
+		},
+	}
+	col.Create(context.Background(), &user)
+
+	assoc := dsRoleAssociationModel{
+		ID: idFormatter(assocNamespace, "admin"),
+		RoleAssociationModel: RoleAssociationModel{
+			UserID: user.Username,
+			Roles:  []string{defaultRoleSuperuser},
+		},
+	}
+	col.Create(context.Background(), assoc)
+
+	return nil
+}
+
+func createDefaultRoles(col collection.DataCollection) {
+
+	roleModel := RoleModel{
+		Name:           defaultRoleSuperuser,
+		Administration: true,
+		Restart:        true,
+		SetToOK:        true,
+		AddTicket:      true,
+		RemoveTicket:   true,
+		SetFlag:        true,
+		Confirm:        true,
+		Order:          true,
+		Force:          true,
+		Definition:     true,
+		Bypass:         true,
+		Hold:           true,
+		Free:           true,
+	}
+	role := dsRoleModel{RoleModel: roleModel, ID: idFormatter(rolesNamespace, roleModel.Name)}
+	col.Create(context.Background(), &role)
+
+	roleModel = RoleModel{
+		Name:           defaultRoleAdministrator,
+		Administration: true,
+		Restart:        false,
+		SetToOK:        false,
+		AddTicket:      false,
+		RemoveTicket:   false,
+		SetFlag:        false,
+		Confirm:        false,
+		Order:          false,
+		Force:          false,
+		Definition:     false,
+		Bypass:         false,
+		Hold:           false,
+		Free:           false,
+	}
+	role = dsRoleModel{RoleModel: roleModel, ID: idFormatter(rolesNamespace, roleModel.Name)}
+	col.Create(context.Background(), &role)
+
+	roleModel = RoleModel{
+		Name:           defaultRoleOperator,
+		Administration: false,
+		Restart:        true,
+		SetToOK:        true,
+		AddTicket:      true,
+		RemoveTicket:   true,
+		SetFlag:        true,
+		Confirm:        true,
+		Order:          true,
+		Force:          true,
+		Definition:     false,
+		Bypass:         true,
+		Hold:           true,
+		Free:           true,
+	}
+	role = dsRoleModel{RoleModel: roleModel, ID: idFormatter(rolesNamespace, roleModel.Name)}
+
+	col.Create(context.Background(), &role)
+
+	roleModel = RoleModel{
+		Name:           defaultRoleCreator,
+		Administration: false,
+		Restart:        false,
+		SetToOK:        false,
+		AddTicket:      false,
+		RemoveTicket:   false,
+		SetFlag:        false,
+		Confirm:        false,
+		Order:          false,
+		Force:          false,
+		Definition:     true,
+		Bypass:         false,
+		Hold:           false,
+		Free:           false,
+	}
+	role = dsRoleModel{RoleModel: roleModel, ID: idFormatter(rolesNamespace, roleModel.Name)}
+
+	col.Create(context.Background(), &role)
+
 }

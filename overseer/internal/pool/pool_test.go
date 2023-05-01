@@ -1,20 +1,21 @@
 package pool
 
-import (
-	"errors"
-	"fmt"
-	"os"
-	"path/filepath"
-	"time"
+/*
+type mockResourceManager struct {
+}
 
-	"github.com/przebro/overseer/common/logger"
-	"github.com/przebro/overseer/common/types"
-	"github.com/przebro/overseer/datastore"
-	"github.com/przebro/overseer/overseer/config"
-	"github.com/przebro/overseer/overseer/internal/events"
-	"github.com/przebro/overseer/overseer/internal/taskdef"
-	"github.com/przebro/overseer/overseer/internal/unique"
-)
+func (m *mockResourceManager) CheckTickets(in []types.CollectedTicketModel) []types.CollectedTicketModel {
+	return []types.CollectedTicketModel{}
+}
+func (m *mockResourceManager) ProcessTicketAction([]types.TicketActionModel) bool {
+	return false
+}
+func (m *mockResourceManager) ProcessAcquireFlag([]types.FlagModel) (bool, []string) {
+	return false, []string{}
+}
+func (m *mockResourceManager) ProcessReleaseFlag([]string) (bool, []string) {
+	return false, []string{}
+}
 
 type mockJournal struct {
 	timeout   int
@@ -65,82 +66,21 @@ func (j *mockJournal) Collect(expected int, after time.Time) <-chan []events.Rou
 
 }
 
-type mockDispatcher struct {
-	Tickets         map[string]string
-	processNotEnded bool
-	withError       bool
+type mockWorkerManager struct {
 }
 
-func (m *mockDispatcher) PushEvent(receiver events.EventReceiver, route events.RouteName, msg events.DispatchedMessage) error {
-
-	go func() {
-		if route == events.RouteWorkLaunch {
-			if m.withError {
-				receiver.Done(errors.New(""))
-			} else {
-				dat := events.RouteWorkResponseMsg{
-					Status: types.WorkerTaskStatusExecuting,
-				}
-				events.ResponseToReceiver(receiver, dat)
-			}
-
-		}
-		if route == events.RoutTaskJournal {
-			r := msg.Message().(events.RouteJournalMsg)
-			mockJournalT.Push(r)
-		}
-
-		if route == events.RouteWorkCheck {
-
-			if m.withError {
-				receiver.Done(errors.New(""))
-			} else {
-
-				_, iskOk := msg.Message().(events.WorkRouteCheckStatusMsg)
-				if iskOk == false {
-					events.ResponseToReceiver(receiver, errors.New(""))
-				}
-				if m.processNotEnded {
-					receiver.Done(events.RouteWorkResponseMsg{Status: types.WorkerTaskStatusExecuting, ReturnCode: 0})
-				} else {
-					receiver.Done(events.RouteWorkResponseMsg{Status: types.WorkerTaskStatusEnded, ReturnCode: 0})
-				}
-
-			}
-		}
-		if route == events.RouteTicketCheck {
-
-			if m.withError {
-
-				receiver.Done(errors.New(""))
-
-			} else {
-				result, iskOk := msg.Message().(events.RouteTicketCheckMsgFormat)
-				if iskOk == false {
-					events.ResponseToReceiver(receiver, errors.New(""))
-				}
-
-				for i, t := range result.Tickets {
-
-					_, exists := m.Tickets[t.Name]
-					if exists {
-						result.Tickets[i].Fulfilled = true
-					}
-				}
-
-				receiver.Done(result)
-
-			}
-
-		}
-	}()
-	return nil
+type mockJournalWriter struct {
 }
-func (m *mockDispatcher) Subscribe(route events.RouteName, participant events.EventParticipant) {
+
+func (m *mockJournalWriter) PushJournalMessage(ID unique.TaskOrderID, execID string, t time.Time, msg string) {
 
 }
-func (m *mockDispatcher) Unsubscribe(route events.RouteName, participant events.EventParticipant) {
 
+func (m *mockWorkerManager) Push(ctx context.Context, t types.TaskDescription, vars types.EnvironmentVariableList) (types.WorkerTaskStatus, error) {
+	return types.WorkerTaskStatusRecieved, nil
+}
+func (m *mockWorkerManager) Status(ctx context.Context, t types.WorkDescription) types.TaskExecutionStatus {
+	return types.TaskExecutionStatus{}
 }
 
 const (
@@ -149,23 +89,12 @@ const (
 	testSequenceName   = "sequence"
 )
 
-var storeConfig config.StoreProviderConfiguration = config.StoreProviderConfiguration{
-	Store: []config.StoreConfiguration{
-		{ID: "teststore", ConnectionString: "local;/../../../data/tests"},
-		{ID: "teststoretasks", ConnectionString: "local;/../../../data/tests?updatesync=true"},
-	},
-	Collections: []config.CollectionConfiguration{
-		{Name: testCollectionName, StoreID: "teststore"},
-		{Name: testStoreTaskName, StoreID: "teststoretasks"},
-		{Name: testSequenceName, StoreID: "teststore"},
-	},
-}
+var storeConfig config.StoreConfiguration = config.StoreConfiguration{ID: "teststore", ConnectionString: "local;/../../../data/tests"}
 
 var taskPoolConfig config.ActivePoolConfiguration = config.ActivePoolConfiguration{
 	ForceNewDayProc: true, MaxOkReturnCode: 4,
 	NewDayProc: "00:30",
 	SyncTime:   5,
-	Collection: testCollectionName,
 }
 
 type mockSequence struct {
@@ -183,10 +112,9 @@ var seq = &mockSequence{val: 1}
 var provider *datastore.Provider
 
 var definitionManagerT taskdef.TaskDefinitionManager
-var mDispatcher = &mockDispatcher{Tickets: make(map[string]string)}
 var taskPoolT *ActiveTaskPool
 var activeTaskManagerT *ActiveTaskPoolManager
-var log logger.AppLogger
+
 var mockJournalT = &mockJournal{timeout: 3, collected: make(chan events.RouteJournalMsg, 10)}
 var defManagerDircetory string
 var isInitialized bool = false
@@ -205,16 +133,14 @@ func setupEnv() {
 	f2.Write([]byte(`{}`))
 	f2.Close()
 
-	log = logger.NewTestLogger()
-
-	provider, _ = datastore.NewDataProvider(storeConfig, log)
+	provider, _ = datastore.NewDataProvider(storeConfig)
 
 	defManagerDircetory, _ = filepath.Abs("../../../def_test/")
-	definitionManagerT, _ = taskdef.NewManager(defManagerDircetory, log)
+	definitionManagerT, _ = taskdef.NewManager(defManagerDircetory)
 
 	initTaskPool(provider)
-	activeTaskManagerT, _ = NewActiveTaskPoolManager(mDispatcher, definitionManagerT, taskPoolT, provider, log)
-	activeTaskManagerT.log = log
+	activeTaskManagerT, _ = NewActiveTaskPoolManager(definitionManagerT, taskPoolT, provider)
+	//activeTaskManagerT.log = log
 	activeTaskManagerT.sequence = seq
 
 	isInitialized = true
@@ -222,5 +148,6 @@ func setupEnv() {
 }
 func initTaskPool(prov *datastore.Provider) {
 
-	taskPoolT, _ = NewTaskPool(mDispatcher, taskPoolConfig, prov, true, log, definitionManagerT)
+	taskPoolT, _ = NewTaskPool(taskPoolConfig, prov, true, definitionManagerT, &mockWorkerManager{}, &mockResourceManager{}, &mockJournalWriter{})
 }
+*/

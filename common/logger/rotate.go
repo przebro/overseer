@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-//fileRotateSync - rotating log
+// fileRotateSync - rotating log
 type fileRotateSync struct {
 	file    *os.File
 	limit   int
@@ -31,7 +31,7 @@ func newFile(dir, prefix string, num int) (*os.File, error) {
 	return os.Create(path)
 }
 
-//newRotateSync - creates a new fileRotateSync, it satisfies zapcore.WriteSyncer interface
+// newRotateSync - creates a new fileRotateSync, it satisfies zapcore.WriteSyncer interface
 func newRotateSync(dir, prefix string, limit int) (*fileRotateSync, error) {
 
 	var file *os.File

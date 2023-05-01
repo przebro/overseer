@@ -4,25 +4,30 @@ import (
 	"encoding/json"
 )
 
-//OsActionType - type of a possible os action
+// OsActionType - type of a possible os action
 type OsActionType string
 
-//Possible values for OsActionType
+// Possible values for OsActionType
 const (
 	OsActionTypeCommand OsActionType = "command"
 	OsActionTypeScript  OsActionType = "script"
 )
 
-//OsTaskData - specific data for OS task
-type OsTaskData struct {
-	ActionType  OsActionType `json:"type"`
-	CommandLine string       `json:"command"`
-	RunAs       string       `json:"runas"`
+type StepDefinition struct {
+	Name    string `json:"name"`
+	Command string `json:"exec"`
 }
 
-//OsTaskDefinition - definition of a OS task
+// OsTaskData - specific data for OS task
+type OsTaskData struct {
+	CommandLine string           `json:"command" yaml:"command"`
+	RunAs       string           `json:"runas" yaml:"runas"`
+	Steps       []StepDefinition `json:"steps" yaml:"steps"`
+}
+
+// OsTaskDefinition - definition of a OS task
 type OsTaskDefinition struct {
-	baseTaskDefinition
+	TaskDefinition
 	Spec OsTaskData
 }
 
@@ -47,7 +52,7 @@ type AwsTaskData struct {
 	Payload    interface{}   `json:"payload"`
 }
 
-//IsConnection_String - checks if this holds Connection as string
+// IsConnection_String - checks if this holds Connection as string
 func (p *AwsTaskData) IsConnection_String() (string, bool) {
 	if v, ok := p.Connection.(string); ok {
 		return v, true
@@ -55,7 +60,7 @@ func (p *AwsTaskData) IsConnection_String() (string, bool) {
 	return "", false
 }
 
-//IsConnection_AwsConnectionProperties - checks if this holds Connection as an instance of AwsConnectionProperties
+// IsConnection_AwsConnectionProperties - checks if this holds Connection as an instance of AwsConnectionProperties
 func (p *AwsTaskData) IsConnection_AwsConnectionProperties() (AwsConnectionProperties, bool) {
 
 	if v, ok := p.Connection.(AwsConnectionProperties); ok {
@@ -66,7 +71,7 @@ func (p *AwsTaskData) IsConnection_AwsConnectionProperties() (AwsConnectionPrope
 
 type awsTaskData AwsTaskData
 
-//UnmarshalJSON - parses []byte and stores value in current AwsTaskData instance
+// UnmarshalJSON - parses []byte and stores value in current AwsTaskData instance
 func (p *AwsTaskData) UnmarshalJSON(b []byte) error {
 
 	var taskData awsTaskData

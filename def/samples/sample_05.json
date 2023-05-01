@@ -1,15 +1,17 @@
 {
-    "type" : "dummy",
-    "name" :"sample_05",
-    "group" : "samples",
+    "definition" :{
+        "type" : "dummy",
+        "name" :"sample_05",
+        "group" : "samples"
+    },
     "confirm" : true,
     "description" :"sample dummy task definition with confirm",
-    "inticket" : [
+    "in_tickets" : [
         {"name" : "IN-SAMPLE05A","odate" : "ODATE" }
     ],
-    "relation" :"AND",
+    "expr" :"AND",
     "flags" : [],
-    "outticket" :[
+    "out_tickets" :[
         {"name" : "IN-SAMPLE05A","odate" : "ODATE" ,"action":"REM"}
         
     ],

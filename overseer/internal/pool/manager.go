@@ -6,14 +6,17 @@ import (
 	"strings"
 	"time"
 
-	"github.com/przebro/overseer/common/logger"
 	"github.com/przebro/overseer/common/types/date"
+	"github.com/przebro/overseer/common/types/unique"
 	"github.com/przebro/overseer/datastore"
-	"github.com/przebro/overseer/overseer/internal/events"
 	"github.com/przebro/overseer/overseer/internal/journal"
+	"github.com/przebro/overseer/overseer/internal/pool/activetask"
+	"github.com/przebro/overseer/overseer/internal/pool/models"
+	"github.com/przebro/overseer/overseer/internal/pool/states"
 	"github.com/przebro/overseer/overseer/internal/taskdef"
-	"github.com/przebro/overseer/overseer/internal/unique"
 	"github.com/przebro/overseer/overseer/taskdata"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 var (
@@ -27,44 +30,41 @@ var (
 	ErrUnableFindTask = errors.New("unable to find task")
 )
 
-//ActiveTaskPoolManager - Manages tasks in Active task pool
+// ActiveTaskPoolManager - Manages tasks in Active task pool
 type ActiveTaskPoolManager struct {
-	log      logger.AppLogger
+	log      zerolog.Logger
 	tdm      taskdef.TaskDefinitionManager
 	pool     *ActiveTaskPool
 	sequence SequenceGenerator
 }
 
-//NewActiveTaskPoolManager - Creates a new Managager
-func NewActiveTaskPoolManager(dispatcher events.Dispatcher,
+// NewActiveTaskPoolManager - Creates a new Managager
+func NewActiveTaskPoolManager(
 	tdm taskdef.TaskDefinitionManager,
 	pool *ActiveTaskPool,
-	provider *datastore.Provider,
-	log logger.AppLogger) (*ActiveTaskPoolManager, error) {
+	provider *datastore.Provider) (*ActiveTaskPoolManager, error) {
+
+	lg := log.With().Str("component", "pool-manager").Logger()
 
 	var err error
 	manager := &ActiveTaskPoolManager{}
 	manager.tdm = tdm
 	manager.pool = pool
-	manager.log = log
+	manager.log = lg
 
-	if manager.sequence, err = NewSequenceGenerator("sequence", provider); err != nil {
+	if manager.sequence, err = NewSequenceGenerator(provider); err != nil {
+		lg.Err(err).Msg("unable to create sequence generator")
 		return nil, err
-	}
-
-	if dispatcher != nil {
-		dispatcher.Subscribe(events.RouteTaskAct, manager)
-		dispatcher.Subscribe(events.RouteChangeTaskState, manager)
 	}
 
 	return manager, nil
 }
 
-//Order - Orders a new task, this method checks if all precoditions are met before it adds a new task
+// Order - Orders a new task, this method checks if all precoditions are met before it adds a new task
 func (manager *ActiveTaskPoolManager) Order(task taskdata.GroupNameData, odate date.Odate, username string) (string, error) {
 
 	var err error
-	var definition taskdef.TaskDefinition
+	var definition *taskdef.TaskDefinition
 	if definition, err = manager.tdm.GetTask(task); err != nil {
 		return "", ErrUnableFindDef
 	}
@@ -77,13 +77,13 @@ func (manager *ActiveTaskPoolManager) Order(task taskdata.GroupNameData, odate d
 	return string(orderID), nil
 }
 
-//OrderGroup - Orders all tasks from group, this method checks if all precoditions are met before it adds a new task
+// OrderGroup - Orders all tasks from group, this method checks if all precoditions are met before it adds a new task
 func (manager *ActiveTaskPoolManager) OrderGroup(groupdata taskdata.GroupData, odate date.Odate, username string) ([]string, error) {
 
 	var err error
 	var result = []string{}
 	var grps []taskdata.GroupNameData
-	var definition taskdef.TaskDefinition
+	var definition *taskdef.TaskDefinition
 
 	if grps, err = manager.tdm.GetTasksFromGroup([]string{groupdata.Group}); err != nil {
 		return []string{}, ErrUnableFindGroup
@@ -92,7 +92,7 @@ func (manager *ActiveTaskPoolManager) OrderGroup(groupdata taskdata.GroupData, o
 	for _, d := range grps {
 
 		if definition, err = manager.tdm.GetTask(d); err != nil {
-			manager.log.Error("get task definition", d, err)
+			manager.log.Error().Err(err).Str("group", d.Group).Str("task", d.Name).Msg("get task definition")
 			continue
 		}
 
@@ -107,13 +107,13 @@ func (manager *ActiveTaskPoolManager) OrderGroup(groupdata taskdata.GroupData, o
 	return result, nil
 }
 
-//ForceGroup - forcefully orders all tasks from group, this method checks if all precoditions are met before it adds a new task
+// ForceGroup - forcefully orders all tasks from group, this method checks if all precoditions are met before it adds a new task
 func (manager *ActiveTaskPoolManager) ForceGroup(groupdata taskdata.GroupData, odate date.Odate, username string) ([]string, error) {
 
 	var err error
 	var result = []string{}
 	var grps []taskdata.GroupNameData
-	var definition taskdef.TaskDefinition
+	var definition *taskdef.TaskDefinition
 
 	if grps, err = manager.tdm.GetTasksFromGroup([]string{groupdata.Group}); err != nil {
 		return []string{}, ErrUnableFindGroup
@@ -134,11 +134,11 @@ func (manager *ActiveTaskPoolManager) ForceGroup(groupdata taskdata.GroupData, o
 	return result, nil
 }
 
-//Force - forcefully orders a new task, this method does not check for precondtions
+// Force - forcefully orders a new task, this method does not check for precondtions
 func (manager *ActiveTaskPoolManager) Force(task taskdata.GroupNameData, odate date.Odate, username string) (string, error) {
 
 	var err error
-	var definition taskdef.TaskDefinition
+	var definition *taskdef.TaskDefinition
 	if definition, err = manager.tdm.GetTask(task); err != nil {
 		return "", ErrUnableFindDef
 	}
@@ -151,7 +151,7 @@ func (manager *ActiveTaskPoolManager) Force(task taskdata.GroupNameData, odate d
 	return string(orderID), nil
 }
 
-//Rerun - Orders task again
+// Rerun - Orders task again
 func (manager *ActiveTaskPoolManager) Rerun(id unique.TaskOrderID, username string) (string, error) {
 
 	task, err := manager.pool.task(id)
@@ -160,18 +160,18 @@ func (manager *ActiveTaskPoolManager) Rerun(id unique.TaskOrderID, username stri
 	}
 
 	state := task.State()
-	if state == TaskStateEndedNotOk || state == TaskStateEndedOk {
+	if state == models.TaskStateEndedNotOk || state == models.TaskStateEndedOk {
 		task.SetExecutionID()
 	} else {
 		return fmt.Sprintf("rerun task:%s failed, invalid status", id), ErrInvalidStatus
 	}
 
-	pushJournalMessage(manager.pool.dispatcher, task.OrderID(), task.CurrentExecutionID(), time.Now(), fmt.Sprintf(journal.TaskRerun, username))
+	manager.pool.journal.PushJournalMessage(task.OrderID(), task.ExecutionID(), time.Now(), fmt.Sprintf(journal.TaskRerun, username))
 	return fmt.Sprintf("rerun task:%s ok", id), nil
 
 }
 
-//Enforce - enforces task execution
+// Enforce - enforces task execution
 func (manager *ActiveTaskPoolManager) Enforce(id unique.TaskOrderID, username string) (string, error) {
 
 	task, err := manager.pool.task(id)
@@ -180,18 +180,18 @@ func (manager *ActiveTaskPoolManager) Enforce(id unique.TaskOrderID, username st
 	}
 
 	state := task.State()
-	if state != TaskStateWaiting {
+	if state != models.TaskStateWaiting {
 		return fmt.Sprintf("enforce task:%s failed, invalid status", id), ErrInvalidStatus
 	}
 
 	manager.pool.enforceTask(id)
 
-	pushJournalMessage(manager.pool.dispatcher, task.OrderID(), task.CurrentExecutionID(), time.Now(), fmt.Sprintf(journal.TaskEnforce, username))
+	manager.pool.journal.PushJournalMessage(task.OrderID(), task.ExecutionID(), time.Now(), fmt.Sprintf(journal.TaskEnforce, username))
 
 	return fmt.Sprintf("enforce task:%s ok", id), nil
 }
 
-//SetOk - Sets task to EndedOk status
+// SetOk - Sets task to EndedOk status
 func (manager *ActiveTaskPoolManager) SetOk(id unique.TaskOrderID, username string) (string, error) {
 
 	task, err := manager.pool.task(id)
@@ -200,17 +200,17 @@ func (manager *ActiveTaskPoolManager) SetOk(id unique.TaskOrderID, username stri
 	}
 
 	state := task.State()
-	if state == TaskStateEndedNotOk {
-		task.SetState(TaskStateEndedOk)
+	if state == models.TaskStateEndedNotOk {
+		task.SetState(models.TaskStateEndedOk)
 	} else {
 		return fmt.Sprintf("set to OK task:%s failed, invalid status", id), ErrInvalidStatus
 	}
 
-	pushJournalMessage(manager.pool.dispatcher, task.OrderID(), task.CurrentExecutionID(), time.Now(), fmt.Sprintf(journal.TaskSetOK, username))
+	manager.pool.journal.PushJournalMessage(task.OrderID(), task.ExecutionID(), time.Now(), fmt.Sprintf(journal.TaskSetOK, username))
 	return fmt.Sprintf("set to ok task:%s ok", id), nil
 }
 
-//Hold - Holds the taskdef. It will be not processed durning cycle
+// Hold - Holds the taskdef. It will be not processed durning cycle
 func (manager *ActiveTaskPoolManager) Hold(id unique.TaskOrderID, username string) (string, error) {
 
 	task, err := manager.pool.task(id)
@@ -223,12 +223,12 @@ func (manager *ActiveTaskPoolManager) Hold(id unique.TaskOrderID, username strin
 
 	}
 	task.Hold()
-	pushJournalMessage(manager.pool.dispatcher, task.OrderID(), task.CurrentExecutionID(), time.Now(), fmt.Sprintf(journal.TaskHeld, username))
+	manager.pool.journal.PushJournalMessage(task.OrderID(), task.ExecutionID(), time.Now(), fmt.Sprintf(journal.TaskHeld, username))
 
 	return fmt.Sprintf("hold task:%s ok", id), nil
 }
 
-//Free - Frees a holded task
+// Free - Frees a holded task
 func (manager *ActiveTaskPoolManager) Free(id unique.TaskOrderID, username string) (string, error) {
 
 	task, err := manager.pool.task(id)
@@ -241,12 +241,12 @@ func (manager *ActiveTaskPoolManager) Free(id unique.TaskOrderID, username strin
 	}
 
 	task.Free()
-	pushJournalMessage(manager.pool.dispatcher, task.OrderID(), task.CurrentExecutionID(), time.Now(), fmt.Sprintf(journal.TaskFreed, username))
+	manager.pool.journal.PushJournalMessage(task.OrderID(), task.ExecutionID(), time.Now(), fmt.Sprintf(journal.TaskFreed, username))
 
 	return fmt.Sprintf("free task:%s ok", id), nil
 }
 
-//Confirm - Manually Confirms a task
+// Confirm - Manually Confirms a task
 func (manager *ActiveTaskPoolManager) Confirm(id unique.TaskOrderID, username string) (string, error) {
 
 	task, err := manager.pool.task(id)
@@ -259,15 +259,16 @@ func (manager *ActiveTaskPoolManager) Confirm(id unique.TaskOrderID, username st
 		return fmt.Sprintf("task with id:%s already confirmed", id), ErrInvalidStatus
 	}
 
-	pushJournalMessage(manager.pool.dispatcher, task.OrderID(), task.CurrentExecutionID(), time.Now(), fmt.Sprintf(journal.TaskConfirmed, username))
+	manager.pool.journal.PushJournalMessage(task.OrderID(), task.ExecutionID(), time.Now(), fmt.Sprintf(journal.TaskConfirmed, username))
 
 	return fmt.Sprintf("confirm task:%s ok", id), nil
 }
 
-func (manager *ActiveTaskPoolManager) orderNewTasks() int {
+func (manager *ActiveTaskPoolManager) OrderNewTasks() int {
 
 	ordered := 0
-	manager.log.Info("Ordering new tasks")
+
+	manager.log.Info().Msg("Ordering new tasks")
 
 	groups, _ := manager.tdm.GetGroups()
 
@@ -278,166 +279,57 @@ func (manager *ActiveTaskPoolManager) orderNewTasks() int {
 	for _, t := range result {
 
 		//It is a new day procedure so skip tasks that are ordered manually
-		if t.OrderType() != taskdef.OrderingManual {
-			manager.orderDefinition(t, date.CurrentOdate(), false, "daily procedure")
+		if t.Schedule.OrderType != taskdef.OrderingManual {
+			manager.orderDefinition(&t, date.CurrentOdate(), false, "daily procedure")
 			ordered++
 		}
 	}
 	return ordered
 }
 
-//orderDefinition - Adds a new task to the Active Task Pool
-//this method performs all checks
-func (manager *ActiveTaskPoolManager) orderDefinition(def taskdef.TaskDefinition, odate date.Odate, force bool, username string) (unique.TaskOrderID, string) {
+// orderDefinition - Adds a new task to the Active Task Pool
+// this method performs all checks
+func (manager *ActiveTaskPoolManager) orderDefinition(def *taskdef.TaskDefinition, odate date.Odate, force bool, username string) (unique.TaskOrderID, string) {
 
-	manager.log.Info("order:", def, ":", odate)
+	manager.log.Info().Str("", "").Str("odate", string(odate)).Msg("order definition")
 
-	ctx := TaskOrderContext{def: def,
-		ignoreCalendar:   force,
-		ignoreSubmission: force,
-		odate:            odate,
-		state:            &ostateCheckOtype{},
-		currentOdate:     date.CurrentOdate(),
-		reason:           make([]string, 0),
-		log:              manager.log,
+	ctx := states.TaskOrderContext{
+		Def:              def,
+		IgnoreCalendar:   force,
+		IgnoreSubmission: force,
+		Odate:            odate,
+		State:            &states.OstateCheckOtype{},
+		CurrentOdate:     date.CurrentOdate(),
+		Reason:           make([]string, 0),
+		Log:              manager.log,
 	}
 	n, g, _ := def.GetInfo()
 
-	for ctx.state.processState(&ctx) {
+	for ctx.State.ProcessState(&ctx) {
 	}
 
-	if !ctx.isSubmited {
-		return "", strings.Join(ctx.reason, ",")
+	if !ctx.IsSubmited {
+		return "", strings.Join(ctx.Reason, ",")
 
 	}
 
 	refID := unique.NewID()
 
 	if err := manager.tdm.WriteActiveDefinition(def, refID); err != nil {
-		manager.log.Error("push definition to pool failed:", err.Error())
+		manager.log.Error().Err(err).Msg("push definition to pool failed")
 	}
 
 	orderID := manager.sequence.Next()
-	task := newActiveTask(orderID, odate, def, refID)
+	task := activetask.NewActiveTask(orderID, odate, def, refID)
 	manager.pool.addTask(orderID, task)
 
 	if force {
-		manager.log.Info(fmt.Sprintf("Task %s from gorup %s forced with id:%s odate:%s", n, g, orderID, odate))
-		pushJournalMessage(manager.pool.dispatcher, orderID, task.CurrentExecutionID(), time.Now(), fmt.Sprintf(journal.TaskForced, username, odate))
+		manager.log.Info().Msg(fmt.Sprintf("Task %s from gorup %s forced with id:%s odate:%s", n, g, orderID, odate))
+		manager.pool.journal.PushJournalMessage(orderID, task.ExecutionID(), time.Now(), fmt.Sprintf(journal.TaskForced, username, odate))
 	} else {
-		manager.log.Info(fmt.Sprintf("Task %s from gorup %s ordered with id:%s odate:%s", n, g, orderID, odate))
-		pushJournalMessage(manager.pool.dispatcher, orderID, task.CurrentExecutionID(), time.Now(), fmt.Sprintf(journal.TaskOrdered, username, odate))
+		manager.log.Info().Msg(fmt.Sprintf("Task %s from gorup %s ordered with id:%s odate:%s", n, g, orderID, odate))
+		manager.pool.journal.PushJournalMessage(orderID, task.ExecutionID(), time.Now(), fmt.Sprintf(journal.TaskOrdered, username, odate))
 	}
 
-	return orderID, strings.Join(ctx.reason, ",")
-}
-
-//Process - receive notification from dispatcher
-func (manager *ActiveTaskPoolManager) Process(receiver events.EventReceiver, routename events.RouteName, msg events.DispatchedMessage) {
-
-	switch routename {
-	case events.RouteTaskAct:
-		{
-			manager.log.Debug("task action message, route:", events.RouteTaskAct, "id:", msg.MsgID())
-			addmsg, istype := msg.Message().(events.RouteTaskActionMsgFormat)
-			if !istype {
-				er := events.ErrUnrecognizedMsgFormat
-				manager.log.Error(er)
-				events.ResponseToReceiver(receiver, er)
-				break
-			}
-
-			result, err := manager.processAddToActivePool(addmsg)
-			if err != nil {
-				events.ResponseToReceiver(receiver, err)
-				break
-			}
-
-			events.ResponseToReceiver(receiver, result)
-		}
-	case events.RouteChangeTaskState:
-		{
-			manager.log.Debug("task action message, route:", events.RouteChangeTaskState)
-			actmsg, istype := msg.Message().(events.RouteChangeStateMsg)
-			if !istype {
-				er := events.ErrUnrecognizedMsgFormat
-				manager.log.Error(er)
-				events.ResponseToReceiver(receiver, er)
-				break
-			}
-
-			result, err := manager.changeTaskState(actmsg)
-			if err != nil {
-				events.ResponseToReceiver(receiver, err)
-				break
-			}
-			events.ResponseToReceiver(receiver, result)
-		}
-	default:
-		{
-			err := events.ErrInvalidRouteName
-			manager.log.Debug(err)
-			events.ResponseToReceiver(receiver, err)
-		}
-	}
-}
-
-func (manager *ActiveTaskPoolManager) changeTaskState(msg events.RouteChangeStateMsg) (events.RouteChangeStateResponseMsg, error) {
-
-	var result string
-	var err error
-	test := 1
-
-	tab := map[bool]int{true: 1, false: 0}
-	//One and only one flag can be set
-	test = test << tab[msg.Free] << tab[msg.Hold] << tab[msg.Rerun] << tab[msg.SetOK]
-
-	if test != 2 {
-		err = errors.New("invalid flag combination")
-		return events.RouteChangeStateResponseMsg{Message: result, OrderID: msg.OrderID}, err
-	}
-
-	switch true {
-	case msg.Free:
-		{
-			result, err = manager.Free(msg.OrderID, msg.Username)
-		}
-	case msg.Hold:
-		{
-			result, err = manager.Hold(msg.OrderID, msg.Username)
-		}
-	case msg.SetOK:
-		{
-			result, err = manager.SetOk(msg.OrderID, msg.Username)
-		}
-	case msg.Rerun:
-		{
-			result, err = manager.Rerun(msg.OrderID, msg.Username)
-		}
-	}
-	return events.RouteChangeStateResponseMsg{Message: result, OrderID: msg.OrderID}, err
-
-}
-
-func (manager *ActiveTaskPoolManager) processAddToActivePool(msg events.RouteTaskActionMsgFormat) (events.RouteTaskActionResponseFormat, error) {
-
-	var rmsg string
-	var id unique.TaskOrderID
-	var result events.RouteTaskActionResponseFormat
-	var definition taskdef.TaskDefinition
-	var err error
-
-	if definition, err = manager.tdm.GetTask(taskdata.GroupNameData{Name: msg.Name, GroupData: taskdata.GroupData{Group: msg.Group}}); err != nil {
-		return result, ErrUnableFindDef
-
-	}
-
-	id, rmsg = manager.orderDefinition(definition, date.Odate(msg.Odate), msg.Force, msg.Username)
-
-	result.Data = make([]events.TaskInfoResultMsg, 1)
-	result.Data[0].TaskID = id
-	result.Data[0].WaitingInfo = rmsg
-	result.Data[0].Name, result.Data[0].Group, _ = definition.GetInfo()
-
-	return result, nil
+	return orderID, strings.Join(ctx.Reason, ",")
 }

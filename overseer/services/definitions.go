@@ -6,36 +6,36 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/przebro/overseer/common/logger"
 	"github.com/przebro/overseer/common/validator"
 	"github.com/przebro/overseer/overseer/auth"
 	"github.com/przebro/overseer/overseer/internal/taskdef"
 	"github.com/przebro/overseer/overseer/taskdata"
 	"github.com/przebro/overseer/proto/services"
+	"github.com/rs/zerolog"
 )
 
 type ovsDefinitionService struct {
-	log        logger.AppLogger
 	defManager taskdef.TaskDefinitionManager
 	services.UnimplementedDefinitionServiceServer
 }
 
-//NewDefinistionService - Creates a new Definition service
-func NewDefinistionService(dm taskdef.TaskDefinitionManager, log logger.AppLogger) services.DefinitionServiceServer {
+// NewDefinistionService - Creates a new Definition service
+func NewDefinistionService(dm taskdef.TaskDefinitionManager) services.DefinitionServiceServer {
 
-	dservice := &ovsDefinitionService{defManager: dm, log: log}
+	dservice := &ovsDefinitionService{defManager: dm}
 	return dservice
 }
 
-//GetDefinition - Gets definition
+// GetDefinition - Gets definition
 func (srv *ovsDefinitionService) GetDefinition(ctx context.Context, msg *services.DefinitionActionMsg) (*services.DefinitionResultMsg, error) {
 
+	log := zerolog.Ctx(ctx).With().Str("service", "definition").Logger()
 	var success bool
 	var resultMsg string
 	tdata := make([]taskdata.GroupNameData, 1)
 	result := &services.DefinitionResultMsg{}
 
-	srv.log.Info("get definition call:", msg.String())
+	log.Info().Msg("get definition")
 
 	tdata[0] = taskdata.GroupNameData{GroupData: taskdata.GroupData{Group: msg.DefinitionMsg.GroupName}, Name: msg.DefinitionMsg.TaskName}
 
@@ -47,7 +47,7 @@ func (srv *ovsDefinitionService) GetDefinition(ctx context.Context, msg *service
 
 		if err != nil {
 			success = false
-			n, grp, _ := t.GetInfo()
+			n, grp := t.Definition.Name, t.Definition.Group
 			resultMsg = fmt.Sprintf("unable to parse definition group:%s name:%s", n, grp)
 		} else {
 			success = true
@@ -60,16 +60,17 @@ func (srv *ovsDefinitionService) GetDefinition(ctx context.Context, msg *service
 	return result, nil
 }
 
-//ListGroups - List definition groups
+// ListGroups - List definition groups
 func (srv *ovsDefinitionService) ListGroups(ctx context.Context, filter *services.FilterMsg) (*services.DefinitionListGroupResultMsg, error) {
 
+	log := zerolog.Ctx(ctx).With().Str("service", "definition").Logger()
 	result := &services.DefinitionListGroupResultMsg{GroupName: []string{}}
 
 	if err := validator.Valid.ValidateTag(filter.Filter, "resname"); filter.Filter != "" && err != nil {
 		return nil, err
 	}
 
-	srv.log.Info("Request for group")
+	log.Info().Msg("Request for group")
 	groups, _ := srv.defManager.GetGroups()
 
 	result.GroupName = append(result.GroupName, groups...)
@@ -105,7 +106,7 @@ func (srv *ovsDefinitionService) ListDefinitionsFromGroup(ctx context.Context, g
 	return result, nil
 }
 
-//GetAllowedAction - returns allowed action for given method. Implementation of handlers.AccessRestricter
+// GetAllowedAction - returns allowed action for given method. Implementation of handlers.AccessRestricter
 func (srv *ovsDefinitionService) GetAllowedAction(method string) auth.UserAction {
 
 	var action auth.UserAction

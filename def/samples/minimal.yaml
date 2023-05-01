@@ -1,0 +1,9 @@
+--- # sample minimal task definition
+definition:
+  type: os #defines the type of a task
+  name: sample_07y # name is required
+  rev: "1" #
+  group: samples #group is optional however it helps organize tasks
+  description: sample os task yaml version #description is also optional
+schedule: #schedule is required and defines how task orderd by overseer
+  type: manual

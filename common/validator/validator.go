@@ -2,18 +2,19 @@ package validator
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 
 	"github.com/go-playground/validator/v10"
 )
 
-//DataValidator - validates data
+// DataValidator - validates data
 type DataValidator struct {
 	v        *validator.Validate
 	regTypes map[string]string
 }
 
-//Valid - instance of a DataValidator
+// Valid - instance of a DataValidator
 var Valid *DataValidator
 var errValidatorNotRegistered = errors.New("Validator for given type not registered")
 
@@ -23,9 +24,10 @@ func init() {
 	Valid.RegisterValidatorRule("resname", ResourceNameValidator)
 	Valid.RegisterValidatorRule("resvalue", ResourceValueValidator)
 	Valid.RegisterValidatorRule("varname", VariableNameValidator)
+	Valid.RegisterValidatorRule("username", UsernameValidator)
 }
 
-//RegisterValidatorRule - Registers a custom rule for a field validation
+// RegisterValidatorRule - Registers a custom rule for a field validation
 func (dv *DataValidator) RegisterValidatorRule(rule string, vfunc validator.Func) error {
 
 	err := dv.v.RegisterValidation(rule, vfunc, false)
@@ -33,7 +35,8 @@ func (dv *DataValidator) RegisterValidatorRule(rule string, vfunc validator.Func
 
 }
 
-/*RegisterTypeValidator - Registers a custom rule for type validation. This method should be used only for
+/*
+RegisterTypeValidator - Registers a custom rule for type validation. This method should be used only for
 types that can't be described with struct tag e.g. variables of custom type
 */
 func (dv *DataValidator) RegisterTypeValidator(typeName, rule string, vfunc validator.Func) error {
@@ -47,13 +50,13 @@ func (dv *DataValidator) RegisterTypeValidator(typeName, rule string, vfunc vali
 	return err
 }
 
-//ValidateTag - validates a tag
+// ValidateTag - validates a tag
 func (dv *DataValidator) ValidateTag(s interface{}, tag string) error {
 
 	return dv.v.Var(s, tag)
 }
 
-//Validate - validates struct
+// Validate - validates struct
 func (dv *DataValidator) Validate(s interface{}) error {
 	var err error
 
@@ -63,6 +66,7 @@ func (dv *DataValidator) Validate(s interface{}) error {
 		typeName := reflect.TypeOf(s).Name()
 		v, exists := dv.regTypes[typeName]
 		if !exists {
+			fmt.Println("::" + typeName)
 			return errValidatorNotRegistered
 		}
 

@@ -4,20 +4,20 @@ import (
 	"os"
 	"testing"
 
-	"github.com/przebro/overseer/common/logger"
-	"github.com/przebro/overseer/overseer/internal/unique"
+	"github.com/przebro/overseer/common/types/unique"
 	"github.com/przebro/overseer/overseer/taskdata"
+	"github.com/rs/zerolog/log"
 )
 
 func TestNewManager_Errors(t *testing.T) {
 
-	_, err := NewManager("path_thath_does_not_exists", logger.NewTestLogger())
+	_, err := NewManager("path_thath_does_not_exists")
 	if err == nil {
 		t.Error("unexpected result")
 	}
 
 	workdir, _ := os.Getwd()
-	_, err = NewManager(workdir, logger.NewTestLogger())
+	_, err = NewManager(workdir)
 	if err == nil {
 		t.Error("unexpected result")
 	}
@@ -26,7 +26,7 @@ func TestNewManager_Errors(t *testing.T) {
 
 func TestCreateManager(t *testing.T) {
 
-	manager, _ := NewManager(managerPath, logger.NewTestLogger())
+	manager, _ := NewManager(managerPath)
 	if manager == nil {
 		t.Error("unexpected result")
 	}
@@ -34,12 +34,12 @@ func TestCreateManager(t *testing.T) {
 
 func TestWriteActiveDefinition(t *testing.T) {
 
-	m, err := NewManager(managerPath, logger.NewTestLogger())
+	m, err := NewManager(managerPath)
 	if err != nil {
 		t.Error("unexpected result:", err)
 	}
 
-	builder := DummyTaskBuilder{}
+	builder := NewBuilder()
 	task, err := builder.WithBase("test", "dummy_0A", "").WithSchedule(SchedulingData{OrderType: OrderingManual}).Build()
 	if err != nil {
 		t.Error("unexpected result:", err)
@@ -53,12 +53,12 @@ func TestWriteActiveDefinition(t *testing.T) {
 
 func TestRemoveActivDefinition(t *testing.T) {
 
-	m, err := NewManager(managerPath, logger.NewTestLogger())
+	m, err := NewManager(managerPath)
 	if err != nil {
 		t.Error("unexpected result:", err)
 	}
 
-	builder := DummyTaskBuilder{}
+	builder := NewBuilder()
 	task, err := builder.WithBase("test", "dummy_0A", "").WithSchedule(SchedulingData{OrderType: OrderingManual}).Build()
 	if err != nil {
 		t.Error("unexpected result:", err)
@@ -80,7 +80,7 @@ func TestRemoveActivDefinition(t *testing.T) {
 }
 func TestGetActivDefinition_Errors(t *testing.T) {
 
-	m, err := NewManager(managerPath, logger.NewTestLogger())
+	m, err := NewManager(managerPath)
 	if err != nil {
 		t.Error("unexpected result:", err)
 	}
@@ -98,12 +98,12 @@ func TestGetActivDefinition_Errors(t *testing.T) {
 }
 func TestGetActivDefinition(t *testing.T) {
 
-	m, err := NewManager(managerPath, logger.NewTestLogger())
+	m, err := NewManager(managerPath)
 	if err != nil {
 		t.Error("unexpected result:", err)
 	}
 
-	builder := DummyTaskBuilder{}
+	builder := NewBuilder()
 	task, err := builder.WithBase("test", "dummy_0A", "").WithSchedule(SchedulingData{OrderType: OrderingManual}).Build()
 	if err != nil {
 		t.Error("unexpected result:", err)
@@ -126,11 +126,9 @@ func TestGetActivDefinition(t *testing.T) {
 
 func TestManager_Update_Error_EmptyName(t *testing.T) {
 
-	manager, _ := NewManager(managerPath, logger.NewTestLogger())
+	manager, _ := NewManager(managerPath)
 
-	//builder := &DummyTaskBuilder{}
-
-	emptyDef := &baseTaskDefinition{}
+	emptyDef := TaskDefinition{}
 
 	if err := manager.Update(emptyDef); err != ErrTaskNameEmpty {
 		t.Error("unexpected result:", err, "expected:", ErrTaskNameEmpty)
@@ -139,9 +137,9 @@ func TestManager_Update_Error_EmptyName(t *testing.T) {
 
 func TestManager_Update_Error_EmptyRev(t *testing.T) {
 
-	manager, _ := NewManager(managerPath, logger.NewTestLogger())
+	manager, _ := NewManager(managerPath)
 
-	emptyDef := &baseTaskDefinition{Name: "default_name"}
+	emptyDef := TaskDefinition{Definition: TaskData{Name: "default_name"}}
 
 	if err := manager.Update(emptyDef); err != ErrTaskRevEmpty {
 		t.Error("unexpected result:", err, "expected:", ErrTaskRevEmpty)
@@ -150,9 +148,11 @@ func TestManager_Update_Error_EmptyRev(t *testing.T) {
 
 func TestManager_Update_Error_InvalidRev(t *testing.T) {
 
-	manager, _ := NewManager(managerPath, logger.NewTestLogger())
+	manager, _ := NewManager(managerPath)
 
-	emptyDef := &baseTaskDefinition{Name: "default_name", Revision: "abc"}
+	emptyDef := TaskDefinition{
+		Definition: TaskData{Name: "default_name", Rev: "abc"},
+	}
 
 	if err := manager.Update(emptyDef); err != ErrTaskRevInvalid {
 		t.Error("unexpected result:", err, "expected:", ErrTaskRevInvalid)
@@ -161,17 +161,16 @@ func TestManager_Update_Error_InvalidRev(t *testing.T) {
 
 func TestManager_Update_Error_RevDiff(t *testing.T) {
 
-	manager, _ := NewManager(managerPath, logger.NewTestLogger())
+	manager, _ := NewManager(managerPath)
 
-	builder := &DummyTaskBuilder{}
+	builder := NewBuilder()
 	def, _ := builder.WithBase("test", "dummy_update_01", "").WithSchedule(SchedulingData{OrderType: OrderingManual}).Build()
 
 	manager.Create(def)
 
-	invalidDef, _ := def.(*baseTaskDefinition)
-	invalidDef.Revision = "dummy_update_01@test@123456"
+	def.Definition.Rev = "dummy_update_01@test@123456"
 
-	if err := manager.Update(invalidDef); err != ErrTaskRevDiff {
+	if err := manager.Update(*def); err != ErrTaskRevDiff {
 		t.Error("unexpected result:", err, "expected:", ErrTaskRevDiff)
 	}
 
@@ -180,19 +179,18 @@ func TestManager_Update_Error_RevDiff(t *testing.T) {
 
 func TestManager_Update_Error_AlreadyExists(t *testing.T) {
 
-	manager, _ := NewManager(managerPath, logger.NewTestLogger())
+	manager, _ := NewManager(managerPath)
 
-	builder := &DummyTaskBuilder{}
+	builder := NewBuilder()
 	def, _ := builder.WithBase("test", "dummy_update_01", "").WithSchedule(SchedulingData{OrderType: OrderingManual}).Build()
 	def2, _ := builder.WithBase("test", "dummy_update_02", "").WithSchedule(SchedulingData{OrderType: OrderingManual}).Build()
 
 	manager.Create(def)
 	manager.Create(def2)
 
-	invalidDef, _ := def.(*baseTaskDefinition)
-	invalidDef.Name = "dummy_update_02"
+	def.Definition.Name = "dummy_update_02"
 
-	if err := manager.Update(invalidDef); err != ErrTaskRename {
+	if err := manager.Update(*def); err != ErrTaskRename {
 		t.Error("unexpected result:", err, "expected:", ErrTaskRename)
 	}
 
@@ -202,12 +200,11 @@ func TestManager_Update_Error_AlreadyExists(t *testing.T) {
 
 func TestManager_Update(t *testing.T) {
 
-	var ok bool
-	var base *baseTaskDefinition
+	var base *TaskDefinition
 
-	manager, _ := NewManager(managerPath, logger.NewTestLogger())
+	manager, _ := NewManager(managerPath)
 
-	builder := &DummyTaskBuilder{}
+	builder := NewBuilder()
 
 	def, err := builder.WithBase("test", "dummy_update_03", "").WithSchedule(SchedulingData{OrderType: OrderingManual}).Build()
 	if err != nil {
@@ -217,13 +214,10 @@ func TestManager_Update(t *testing.T) {
 		t.Error("unexpected result:", err)
 	}
 
-	if base, ok = def.(*baseTaskDefinition); !ok {
-		t.Error("unexpected result")
-	}
+	base = def
+	base.Cyclic = CyclicTaskData{IsCycle: true, MaxRuns: 10, RunFrom: CycleFromEnd, TimeInterval: 10}
 
-	base.Cyclics = CyclicTaskData{IsCycle: true, MaxRuns: 10, RunFrom: CycleFromEnd, TimeInterval: 10}
-
-	err = manager.Update(def)
+	err = manager.Update(*def)
 	if err != nil {
 		t.Error("unexpected result:")
 	}
@@ -232,7 +226,7 @@ func TestManager_Update(t *testing.T) {
 }
 
 func TestManager_GetGroups_Errors(t *testing.T) {
-	manager := &taskManager{dirPath: "path_that_does_not_exists", log: logger.NewTestLogger()}
+	manager := &taskManager{dirPath: "path_that_does_not_exists", log: log.Logger}
 	_, err := manager.GetGroups()
 	if err != ErrGroupDirInvalid {
 		t.Error("unexpected result:", err, "expected:", ErrGroupDirInvalid)
@@ -241,7 +235,7 @@ func TestManager_GetGroups_Errors(t *testing.T) {
 
 func TestManager_DeleteGroup_Errors(t *testing.T) {
 
-	manager, _ := NewManager(managerPath, logger.NewTestLogger())
+	manager, _ := NewManager(managerPath)
 
 	err := manager.DeleteGroup("")
 	if err.Error() != "group name cannot be empty" {
@@ -251,7 +245,7 @@ func TestManager_DeleteGroup_Errors(t *testing.T) {
 
 func TestManager_DeleteGroup_ErrorNotEmpty(t *testing.T) {
 
-	manager, _ := NewManager(managerPath, logger.NewTestLogger())
+	manager, _ := NewManager(managerPath)
 
 	if err := manager.DeleteGroup("test"); err != ErrGroupDirNotEmpty {
 		t.Error("unexpected result:", err, "expected:", ErrGroupDirNotEmpty)
@@ -260,7 +254,7 @@ func TestManager_DeleteGroup_ErrorNotEmpty(t *testing.T) {
 
 func TestManager_DeleteGroup_ErrorGroupNotExists(t *testing.T) {
 
-	manager, _ := NewManager(managerPath, logger.NewTestLogger())
+	manager, _ := NewManager(managerPath)
 
 	if err := manager.DeleteGroup("test2"); err != ErrGroupNotExists {
 		t.Error("unexpected result:", err, "expected:", ErrGroupNotExists)
@@ -269,7 +263,7 @@ func TestManager_DeleteGroup_ErrorGroupNotExists(t *testing.T) {
 
 func TestManagerGroups(t *testing.T) {
 
-	manager, _ := NewManager(managerPath, logger.NewTestLogger())
+	manager, _ := NewManager(managerPath)
 
 	groups, _ := manager.GetGroups()
 
@@ -299,7 +293,7 @@ func TestManagerGroups(t *testing.T) {
 
 func Test_getNameGroupIdFromDefinition_ErrorEmpty(t *testing.T) {
 
-	def := &baseTaskDefinition{}
+	def := TaskDefinition{}
 
 	if _, _, _, err := getNameGroupIdFromDefinition(def); err != ErrTaskRevEmpty {
 		t.Error("unexpected result:", err, "expected:", ErrTaskRevEmpty)
@@ -308,7 +302,7 @@ func Test_getNameGroupIdFromDefinition_ErrorEmpty(t *testing.T) {
 
 func Test_getNameGroupIdFromDefinition_ErrorInvalid(t *testing.T) {
 
-	def := &baseTaskDefinition{Revision: "abc"}
+	def := TaskDefinition{Definition: TaskData{Rev: "abc"}}
 
 	if _, _, _, err := getNameGroupIdFromDefinition(def); err != ErrTaskRevInvalid {
 		t.Error("unexpected result:", err, "expected:", ErrTaskRevInvalid)
@@ -317,18 +311,18 @@ func Test_getNameGroupIdFromDefinition_ErrorInvalid(t *testing.T) {
 
 func Test_getNameGroupIdFromDefinition(t *testing.T) {
 
-	builder := DummyTaskBuilder{}
+	builder := NewBuilder()
 	def, err := builder.WithBase("test", "dummy_0A", "").WithSchedule(SchedulingData{OrderType: OrderingManual}).Build()
 	if err != nil {
 		t.Error("unexpected result:", err)
 	}
 
-	name, group, rev, _ := getNameGroupIdFromDefinition(def)
+	name, group, rev, _ := getNameGroupIdFromDefinition(*def)
 
 	actual := name + "@" + group + "@" + rev
 
-	if actual != def.Rev() {
-		t.Error("unexpected result:", actual, "expected:", def.Rev())
+	if actual != def.Definition.Rev {
+		t.Error("unexpected result:", actual, "expected:", def.Definition.Rev)
 	}
 
 }

@@ -3,31 +3,55 @@ package overseer
 import (
 	"time"
 
-	"github.com/przebro/overseer/common/logger"
 	"github.com/przebro/overseer/overseer/config"
-	"github.com/przebro/overseer/overseer/internal/events"
 )
 
-type overseerTimer struct{ log logger.AppLogger }
+type overseerTimer struct {
+	receiver  TimeEventReciever
+	receivers []TimeEventReciever
+	interval  config.IntervalValue
+	stop      chan struct{}
+}
 
-func (timer *overseerTimer) tickerFunc(dispatcher events.Dispatcher, interval config.IntervalValue) error {
+func newTimer(interval config.IntervalValue) *overseerTimer {
+	return &overseerTimer{
+		receivers: make([]TimeEventReciever, 0),
+		interval:  interval,
+		stop:      make(chan struct{}),
+	}
+}
 
-	t := time.NewTicker(time.Duration(int(interval) * int(time.Second)))
+type TimeEventReciever interface {
+	ProcessTimeEvent(t time.Time)
+}
+
+func (timer *overseerTimer) Start() error {
+	return timer.tickerFunc()
+}
+
+func (timer *overseerTimer) Shutdown() error {
+	timer.stop <- struct{}{}
+	return nil
+}
+
+func (timer *overseerTimer) tickerFunc() error {
+
+	t := time.NewTicker(time.Duration(int(timer.interval) * int(time.Second)))
 	go func() {
 		for {
-			x := <-t.C
-			h, m, s := x.Clock()
-			y, mth, d := x.Date()
-			msgdata := events.RouteTimeOutMsgFormat{Year: y, Month: int(mth), Day: d, Hour: h, Min: m, Sec: s}
-			msg := events.NewMsg(msgdata)
-			err := dispatcher.PushEvent(nil, events.RouteTimeOut, msg)
-
-			if err != nil {
-				timer.log.Info("Unable to Push events:", err)
-				continue
+			select {
+			case x := <-t.C:
+				for _, receiver := range timer.receivers {
+					receiver.ProcessTimeEvent(x)
+				}
+			case <-timer.stop:
+				return
 			}
 		}
 	}()
 
 	return nil
+}
+func (timer *overseerTimer) AddReceiver(receiver TimeEventReciever) {
+	timer.receivers = append(timer.receivers, receiver)
 }

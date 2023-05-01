@@ -1,0 +1,10 @@
+version: "3.9"
+services:
+  overseer:
+    build: .
+    ports:
+      - "7054:7054"
+      - "7055:7055"
+      - "7056:7056"
+  redis:
+    image: "redis:alpine"

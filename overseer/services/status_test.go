@@ -5,7 +5,6 @@ import (
 	"net"
 	"testing"
 
-	"github.com/przebro/overseer/common/logger"
 	"github.com/przebro/overseer/proto/services"
 
 	empty "google.golang.org/protobuf/types/known/emptypb"
@@ -25,7 +24,7 @@ func createCLient(t *testing.T) services.StatusServiceClient {
 	listener := bufconn.Listen(1)
 	mocksrv := &mockBuffconnServer{grpcServer: grpc.NewServer(buildUnaryChain(), buildStreamChain())}
 
-	services.RegisterStatusServiceServer(mocksrv.grpcServer, NewStatusService(logger.NewTestLogger()))
+	services.RegisterStatusServiceServer(mocksrv.grpcServer, NewStatusService())
 
 	dialer := func(ctx context.Context, s string) (net.Conn, error) {
 		return listener.Dial()

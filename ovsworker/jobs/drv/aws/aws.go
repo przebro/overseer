@@ -4,16 +4,15 @@ import (
 	"context"
 	"errors"
 
-	"github.com/przebro/overseer/common/logger"
 	"github.com/przebro/overseer/common/types"
 	"github.com/przebro/overseer/ovsworker/jobs"
 	"github.com/przebro/overseer/ovsworker/msgheader"
 	"github.com/przebro/overseer/ovsworker/status"
 	"github.com/przebro/overseer/proto/actions"
+	"github.com/rs/zerolog"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -30,25 +29,29 @@ type awsServiceCaller interface {
 	Call(ctx context.Context, stat chan<- status.JobExecutionStatus) status.JobExecutionStatus
 }
 
-//AwsJobFactory - Creates a new aws factory
-func AwsJobFactory(header msgheader.TaskHeader, sysoutDir string, data []byte, log logger.AppLogger) (jobs.JobExecutor, error) {
+// AwsJobFactory - Creates a new aws factory
+func AwsJobFactory(ctx context.Context, header msgheader.TaskHeader, sysoutDir string, data []byte) (jobs.JobExecutor, error) {
+
+	log := zerolog.Ctx(ctx).With().Str("taskID", header.TaskID).Str("executionID", header.ExecutionID).Logger()
 
 	act := actions.AwsTaskAction{}
 	if err := proto.Unmarshal(data, &act); err != nil {
-		log.Desugar().Error("AwsJobFactory", zap.String("error", err.Error()))
+		log.Error().Err(err).Msg("AwsJobFactory")
 		return nil, err
 	}
 
-	return newAwsJob(header, sysoutDir, &act, log)
+	return newAwsJob(ctx, header, sysoutDir, &act)
 }
 
-//newDummyJob - factory method
-func newAwsJob(header msgheader.TaskHeader, sysoutDir string, action *actions.AwsTaskAction, log logger.AppLogger) (jobs.JobExecutor, error) {
+// newDummyJob - factory method
+func newAwsJob(ctx context.Context, header msgheader.TaskHeader, sysoutDir string, action *actions.AwsTaskAction) (jobs.JobExecutor, error) {
 
 	var conf aws.Config
 	var err error
 	var payloadReader awsPayloadReader
 	var caller awsServiceCaller
+
+	log := zerolog.Ctx(ctx)
 
 	job := jobs.Job{
 
@@ -57,7 +60,6 @@ func newAwsJob(header msgheader.TaskHeader, sysoutDir string, action *actions.Aw
 		Start:       make(chan status.JobExecutionStatus),
 		Variables:   make(map[string]string),
 		SysoutDir:   sysoutDir,
-		Log:         log,
 	}
 	for k, v := range header.Variables {
 		job.Variables[k] = v
@@ -69,7 +71,7 @@ func newAwsJob(header msgheader.TaskHeader, sysoutDir string, action *actions.Aw
 		{
 			conf, err = createConfig(context.Background(), act.ConnectionData.ProfileName, act.ConnectionData.Region)
 			if err != nil {
-				log.Desugar().Error("newAwsJob", zap.String("error", err.Error()))
+				log.Error().Err(err).Msg("create config")
 				return nil, err
 			}
 		}
@@ -100,26 +102,26 @@ func newAwsJob(header msgheader.TaskHeader, sysoutDir string, action *actions.Aw
 		{
 			lExecData := action.GetLambdaExecution()
 			if lExecData == nil {
-				log.Desugar().Error("create caller", zap.String("error", "failed to get lambda execution data"))
-				return nil, errors.New("failed to get lambda execution data")
+				err := errors.New("failed to get lambda execution data")
+				log.Error().Err(err).Msg("create caller")
+				return nil, err
 			}
 
 			caller = newLambdaCaller(conf, job, lExecData.FunctionName, lExecData.Alias, payloadReader)
-			log.Desugar().Info("create caller", zap.String("created", "lambda"),
-				zap.String("function", lExecData.FunctionName),
-				zap.String("alias", lExecData.Alias))
+			log.Info().Str("function", lExecData.FunctionName).Str("alias", lExecData.Alias).Msg("caller created")
+
 		}
 	case actions.AwsTaskAction_stepfunc:
 		{
 			sExecData := action.GetStepFunction()
 			if sExecData == nil {
-				log.Desugar().Error("create caller", zap.String("error", "failed to get stepfunction execution data"))
-				return nil, errors.New("failed to get stepfunction execution data")
+				err := errors.New("failed to get stepfunction execution data")
+				log.Error().Err(err).Msg("create caller")
+				return nil, err
 			}
 			caller = newStepFunctionCaller(conf, job, sExecData.StateMachineARN, sExecData.ExecutionName, payloadReader)
-			log.Desugar().Info("create caller", zap.String("created", "stepfunc"),
-				zap.String("machineARN", sExecData.StateMachineARN),
-				zap.String("executionName", sExecData.ExecutionName))
+			log.Info().Str("execution_name", sExecData.ExecutionName).
+				Str("machine_arn", sExecData.StateMachineARN).Msg("caller created")
 
 		}
 	default:
@@ -129,8 +131,9 @@ func newAwsJob(header msgheader.TaskHeader, sysoutDir string, action *actions.Aw
 	}
 
 	if caller == nil {
-		log.Desugar().Error("create caller", zap.String("error", "failed to initialize caller, unknown type"))
-		return nil, errors.New("failed to initialize caller, unknown type")
+		err := errors.New("failed to initialize caller, unknown type")
+		log.Error().Err(err).Msg("create caller")
+		return nil, err
 	}
 
 	return caller, nil

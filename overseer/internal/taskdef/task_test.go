@@ -2,26 +2,28 @@ package taskdef
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/przebro/overseer/common/logger"
 	"github.com/przebro/overseer/common/types"
 	"github.com/przebro/overseer/common/types/date"
 	"github.com/przebro/overseer/common/validator"
 	"github.com/przebro/overseer/overseer/taskdata"
 )
 
-var expect TaskDefinition = &baseTaskDefinition{
-	Name: "dummy_01", Group: "", Description: "sample dummy task definition", ConfirmFlag: false, TaskType: "dummy",
+var expect *TaskDefinition = &TaskDefinition{
+	Definition: TaskData{
+		Type: "dummy",
+		Name: "dummy_01", Group: "", Description: "sample dummy task definition",
+	},
+	Confirm:    false,
 	InTickets:  []InTicketData{{Name: "OK-COND-01", Odate: date.OdateValueDate}},
-	InRelation: InTicketAND,
+	Expression: string(InTicketAND),
 	OutTickets: []OutTicketData{{Name: "OK-COND-02", Action: OutActionAdd, Odate: date.OdateValueDate}},
-	FlagsTab:   []FlagData{{Name: "flag01", Type: FlagShared}},
+	Flags:      []FlagData{{Name: "flag01", Type: FlagShared}},
 	Schedule: SchedulingData{
 		OrderType: "weekday",
 		FromTime:  "11:30",
@@ -31,13 +33,17 @@ var expect TaskDefinition = &baseTaskDefinition{
 	},
 }
 
-var expect3 TaskDefinition = &baseTaskDefinition{
-	Name: "dummy_04", Group: "test", Description: "sample modified dummy task definition", ConfirmFlag: false, TaskType: types.TypeOs,
-	DataRetention: 1,
-	InTickets:     []InTicketData{{Name: "OK-COND-01", Odate: date.OdateValueDate}},
-	InRelation:    InTicketAND,
-	OutTickets:    []OutTicketData{{Name: "OK-COND-02", Action: OutActionAdd, Odate: date.OdateValueDate}},
-	FlagsTab:      []FlagData{{Name: "flag01", Type: FlagExclusive}},
+var expect3 *TaskDefinition = &TaskDefinition{
+	Definition: TaskData{
+		Type: types.TypeOs,
+		Name: "dummy_04", Group: "test", Description: "sample modified dummy task definition",
+	},
+
+	Confirm:    false,
+	InTickets:  []InTicketData{{Name: "OK-COND-01", Odate: date.OdateValueDate}},
+	Expression: string(InTicketAND),
+	OutTickets: []OutTicketData{{Name: "OK-COND-02", Action: OutActionAdd, Odate: date.OdateValueDate}},
+	Flags:      []FlagData{{Name: "flag01", Type: FlagExclusive}},
 	Schedule: SchedulingData{
 		OrderType: OrderingDayOfMonth,
 		FromTime:  "15:30",
@@ -47,7 +53,7 @@ var expect3 TaskDefinition = &baseTaskDefinition{
 	},
 }
 
-var expectOutTicket string = `"outticket":[{"name":"OK-COND-02","odate":"ODATE","action":"ADD"}]`
+var expectOutTicket string = `"out_tickets":[{"name":"OK-COND-02","odate":"ODATE","action":"ADD"}]`
 
 func TestInit(t *testing.T) {
 
@@ -58,16 +64,13 @@ func TestLoad(t *testing.T) {
 }
 
 func TestTaskData(t *testing.T) {
-	if expect3.OrderType() != OrderingDayOfMonth {
+	if expect3.Schedule.OrderType != OrderingDayOfMonth {
 		t.Error("task data invalid order type")
 	}
-	if expect3.Confirm() != false {
+	if expect3.Confirm != false {
 		t.Error("task data invalid  confirmflag")
 	}
-	if expect3.Retention() != 1 {
-		t.Error("task data invalid  retention")
-	}
-	if len(expect3.Months()) != 12 {
+	if len(expect3.Schedule.Months) != 12 {
 		t.Error("task data invalid  months")
 	}
 	if expect3.TypeName() != types.TypeOs {
@@ -79,10 +82,10 @@ func TestUnmarshalTask(t *testing.T) {
 
 	pth, _ := filepath.Abs(filepath.Join(defDirectory, `test/dummy_01.json`))
 
-	result, err := FromDefinitionFile(pth)
+	result, err := ReadFromFile(pth)
 	if err != nil {
 		t.Log(pth)
-		t.Error("unable  to deserialize definition")
+		t.Error("unable to deserialize definition")
 	}
 
 	from, _ := expect.TimeSpan()
@@ -91,11 +94,11 @@ func TestUnmarshalTask(t *testing.T) {
 		t.Errorf("Unmarshal failed, FromTime not equal")
 
 	}
-	if len(expect.Days()) != len(result.Days()) {
+	if len(expect.Schedule.Dayvalues) != len(result.Schedule.Dayvalues) {
 		t.Error("Unmarshal failed, Values not equal")
 	}
-	for x, n := range expect.Days() {
-		if result.Days()[x] != n {
+	for x, n := range expect.Schedule.Dayvalues {
+		if result.Schedule.Dayvalues[x] != n {
 			t.Error("Unmarshal failed, Values not equal")
 		}
 	}
@@ -109,7 +112,7 @@ func TestMarshalTask(t *testing.T) {
 
 	dstr := data
 
-	pos := strings.Index(dstr, `"outticket":`)
+	pos := strings.Index(dstr, `"out_tickets":`)
 	if pos == -1 {
 		t.Fatal("Marshal, unable to find given substring")
 	}
@@ -129,7 +132,7 @@ func TestMarshalTask(t *testing.T) {
 func TestManager_Create_Task(t *testing.T) {
 
 	path, _ := filepath.Abs(defDirectory)
-	manager, _ := NewManager(path, logger.NewTestLogger())
+	manager, _ := NewManager(path)
 	_, modTask2, _, _ := helperCreateTasks()
 
 	//Create new task
@@ -143,7 +146,7 @@ func TestManager_Create_Task(t *testing.T) {
 func TestManager_Create_Error(t *testing.T) {
 
 	path, _ := filepath.Abs(defDirectory)
-	manager, _ := NewManager(path, logger.NewTestLogger())
+	manager, _ := NewManager(path)
 	modTask, _, _, _ := helperCreateTasks()
 	//Try create task that already exists
 	err := manager.Create(modTask)
@@ -156,7 +159,7 @@ func TestManager_Create_Error(t *testing.T) {
 func TestManager_Delete(t *testing.T) {
 
 	path, _ := filepath.Abs(defDirectory)
-	manager, _ := NewManager(path, logger.NewTestLogger())
+	manager, _ := NewManager(path)
 	_, modTask2, _, _ := helperCreateTasks()
 
 	name, grp, _ := modTask2.GetInfo()
@@ -174,7 +177,7 @@ func TestManager_Delete(t *testing.T) {
 func TestManager_Delete_Error(t *testing.T) {
 
 	path, _ := filepath.Abs(defDirectory)
-	manager, _ := NewManager(path, logger.NewTestLogger())
+	manager, _ := NewManager(path)
 	err := manager.Delete(taskdata.GroupNameData{Name: "dummy_AA", GroupData: taskdata.GroupData{Group: "test"}})
 	if err == nil {
 		t.Error("Delete error")
@@ -187,7 +190,7 @@ func TestManager_Delete_Error(t *testing.T) {
 
 func TestGetTask(t *testing.T) {
 
-	manager, err := NewManager(managerPath, logger.NewTestLogger())
+	manager, err := NewManager(managerPath)
 	if err != nil {
 		t.Fatal("unable to intialize manager")
 	}
@@ -214,7 +217,7 @@ func TestGetTask(t *testing.T) {
 
 func TestListTaskModel(t *testing.T) {
 	path, _ := filepath.Abs(defDirectory)
-	manager, err := NewManager(path, logger.NewTestLogger())
+	manager, err := NewManager(path)
 	if err != nil {
 		t.Fatal("unable to intialize manager")
 	}
@@ -229,7 +232,7 @@ func TestListTaskModel(t *testing.T) {
 	}
 
 	dirpath := filepath.Join(path, "test")
-	info, err := ioutil.ReadDir(dirpath)
+	info, err := os.ReadDir(dirpath)
 
 	if err != nil {
 		t.Error("unexpected result:", err)
@@ -249,17 +252,12 @@ func TestListTaskModel(t *testing.T) {
 func TestMarshalTests2(t *testing.T) {
 
 	data, _ := SerializeDefinition(expect3)
-	_, err := FromString(data)
+	_, err := FromStream([]byte(data))
 	if err != nil {
 		t.Error("Unmarshal error")
 	}
 
-	_, err = FromString(`{"type" : "dummy","name" :"sample_01A","group" : "samples"`)
-	if !strings.Contains(err.Error(), "unexpected end of JSON") {
-		t.Error(err)
-	}
-
-	_, err = FromString(`{"type" : "dummy","name" :"","group" : "samples"}`)
+	_, err = FromStream([]byte(`{ "definition" : {"type" : "dummy","name" :"","group" : "samples"}, "schedule":{"type" :"manual"}`))
 	if err == nil {
 		t.Error("Unexpected result")
 	}
@@ -270,11 +268,11 @@ func TestGetTimeSpan(t *testing.T) {
 
 	schdata := SchedulingData{FromTime: "10:30", ToTime: "11:30", OrderType: OrderingManual}
 
-	builder := DummyTaskBuilder{}
+	builder := NewBuilder()
 	def, err := builder.WithBase("test", "dummy_time_span", "description").
 		WithSchedule(schdata).
 		WithFlags([]FlagData{{Name: "FLAG01", Type: FlagShared}}).
-		WithConfirm().WithRetention(1).WithVariables(types.EnvironmentVariableList{{Name: "%%VAR", Value: "xx"}}).Build()
+		WithConfirm().WithVariables(types.EnvironmentVariableList{{Name: "%%VAR", Value: "xx"}}).Build()
 
 	if err != nil {
 		t.Error("task builder error", err)
@@ -289,7 +287,7 @@ func TestGetTimeSpan(t *testing.T) {
 func TestCyclicData(t *testing.T) {
 
 	path, _ := filepath.Abs(defDirectory)
-	manager, err := NewManager(path, logger.NewTestLogger())
+	manager, err := NewManager(path)
 	if err != nil {
 		t.Fatal("unable to intialize manager")
 	}
@@ -370,11 +368,11 @@ func TestGetAction(t *testing.T) {
 
 	schdata := SchedulingData{FromTime: "10:30", ToTime: "11:30", OrderType: OrderingDaily}
 
-	builder := DummyTaskBuilder{}
+	builder := NewBuilder()
 	def, err := builder.WithBase("test", "dummy_time_span", "description").
 		WithSchedule(schdata).
 		WithFlags([]FlagData{{Name: "FLAG01", Type: FlagShared}}).
-		WithConfirm().WithRetention(1).WithVariables(types.EnvironmentVariableList{{Name: "%%VAR", Value: "xx"}}).Build()
+		WithConfirm().WithVariables(types.EnvironmentVariableList{{Name: "%%VAR", Value: "xx"}}).Build()
 
 	if err != nil {
 		t.Error("task builder error")
@@ -397,22 +395,18 @@ func TestExpandVariable(t *testing.T) {
 
 func TestBuilder(t *testing.T) {
 
-	builder := DummyTaskBuilder{}
+	builder := NewBuilder()
 	def, err := builder.WithBase("test", "dummy_04", "description").
 		WithFlags([]FlagData{{Name: "FLAG01", Type: FlagShared}}).
 		WithSchedule(SchedulingData{OrderType: OrderingDaily}).
-		WithConfirm().WithRetention(1).WithVariables(types.EnvironmentVariableList{{Name: "%%VAR", Value: "xx"}}).Build()
+		WithConfirm().WithVariables(types.EnvironmentVariableList{{Name: "%%VAR", Value: "xx"}}).Build()
 
 	if err != nil {
 		t.Error("task builder error")
 	}
 
-	if def.Confirm() != true {
-		t.Error("task builder error expected:", true, " actual:", def.Confirm())
-	}
-
-	if def.Retention() != 1 {
-		t.Error("task builder error expected:", 1, " actual:", def.Retention())
+	if def.Confirm != true {
+		t.Error("task builder error expected:", true, " actual:", def.Confirm)
 	}
 
 	if len(def.Variables()) != 1 {
@@ -421,15 +415,17 @@ func TestBuilder(t *testing.T) {
 
 }
 
-func helperCreateTasks() (t1, t2, t3, t4 TaskDefinition) {
+func helperCreateTasks() (t1, t2, t3, t4 *TaskDefinition) {
 
-	t1 = &baseTaskDefinition{
-		TaskType: "dummy",
-		Name:     "dummy_02", Group: "test", Description: "sample modified dummy task definition", ConfirmFlag: false,
+	t1 = &TaskDefinition{
+		Definition: TaskData{
+			Type: "dummy",
+			Name: "dummy_02", Group: "test", Description: "sample modified dummy task definition"},
+		Confirm:    false,
 		InTickets:  []InTicketData{{Name: "OK-COND-01", Odate: date.OdateValueDate}},
-		InRelation: InTicketAND,
+		Expression: string(InTicketAND),
 		OutTickets: []OutTicketData{{Name: "OK-COND-02", Action: OutActionAdd, Odate: date.OdateValueDate}},
-		FlagsTab:   []FlagData{{Name: "flag01", Type: FlagShared}},
+		Flags:      []FlagData{{Name: "flag01", Type: FlagShared}},
 		Schedule: SchedulingData{
 			OrderType: "weekday",
 			FromTime:  "15:30",
@@ -439,13 +435,16 @@ func helperCreateTasks() (t1, t2, t3, t4 TaskDefinition) {
 		},
 	}
 
-	t2 = &baseTaskDefinition{
-		TaskType: "dummy",
-		Name:     "dummy_AA", Group: "test", Description: "sample modified dummy task definition", ConfirmFlag: false,
+	t2 = &TaskDefinition{
+		Definition: TaskData{
+			Type: "dummy",
+			Name: "dummy_AA", Group: "test", Description: "sample modified dummy task definition",
+		},
+		Confirm:    false,
 		InTickets:  []InTicketData{{Name: "OK-COND-01", Odate: date.OdateValueDate}},
-		InRelation: InTicketAND,
+		Expression: string(InTicketAND),
 		OutTickets: []OutTicketData{{Name: "OK-COND-02", Action: OutActionAdd, Odate: date.OdateValueDate}},
-		FlagsTab:   []FlagData{{Name: "flag01", Type: FlagShared}},
+		Flags:      []FlagData{{Name: "flag01", Type: FlagShared}},
 		Schedule: SchedulingData{
 			OrderType: "weekday",
 			FromTime:  "11:30",
@@ -455,13 +454,15 @@ func helperCreateTasks() (t1, t2, t3, t4 TaskDefinition) {
 		},
 	}
 
-	t3 = &baseTaskDefinition{
-		TaskType: "dummy",
-		Name:     "", Group: "test", Description: "sample modified dummy task definition", ConfirmFlag: false,
+	t3 = &TaskDefinition{
+		Definition: TaskData{
+			Type: "dummy",
+			Name: "", Group: "test", Description: "sample modified dummy task definition"},
+		Confirm:    false,
 		InTickets:  []InTicketData{{Name: "OK-COND-01", Odate: date.OdateValueDate}},
-		InRelation: InTicketAND,
+		Expression: string(InTicketAND),
 		OutTickets: []OutTicketData{{Name: "OK-COND-02", Action: OutActionAdd, Odate: date.OdateValueDate}},
-		FlagsTab:   []FlagData{{Name: "flag01", Type: FlagShared}},
+		Flags:      []FlagData{{Name: "flag01", Type: FlagShared}},
 		Schedule: SchedulingData{
 			OrderType: "weekday",
 			FromTime:  "11:30",
@@ -470,13 +471,16 @@ func helperCreateTasks() (t1, t2, t3, t4 TaskDefinition) {
 			Dayvalues: []int{1, 3, 5},
 		},
 	}
-	t4 = &baseTaskDefinition{
-		TaskType: "dummy",
-		Name:     "dummy_01", Group: "test", Description: "sample modified dummy task definition", ConfirmFlag: false,
+	t4 = &TaskDefinition{
+		Definition: TaskData{
+			Type: "dummy",
+			Name: "dummy_01", Group: "test", Description: "sample modified dummy task definition",
+		},
+		Confirm:    false,
 		InTickets:  []InTicketData{{Name: "OK-COND-01", Odate: date.OdateValueDate}},
-		InRelation: InTicketAND,
+		Expression: string(InTicketAND),
 		OutTickets: []OutTicketData{{Name: "OK-COND-02", Action: OutActionAdd, Odate: date.OdateValueDate}},
-		FlagsTab:   []FlagData{{Name: "flag01", Type: FlagShared}},
+		Flags:      []FlagData{{Name: "flag01", Type: FlagShared}},
 		Schedule: SchedulingData{
 			OrderType: "weekday",
 			FromTime:  "11:30",

@@ -1,37 +1,42 @@
 package auth
 
-//UserModel -
+// UserModel -
 type UserModel struct {
-	Username string `json:"username" validate:"required,max=32"`
-	FullName string `json:"fullname" validate:"max=64,auth"`
+	Username string `json:"username" validate:"required,max=50,username"`
+	FullName string `json:"fullname" validate:"max=100,auth"`
 	Password string `json:"password" validate:"required"`
-	Mail     string `json:"mail" validate:"email,max=64"`
+	Mail     string `json:"mail" validate:"email,max=128"`
 	Enabled  bool   `json:"enabled"`
 }
 
-//datastoreUserModel - internal database representation of a UserModel
-type dsUserModel struct {
+type UserDetailModel struct {
 	UserModel
-	ID  string `json:"_id" bson:"_id" validate:"required,max=37"` // prefix='user' + @ + username
-	Rev string `json:"_rev,omitempty" bson:"_rev,omitempty"`
+	Roles []string `json:"roles"`
 }
 
-//RoleAssociationModel -
+// datastoreUserModel - internal database representation of a UserModel
+type dsUserModel struct {
+	ID  string `json:"_id" bson:"_id" validate:"required,max=55"` // prefix='user' + @ + username
+	Rev string `json:"_rev,omitempty" bson:"_rev,omitempty"`
+	UserModel
+}
+
+// RoleAssociationModel -
 type RoleAssociationModel struct {
-	UserID string   `json:"userid" validate:"required,max=32"`
+	UserID string   `json:"userid" validate:"required,max=50"`
 	Roles  []string `json:"uroles"`
 }
 
 type dsRoleAssociationModel struct {
 	RoleAssociationModel
-	ID  string `json:"_id" bson:"_id" validate:"required,max=38"` // prefix='assoc' + @ + username
+	ID  string `json:"_id" bson:"_id" validate:"required,max=58"` // prefix='assoc' + @ + username
 	Rev string `json:"_rev,omitempty" bson:"_rev,omitempty"`
 }
 
-//RoleModel -
+// RoleModel -
 type RoleModel struct {
 	Name        string `json:"name" validate:"required,max=32"`
-	Description string `json:"description" validate:"max=64,auth"`
+	Description string `json:"description" validate:"max=100,auth"`
 	//ServerManagement
 	//UsersManagement
 	Administration bool `json:"administration"`

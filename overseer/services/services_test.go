@@ -1,17 +1,9 @@
 package services
 
 import (
-	"encoding/json"
-	"fmt"
-	"os"
-	"path/filepath"
-
-	"github.com/przebro/overseer/common/logger"
 	"github.com/przebro/overseer/datastore"
 	"github.com/przebro/overseer/overseer/auth"
 	"github.com/przebro/overseer/overseer/config"
-	"github.com/przebro/overseer/overseer/internal/events"
-	"github.com/przebro/overseer/overseer/internal/pool"
 	"github.com/przebro/overseer/overseer/internal/resources"
 	"github.com/przebro/overseer/overseer/internal/taskdef"
 
@@ -19,19 +11,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
-
-type mockDispacher struct {
-}
-
-func (m *mockDispacher) PushEvent(sender events.EventReceiver, route events.RouteName, msg events.DispatchedMessage) error {
-	return nil
-}
-func (m *mockDispacher) Subscribe(route events.RouteName, participant events.EventParticipant) {
-
-}
-func (m *mockDispacher) Unsubscribe(route events.RouteName, participant events.EventParticipant) {
-
-}
 
 type mockBuffconnServer struct {
 	grpcServer *grpc.Server
@@ -118,33 +97,13 @@ var securitymodel = map[string]interface{}{
 	},
 }
 
-var authcfg = config.SecurityConfiguration{
-	Collection:     "serviceusers",
-	AllowAnonymous: true,
-	Timeout:        0,
-	Issuer:         "testissuer",
-	Secret:         "WBdumgVKBK4iTB+CR2Z2meseDrlnrg54QDSAPcFswWU=",
-}
-
-var provcfg = config.StoreProviderConfiguration{
-	Store: []config.StoreConfiguration{
-		{
-			ID:               "servicestore",
-			ConnectionString: "local;/../../data/tests?synctime=1",
-		},
-	},
-	Collections: []config.CollectionConfiguration{
-
-		{Name: "serviceusers", StoreID: "servicestore"},
-		{Name: "resources", StoreID: "servicestore"},
-		{Name: "tasks", StoreID: "servicestore"},
-		{Name: "sequence", StoreID: "servicestore"},
-	},
+var provcfg = config.StoreConfiguration{
+	ID:               "servicestore",
+	ConnectionString: "local;/../../data/tests?synctime=1",
 }
 
 var rescfg = config.ResourcesConfigurartion{
-	TicketSource: config.ResourceEntry{Sync: 3600, Collection: "resources"},
-	FlagSource:   config.ResourceEntry{Sync: 3600, Collection: "resources"},
+	Resources: config.ResourceEntry{Sync: 3600},
 }
 
 var testCollectionName = "tasks"
@@ -152,63 +111,12 @@ var taskPoolConfig config.ActivePoolConfiguration = config.ActivePoolConfigurati
 	ForceNewDayProc: true, MaxOkReturnCode: 4,
 	NewDayProc: "00:30",
 	SyncTime:   5,
-	Collection: testCollectionName,
 }
 
 var provider *datastore.Provider
 var resmanager resources.ResourceManager
-var dispatcher mockDispacher = mockDispacher{}
 
-var taskPoolT *pool.ActiveTaskPool
-var activeTaskManagerT *pool.ActiveTaskPoolManager
 var definitionManagerT taskdef.TaskDefinitionManager
-
-func init() {
-
-	var err error
-	f, _ := os.Create("../../data/tests/serviceusers.json")
-
-	data, _ := json.Marshal(securitymodel)
-	f.Write(data)
-	f.Close()
-
-	f1, _ := os.Create("../../../data/tests/resources.json")
-	f1.Write([]byte(`{"flags":{"_id":"flags","_rev":"","flags":[]},"tickets":{"_id":"tickets","_rev":"","tickets":[]}}`))
-	f1.Close()
-
-	log := logger.NewTestLogger()
-
-	if provider, err = datastore.NewDataProvider(provcfg, log); err != nil {
-		panic("")
-	}
-
-	if resmanager, err = resources.NewManager(&dispatcher, log, rescfg, provider); err != nil {
-		fmt.Println(err)
-		panic("")
-	}
-
-	f2, _ := os.Create("../../../data/tests/tasks.json")
-	f2.Write([]byte("{}"))
-	f2.Close()
-
-	f3, _ := os.Create("../../../data/tests/sequence.json")
-	f3.Write([]byte(`{}`))
-	f3.Close()
-
-	initTaskPool()
-
-	path, _ := filepath.Abs("../../def_test")
-	definitionManagerT, err = taskdef.NewManager(path, log)
-	if err != nil {
-		fmt.Println(err)
-	}
-	activeTaskManagerT, _ = pool.NewActiveTaskPoolManager(&dispatcher, definitionManagerT, taskPoolT, provider, log)
-
-}
-
-func initTaskPool() {
-	taskPoolT, _ = pool.NewTaskPool(&dispatcher, taskPoolConfig, provider, true, logger.NewTestLogger(), definitionManagerT)
-}
 
 func matchExpectedStatusFromError(err error, expected codes.Code) (bool, codes.Code) {
 

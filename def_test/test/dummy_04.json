@@ -1,9 +1,11 @@
 {
-    "type" : "dummy",
-    "name" :"dummy_04",
-    "group" : "test",
-    "confirm" : true,
-    "description" :"sample dummy task definition",
+    "definition":{
+        "type" : "os",
+        "name" :"dummy_04",
+        "group" : "test",
+        "confirm" : true,
+        "description" :"sample dummy task definition"
+    },
     "inticket" : [
         {"name" : "IN-DUMMY03","odate" : "ODATE" }
     ],

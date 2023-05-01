@@ -5,10 +5,11 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/przebro/overseer/common/logger"
 	"github.com/przebro/overseer/datastore"
 	"github.com/przebro/overseer/overseer/auth"
 	"github.com/przebro/overseer/overseer/config"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -31,21 +32,20 @@ var (
 	ErrUserNotAuthorized = errors.New("user not authorized to perform this action")
 )
 
-//AccessRestricter - restricts access to services
+// AccessRestricter - restricts access to services
 type AccessRestricter interface {
 	GetAllowedAction(method string) auth.UserAction
 }
 
-//ServiceAuthorizeHandler - provides both unary and stream handlers for middleware authorization
+// ServiceAuthorizeHandler - provides both unary and stream handlers for middleware authorization
 type ServiceAuthorizeHandler struct {
 	authman        *auth.AuthorizationManager
 	verifier       *auth.TokenCreatorVerifier
 	allowAnonymous bool
-	log            logger.AppLogger
 }
 
-//NewServiceAuthorizeHandler - creates a new instance of a ServiceAuthorizeHandler
-func NewServiceAuthorizeHandler(security config.SecurityConfiguration, tm *auth.TokenCreatorVerifier, provider *datastore.Provider, log logger.AppLogger) (*ServiceAuthorizeHandler, error) {
+// NewServiceAuthorizeHandler - creates a new instance of a ServiceAuthorizeHandler
+func NewServiceAuthorizeHandler(security config.SecurityConfiguration, tm *auth.TokenCreatorVerifier, provider *datastore.Provider) (*ServiceAuthorizeHandler, error) {
 
 	var authman *auth.AuthorizationManager
 	var anonymous = security.AllowAnonymous
@@ -55,11 +55,11 @@ func NewServiceAuthorizeHandler(security config.SecurityConfiguration, tm *auth.
 		return nil, err
 	}
 
-	return &ServiceAuthorizeHandler{authman: authman, verifier: tm, allowAnonymous: anonymous, log: log}, nil
+	return &ServiceAuthorizeHandler{authman: authman, verifier: tm, allowAnonymous: anonymous}, nil
 
 }
 
-//Authorize - handler for an unary service
+// Authorize - handler for an unary service
 func (ap *ServiceAuthorizeHandler) Authorize(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 
 	var ok bool
@@ -68,9 +68,12 @@ func (ap *ServiceAuthorizeHandler) Authorize(ctx context.Context, req interface{
 	var username string
 	var err error
 
+	log := log.Ctx(ctx)
+
 	/*service isn't protected, in final implementation almost every service should be. A single exception is the Authenticate service,
 	it is entry point for restricted access and token generator therefore it should be always accessible.
 	*/
+
 	if restrictedService, ok = info.Server.(AccessRestricter); !ok {
 		return handler(ctx, req)
 	}
@@ -80,12 +83,13 @@ func (ap *ServiceAuthorizeHandler) Authorize(ctx context.Context, req interface{
 	}
 
 	if token == "" && ap.allowAnonymous {
-		ap.log.Info("anonymous access, setting anonymous user:", anonymousKey)
+		log.Info().Str("user", anonymousKey).Msg("anonymous access, setting anonymous user")
 		nctx := context.WithValue(ctx, usernameKey, anonymousKey)
 		return handler(nctx, req)
 	}
 
 	if username, err = ap.verifyAccess(ctx, restrictedService, token, info.FullMethod); err != nil {
+		log.Err(err).Msg("user not authorized")
 		return nil, status.Error(codes.PermissionDenied, err.Error())
 	}
 
@@ -94,7 +98,7 @@ func (ap *ServiceAuthorizeHandler) Authorize(ctx context.Context, req interface{
 	return handler(nctx, req)
 }
 
-//StreamAuthorize - handler for a stream service
+// StreamAuthorize - handler for a stream service
 func (ap *ServiceAuthorizeHandler) StreamAuthorize(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 
 	var ok bool
@@ -130,13 +134,13 @@ func (ap *ServiceAuthorizeHandler) StreamAuthorize(srv interface{}, ss grpc.Serv
 	return handler(srv, wrapped)
 }
 
-//GetUnaryHandler - gets a unary handler
+// GetUnaryHandler - gets a unary handler
 func (ap *ServiceAuthorizeHandler) GetUnaryHandler() grpc.UnaryServerInterceptor {
 
 	return ap.Authorize
 }
 
-//GetStreamHandler - gets a stream handler
+// GetStreamHandler - gets a stream handler
 func (ap *ServiceAuthorizeHandler) GetStreamHandler() grpc.StreamServerInterceptor {
 	return ap.StreamAuthorize
 }
@@ -152,6 +156,7 @@ func (ap *ServiceAuthorizeHandler) verifyAccess(ctx context.Context, rservice Ac
 	}
 
 	if result, err = ap.authman.VerifyAction(ctx, rservice.GetAllowedAction(method), username); err != nil || !result {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("user not authorized")
 		return "", ErrUserNotAuthorized
 	}
 
@@ -167,10 +172,12 @@ func (ap *ServiceAuthorizeHandler) getTokenFromContext(ctx context.Context) stri
 		return ""
 	}
 
+	log := log.Ctx(ctx)
+
 	authData := meta.Get(authorization)
 
 	if len(authData) == 0 {
-		ap.log.Info("authorization header not found metadata")
+		log.Info().Msg("authorization header not found metadata")
 
 		return ""
 	}

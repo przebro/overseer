@@ -1,7 +1,7 @@
 {
     "serverConfiguration":{
         "serviceName" : "overseersrv",
-        "ovshost" : "127.0.0.1",
+        "ovshost" : "0.0.0.0",
         "ovsport" : 7053
     },
     "definitionDirectory" : "./def",
@@ -12,14 +12,12 @@
         "prefix" :""
     },
     "ResourceConfiguration" : {
-        "tickets" :{ "collectionName" : "resources", "sync" : 2},
-        "flags" : { "collectionName" : "resources", "sync" : 2}
+        "resources" :{ "sync" : 2}
     },
     "ActivePoolConfiguration" :{
         "forceNewDayProc" : false,
         "newDayProc" : "10:00",
         "maxOkReturnCode" : 4,
-        "collection":"tasks",
         "syncTime" : 10
     },
     "timeInterval" : 1,
@@ -32,25 +30,11 @@
         ]
     },
     
-    "StoreProvider" : {
-        "store" : [
-            {"id" : "security", "connectionString":"local;/data/security?updatesync=true"},
-            {"id" : "resources", "connectionString":"local;/data/resources?updatesync=true"},
-            {"id" : "pool", "connectionString":"local;/data/pool?updatesync=true"},
-            {"id" : "journal", "connectionString":"local;/data/journal?updatesync=true"}
-        ],
-        "collections" : [
-            {"storeId" : "resources", "name" : "resources"},
-            {"storeId" : "security", "name" : "auth"},
-            {"storeId" : "pool", "name" : "tasks"},
-            {"storeId" : "pool", "name" : "sequence"},
-            {"storeId" : "journal", "name" : "logs"}
-        ]
-    },
+    "StoreConfiguration" : {"id" : "datastore", "connectionString":"internal;;data"},
+        
 
     "security" : {
         "allowAnonymous" : true,
-        "collectionName" : "auth",
         "timeout" : 0,
         "issuer" : "issuername",
         "secret" :"WBdumgVKBK4iTB+CR2Z2meseDrlnrg54QDSAPcFswWU=",
@@ -58,7 +42,6 @@
 
     },
     "journalConfiguration" :{
-        "logs" : "logs",
         "syncTime" : 10
     }
 }

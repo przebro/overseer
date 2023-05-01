@@ -34,19 +34,7 @@
         ]
     },
     
-    "StoreProvider" : {
-        "store" : [
-            {"id" : "datastore", "connectionString":"mongodb;127.0.0.1:25750/ovsdb?username=ovsdbuser&password=notsecure&untrusted=true"}
-        ],
-        "collections" : [
-            {"storeId" : "datastore", "name" : "resources"},
-            {"storeId" : "datastore", "name" : "auth"},
-            {"storeId" : "datastore", "name" : "tasks"},
-            {"storeId" : "datastore", "name" : "sequence"},
-            {"storeId" : "datastore", "name" : "journal"}
-        ]
-    },
-
+    "StoreConfiguration" :  {"id" : "datastore", "connectionString":"mongodb;127.0.0.1:25750;/ovsdb?username=ovsdbuser&password=notsecure&untrusted=true"},
     "security" : {
         "ssl" : false,
         "allowAnonymous" : true,

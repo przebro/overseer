@@ -6,10 +6,10 @@ import (
 	"net/http"
 
 	"github.com/przebro/overseer/common/cert"
-	"github.com/przebro/overseer/common/logger"
 	"github.com/przebro/overseer/common/types"
 	"github.com/przebro/overseer/ovsgate/config"
-	"go.uber.org/zap"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 
 	"time"
 
@@ -19,10 +19,10 @@ import (
 	"google.golang.org/grpc"
 )
 
-//OverseerGateway - implements grpc gateway
+// OverseerGateway - implements grpc gateway
 type OverseerGateway struct {
 	config config.OverseerGatewayConfig
-	log    logger.AppLogger
+	log    *zerolog.Logger
 }
 
 const (
@@ -35,19 +35,21 @@ const (
 	jsHandlerPatter     = "/js/"
 )
 
-//NewInstance - creates a new instance of a OverseerGateway
-func NewInstance(cfg config.OverseerGatewayConfig, log logger.AppLogger) (*OverseerGateway, error) {
+// NewInstance - creates a new instance of a OverseerGateway
+func NewInstance(cfg config.OverseerGatewayConfig) (*OverseerGateway, error) {
 
-	g := &OverseerGateway{config: cfg, log: log}
+	log := log.With().Str("component", "gateway").Logger()
+	g := &OverseerGateway{config: cfg, log: &log}
 
 	return g, nil
 }
 
-//Start - starts gateway
+// Start - starts gateway
 func (g *OverseerGateway) Start() error {
 
 	var err error
 	var conn *grpc.ClientConn
+	log.Info().Msg("starting gateway")
 
 	dctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 
@@ -58,8 +60,7 @@ func (g *OverseerGateway) Start() error {
 	} else {
 
 		if err := cert.RegisterCA(g.config.OverseerCA); err != nil {
-			zlog := g.log.Desugar()
-			zlog.Warn("start", zap.String("error", err.Error()))
+			log.Error().Err(err).Msg("register ca failed")
 		}
 
 		creds, err := cert.BuildClientCredentials(g.config.GatewayCert, g.config.GatewayKey, g.config.GatewayCertPolicy, g.config.SecurityLevel)
@@ -71,7 +72,7 @@ func (g *OverseerGateway) Start() error {
 	}
 
 	if conn, err = grpc.DialContext(dctx, fmt.Sprintf("%s:%d", g.config.OverseerAddress, g.config.OverseerPort), opt...); err != nil {
-		g.log.Error(err)
+		log.Error().Err(err).Msg("dial overseer failed")
 		return err
 	}
 
@@ -81,7 +82,7 @@ func (g *OverseerGateway) Start() error {
 	)
 
 	if err = initializeServices(context.Background(), gwmux, conn); err != nil {
-		g.log.Error(err)
+		log.Error().Err(err).Msg("initialize services failed")
 		return err
 	}
 
@@ -89,13 +90,20 @@ func (g *OverseerGateway) Start() error {
 	g.setupHandlers(mux, gwmux)
 
 	server := &http.Server{Addr: fmt.Sprintf("%s:%d", g.config.GatewayAddress, g.config.GatewayPort), Handler: mux}
+
 	if err = server.ListenAndServe(); err != http.ErrServerClosed {
-		g.log.Error(err)
+		log.Error().Err(err).Msg("listen and serve failed")
 		return err
 	}
 
 	return nil
 }
+
+func (g *OverseerGateway) Shutdown() error {
+
+	return nil
+}
+
 func (g *OverseerGateway) setupHandlers(mux *http.ServeMux, gwmux *runtime.ServeMux) {
 
 	mux.Handle(apiHandlePatter, newHttpInterceptor(gwmux, g.log))
@@ -115,6 +123,7 @@ func initializeServices(ctx context.Context, mux *runtime.ServeMux, conn *grpc.C
 		services.RegisterResourceServiceHandler,
 		services.RegisterTaskServiceHandler,
 		services.RegisterDefinitionServiceHandler,
+		services.RegisterAdministrationServiceHandler,
 	} {
 		if err := fn(ctx, mux, conn); err != nil {
 			return err

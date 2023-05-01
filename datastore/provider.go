@@ -2,117 +2,49 @@ package datastore
 
 import (
 	"context"
-	"errors"
-	"fmt"
+	"strings"
 
-	"github.com/przebro/overseer/common/logger"
 	"github.com/przebro/overseer/overseer/config"
 
 	"github.com/przebro/databazaar/store"
 	//required driver
-	_ "github.com/przebro/localstore/store"
+	_ "github.com/przebro/badgerstore/store"
 	_ "github.com/przebro/mongostore/store"
 
 	"github.com/przebro/databazaar/collection"
 )
 
-//Provider - serves as mediator between data storage (database,local file,...) and in memory data structure
+type CollectionProvider interface {
+	GetCollection(ctx context.Context, name string) (collection.DataCollection, error)
+	Directory() string
+}
+
 type Provider struct {
-	store       map[string]store.DataStore
-	collections map[string]string
+	store     store.DataStore
+	directory string
 }
 
-var (
-	//ErrStoreConfiguration - returned when configuration is invalid
-	ErrStoreConfiguration = errors.New("Store configuration error")
-)
-
-//GetCollection - Gets collection by name
-func (p *Provider) GetCollection(name string) (collection.DataCollection, error) {
-
-	var storeName string
-	var exists bool
-	var st store.DataStore
-
-	if storeName, exists = p.collections[name]; !exists {
-		return nil, fmt.Errorf("%w; no mapping beetween collection name:%s and store", ErrStoreConfiguration, name)
-	}
-	if st, exists = p.store[storeName]; !exists {
-		return nil, fmt.Errorf("%w;no mapping beetween collection name and store", ErrStoreConfiguration)
-	}
-	col, err := st.Collection(context.Background(), name)
-
-	return col, err
-}
-
-//NewDataProvider - Creates a new DataProvider
-func NewDataProvider(conf config.StoreProviderConfiguration, log logger.AppLogger) (*Provider, error) {
-
-	var err error
-	p := &Provider{}
-
-	if p.store, err = loadStoreData(conf.Store, log); err != nil {
+func NewDataProvider(conf config.StoreConfiguration) (*Provider, error) {
+	st, err := store.NewStore(conf.ConnectionString)
+	if err != nil {
 		return nil, err
 	}
 
-	if p.collections, err = loadCollectionData(conf.Collections, log); err != nil {
-		return nil, err
+	pth := strings.Split(conf.ConnectionString, ";")[2]
+	if strings.Contains(pth, "?") {
+		pth = strings.Split(pth, "?")[0]
 	}
 
-	return p, nil
-
-}
-func loadStoreData(conf []config.StoreConfiguration, log logger.AppLogger) (map[string]store.DataStore, error) {
-
-	connmap := map[string]string{}
-	smap := map[string]store.DataStore{}
-
-	for _, s := range conf {
-		log.Info("loading store:", s.ID, ":", s.ConnectionString)
-		if s.ID == "" || s.ConnectionString == "" {
-			return nil, fmt.Errorf("%w; Invalid store configuration entry", ErrStoreConfiguration)
-		}
-		if _, exists := connmap[s.ID]; exists {
-			return nil, fmt.Errorf("%w; Duplicated store entry, id:%s", ErrStoreConfiguration, s.ID)
-		}
-
-		connmap[s.ID] = s.ConnectionString
-
-	}
-
-	for k, v := range connmap {
-
-		st, err := store.NewStore(v)
-
-		if err != nil {
-
-			return nil, fmt.Errorf("unable to connect store:%w", err)
-		}
-
-		smap[k] = st
-	}
-
-	return smap, nil
+	return &Provider{store: st, directory: pth}, nil
 }
 
-func loadCollectionData(conf []config.CollectionConfiguration, log logger.AppLogger) (map[string]string, error) {
+func (ds *Provider) GetCollection(ctx context.Context, name string) (collection.DataCollection, error) {
+	return ds.store.Collection(ctx, name)
+}
+func (ds *Provider) Directory() string {
+	return ds.directory
+}
 
-	cmap := map[string]string{}
-
-	for _, col := range conf {
-
-		log.Info(col.Name, ":", col.StoreID)
-		if col.Name == "" || col.StoreID == "" {
-			return nil, errors.New("invalid collection configuration entry")
-		}
-
-		if _, exists := cmap[col.Name]; exists {
-			return nil, fmt.Errorf("duplicated collection entry, name:%s", col.Name)
-		}
-
-		cmap[col.Name] = col.StoreID
-	}
-
-	return cmap, nil
-
+func (ds *Provider) Exists(ctx context.Context, collection string) bool {
+	return ds.store.CollectionExists(context.Background(), collection)
 }

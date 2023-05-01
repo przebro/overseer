@@ -2,151 +2,133 @@ package services
 
 import (
 	"context"
-	"net"
 	"testing"
 
-	"github.com/przebro/overseer/common/logger"
-	"github.com/przebro/overseer/datastore"
+	"github.com/przebro/overseer/overseer/config"
 	"github.com/przebro/overseer/proto/services"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/suite"
 
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/test/bufconn"
 )
 
-var authcl services.AuthenticateServiceClient
-var asrvc *ovsAuthenticateService
-
-func createAuthClient(t *testing.T) services.AuthenticateServiceClient {
-
-	if authcl != nil {
-		return authcl
-	}
-
-	listener := bufconn.Listen(1)
-	mocksrv := &mockBuffconnServer{grpcServer: grpc.NewServer(buildUnaryChain(), buildStreamChain())}
-
-	logger.NewTestLogger()
-	var err error
-
-	tcv, err := NewTokenCreatorVerifier(authcfg)
-
-	if err != nil {
-		t.Fatal("unable to create connection", err)
-	}
-
-	authservice, err := NewAuthenticateService(authcfg, tcv, provider, logger.NewTestLogger())
-
-	if err != nil {
-		t.Error(err)
-	}
-	asrvc = authservice.(*ovsAuthenticateService)
-
-	services.RegisterAuthenticateServiceServer(mocksrv.grpcServer, authservice)
-
-	dialer := func(ctx context.Context, s string) (net.Conn, error) {
-		return listener.Dial()
-	}
-
-	conn, err := grpc.DialContext(context.Background(), "", grpc.WithInsecure(), grpc.WithContextDialer(dialer))
-	if err != nil {
-		t.Fatal("unable to create connection", err)
-	}
-
-	authcl = services.NewAuthenticateServiceClient(conn)
-	go mocksrv.grpcServer.Serve(listener)
-
-	return authcl
-
+type mockTokenCreator struct {
+	mock.Mock
 }
 
-func TestCreateNewAuthenticateService_Error(t *testing.T) {
+func (m *mockTokenCreator) Verify(token string) (string, error) {
+	args := m.Called(token)
+	return args.Get(0).(string), args.Error(1)
+}
+func (m *mockTokenCreator) Create(username string, userdata map[string]interface{}) (string, error) {
+	args := m.Called(username, userdata)
+	return args.Get(0).(string), args.Error(1)
+}
 
-	prov := &datastore.Provider{}
-	_, err := NewAuthenticateService(authcfg, nil, prov, logger.NewTestLogger())
-	if err == nil {
-		t.Error("unexpected result:", nil, "expected: not nil")
+type mockAuthenticationManager struct {
+	mock.Mock
+}
+
+func (m *mockAuthenticationManager) Authenticate(ctx context.Context, username string, password string) (bool, error) {
+	args := m.Called(ctx, username, password)
+	return args.Bool(0), args.Error(1)
+}
+
+type authenticateTestSuite struct {
+	suite.Suite
+	service services.AuthenticateServiceServer
+	creator *mockTokenCreator
+	manager *mockAuthenticationManager
+	asrvc   *ovsAuthenticateService
+}
+
+func TestAuthenticsteTestSuite(t *testing.T) {
+	suite.Run(t, new(authenticateTestSuite))
+}
+
+func (suite *authenticateTestSuite) SetupSuite() {
+
+	var authcfg = config.SecurityConfiguration{
+		AllowAnonymous: true,
+		Timeout:        0,
+		Issuer:         "testissuer",
+		Secret:         "WBdumgVKBK4iTB+CR2Z2meseDrlnrg54QDSAPcFswWU=",
 	}
 
+	suite.creator = &mockTokenCreator{}
+	suite.manager = &mockAuthenticationManager{}
+	suite.service, _ = NewAuthenticateService(authcfg, suite.creator, suite.manager)
+	suite.asrvc = suite.service.(*ovsAuthenticateService)
 }
-func TestAuthenticate_Anonymous_User_Success(t *testing.T) {
-	client := createAuthClient(t)
 
+func (suite *authenticateTestSuite) TestAuthenticate_Anonymous_User_Success() {
+
+	service := suite.service
+	suite.asrvc.allowAnonymous = true
 	msg := &services.AuthorizeActionMsg{Username: "", Password: ""}
-	r, err := client.Authenticate(context.Background(), msg)
+	r, err := service.Authenticate(context.Background(), msg)
 
-	if err != nil {
-		t.Error("unexpected result:", err)
-	}
-
-	if r.Message != "anonymous access" {
-		t.Error("unexpected result:", r.Message, "expected:", "anonymous access")
-	}
-
+	suite.Nil(err)
+	suite.Equal(r.Message, "anonymous access")
 }
-func TestAuthenticate_Anonymous_User_Fail(t *testing.T) {
-	client := createAuthClient(t)
+func (suite *authenticateTestSuite) TestAuthenticate_Anonymous_User_Fail() {
+
+	service := suite.service
 
 	msg := &services.AuthorizeActionMsg{Username: "", Password: ""}
 
-	asrvc.allowAnonymous = false
+	suite.asrvc.allowAnonymous = false
 
-	_, err := client.Authenticate(context.Background(), msg)
-	if err == nil {
-		t.Error("unexpected result:", err)
-	}
+	_, err := service.Authenticate(context.Background(), msg)
+	suite.NotNil(err)
 
-	if ok, code := matchExpectedStatusFromError(err, codes.Unauthenticated); !ok {
-		t.Error("unexpected result:", code, "expected:", codes.Unauthenticated)
-	}
+	_, code := matchExpectedStatusFromError(err, codes.Unauthenticated)
+	suite.Equal(code, codes.Unauthenticated)
 
 }
-func TestAuthenticate_User_Fail(t *testing.T) {
 
-	client := createAuthClient(t)
-	asrvc.allowAnonymous = false
+func (suite *authenticateTestSuite) TestAuthenticate_User_Fail() {
+
+	service := suite.service
+	suite.asrvc.allowAnonymous = false
+	ctx := context.Background()
 
 	msg := &services.AuthorizeActionMsg{Username: "testuser1", Password: ""}
 
-	_, err := client.Authenticate(context.Background(), msg)
-	if err == nil {
-		t.Error("unexpected result:", err)
-	}
-
-	if ok, code := matchExpectedStatusFromError(err, codes.Unauthenticated); !ok {
-		t.Error("unexpected result:", code, "expected:", codes.Unauthenticated)
-	}
+	_, err := service.Authenticate(ctx, msg)
+	suite.NotNil(err)
+	_, code := matchExpectedStatusFromError(err, codes.Unauthenticated)
+	suite.Equal(codes.Unauthenticated, code)
 
 	msg.Username = "testuser1"
 	msg.Password = "invalid_password"
 
-	_, err = client.Authenticate(context.Background(), msg)
-	if err == nil {
-		t.Error("unexpected result:", err)
-	}
+	suite.manager.On("Authenticate", ctx, msg.Username, msg.Password).Return(
+		false, nil,
+	)
 
-	if ok, code := matchExpectedStatusFromError(err, codes.Unauthenticated); !ok {
-		t.Error("unexpected result:", code, "expected:", codes.Unauthenticated)
-	}
+	_, err = service.Authenticate(ctx, msg)
+	suite.NotNil(err)
+	_, code = matchExpectedStatusFromError(err, codes.Unauthenticated)
+	suite.Equal(codes.Unauthenticated, code)
 }
-func TestAuthenticate_User_Success(t *testing.T) {
 
-	client := createAuthClient(t)
-	asrvc.allowAnonymous = false
+func (suite *authenticateTestSuite) TestAuthenticate_User_Success() {
+
+	service := suite.service
+	suite.asrvc.allowAnonymous = false
+	ctx := context.Background()
 
 	msg := &services.AuthorizeActionMsg{Username: "testuser1", Password: "notsecure"}
 
-	r, err := client.Authenticate(context.Background(), msg)
-	if err != nil {
-		t.Error("unexpected result:", err)
-	}
+	suite.manager.On("Authenticate", ctx, msg.Username, msg.Password).Return(
+		true, nil,
+	)
+	suite.creator.On("Create", msg.Username, map[string]interface{}{}).Return("a_token_created", nil)
 
-	if r.Success != true {
-		t.Error("unexpected result:", r.Success, "expected:", true)
-	}
-
-	if r.Message == "" {
-		t.Error("unexpected result token is empty")
-	}
+	r, err := service.Authenticate(ctx, msg)
+	suite.Nil(err)
+	suite.Equal(r.Success, true)
+	suite.Equal(r.Message, "a_token_created")
 
 }

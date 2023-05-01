@@ -1,44 +1,38 @@
 package work
 
 import (
+	"time"
+
 	"github.com/przebro/overseer/common/types"
-	"github.com/przebro/overseer/overseer/internal/events"
-	"github.com/przebro/overseer/overseer/internal/unique"
+	"github.com/przebro/overseer/common/types/unique"
 	"github.com/przebro/overseer/proto/wservices"
 )
 
-type taskExecuteMsg struct {
-	receiver events.EventReceiver
-	data     events.RouteTaskExecutionMsg
+// WorkDescription - describes executing task
+type WorkDescription interface {
+	OrderID() unique.TaskOrderID
+	ExecutionID() string
+	WorkerName() string
 }
 
-type taskCleanMsg struct {
-	receiver    events.EventReceiver
-	orderID     unique.TaskOrderID
-	executionID string
-	workername  string
-	terminate   bool
+// TaskDescription - describes task to be executed
+type TaskDescription interface {
+	WorkDescription
+	TypeName() types.TaskType
+	Variables() types.EnvironmentVariableList
+	Action() []byte
+	Payload() interface{}
+	SetWorkerName(string)
 }
 
-type taskGetStatusMsg struct {
-	receiver    events.EventReceiver
-	orderID     unique.TaskOrderID
-	ExecutionID string
-	workername  string
-}
-
-type workerStatus struct {
-	connected  bool
-	cpu        int
-	memused    int
-	memtotal   int
-	tasks      int
-	tasksLimit int
-}
-
-type availableWorker struct {
-	name      string
-	freeTasks int
+type workerState struct {
+	connected   bool
+	cpu         int
+	memused     int
+	memtotal    int
+	tasks       int
+	tasksLimit  int
+	lastRequest time.Time
 }
 
 var reverseStatusMap = map[wservices.TaskExecutionResponseMsg_TaskStatus]types.WorkerTaskStatus{

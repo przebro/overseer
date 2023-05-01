@@ -1,6 +1,10 @@
 package types
 
-//WorkerTaskStatus - status of a task on a remote worker
+import (
+	"github.com/przebro/overseer/common/types/unique"
+)
+
+// WorkerTaskStatus - status of a task on a remote worker
 type WorkerTaskStatus int
 
 const (
@@ -18,11 +22,11 @@ const (
 	WorkerTaskStatusIdle WorkerTaskStatus = 5
 	//WorkerTaskStatusStarting - task staring, it will be sent to the worker
 	WorkerTaskStatusStarting WorkerTaskStatus = 6
-	//WorkerTaskStatusWorkerBusy -worker is busy and can't accpet a new task
+	//WorkerTaskStatusWorkerBusy - worker is busy and can't accept a new task
 	WorkerTaskStatusWorkerBusy WorkerTaskStatus = 7
 )
 
-//RemoteTaskStatusInfo maps remote task status to readable form
+// RemoteTaskStatusInfo maps remote task status to readable form
 var RemoteTaskStatusInfo = map[WorkerTaskStatus]string{
 	WorkerTaskStatusRecieved:   "received",
 	WorkerTaskStatusExecuting:  "executing",
@@ -34,7 +38,7 @@ var RemoteTaskStatusInfo = map[WorkerTaskStatus]string{
 	WorkerTaskStatusWorkerBusy: "busy",
 }
 
-//StatusCode - Subjective status of a task execution
+// StatusCode - Subjective status of a task execution
 type StatusCode int32
 
 const (
@@ -61,3 +65,29 @@ const (
 	TaskPriorityLow     TaskPriority = 3
 	TaskPriorityLowest  TaskPriority = 4
 )
+
+type TaskExecutionStatus struct {
+	Status      WorkerTaskStatus
+	OrderID     unique.TaskOrderID
+	ExecutionID string
+	WorkerName  string
+	ReturnCode  int32
+	StatusCode  int32
+}
+
+// WorkDescription - describes executing task
+type WorkDescription interface {
+	OrderID() unique.TaskOrderID
+	ExecutionID() string
+	WorkerName() string
+}
+
+// TaskDescription - describes task to be executed
+type TaskDescription interface {
+	WorkDescription
+	TypeName() TaskType
+	Variables() EnvironmentVariableList
+	Action() []byte
+	Payload() interface{}
+	SetWorkerName(string)
+}

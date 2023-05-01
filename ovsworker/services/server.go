@@ -5,58 +5,56 @@ import (
 	"net"
 
 	"github.com/przebro/overseer/common/cert"
-	"github.com/przebro/overseer/common/logger"
 	"github.com/przebro/overseer/common/types"
 	"github.com/przebro/overseer/ovsworker/config"
 	"github.com/przebro/overseer/ovsworker/services/handlers"
 	"github.com/przebro/overseer/proto/wservices"
-
-	"go.uber.org/zap"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 )
 
-//OvsWorkerServer - represents worker
+// OvsWorkerServer - represents worker
 type OvsWorkerServer struct {
 	conf       config.WorkerConfiguration
 	grpcServer *grpc.Server
-	log        logger.AppLogger
 }
 
-//New - creates a new instance of a OvsWorkerServer
-func New(config config.WorkerConfiguration, es wservices.TaskExecutionServiceServer, log logger.AppLogger) *OvsWorkerServer {
+// New - creates a new instance of a OvsWorkerServer
+func New(config config.WorkerConfiguration, es wservices.TaskExecutionServiceServer) *OvsWorkerServer {
 
-	options, err := buildOptions(config, log)
+	lg := log.With().Str("component", "worker").Logger()
+
+	options, err := buildOptions(config, &lg)
 
 	if err != nil {
-		zlog := log.Desugar()
-		zlog.Error("build options", zap.String("error", err.Error()))
+		lg.Error().Err(err).Msg("build options")
 		return nil
 	}
 
-	options = append(options, buildInterceptors(log)...)
+	options = append(options, buildInterceptors(&lg)...)
 
 	wserver := &OvsWorkerServer{}
 	wserver.conf = config
 	wserver.grpcServer = grpc.NewServer(options...)
-	wserver.log = log
 
 	wservices.RegisterTaskExecutionServiceServer(wserver.grpcServer, es)
 
 	return wserver
 }
 
-//Start - starts worker
+// Start - starts worker
 func (srv *OvsWorkerServer) Start() error {
 
+	lg := log.With().Str("component", "worker").Logger()
 	conn := fmt.Sprintf("%s:%d", srv.conf.Host, srv.conf.Port)
 
 	l, err := net.Listen("tcp", conn)
 	if err != nil {
-		srv.log.Error(err)
+		lg.Error().Err(err).Msg("starting grpc server")
 		return err
 	}
-
-	srv.log.Info("starting grpc server:", conn)
+	lg.Info().Msg("starting grpc server:" + conn)
 
 	err = srv.grpcServer.Serve(l)
 	if err != nil {
@@ -66,7 +64,7 @@ func (srv *OvsWorkerServer) Start() error {
 	return nil
 }
 
-//Shutdown - stops worker execution
+// Shutdown - stops worker execution
 func (srv *OvsWorkerServer) Shutdown() error {
 
 	srv.grpcServer.GracefulStop()
@@ -74,14 +72,13 @@ func (srv *OvsWorkerServer) Shutdown() error {
 	return nil
 }
 
-func buildOptions(conf config.WorkerConfiguration, log logger.AppLogger) ([]grpc.ServerOption, error) {
+func buildOptions(conf config.WorkerConfiguration, log *zerolog.Logger) ([]grpc.ServerOption, error) {
 
 	var options = []grpc.ServerOption{}
 
 	if conf.OverseerCA != "" {
 		if err := cert.RegisterCA(conf.OverseerCA); err != nil {
-			zlog := log.Desugar()
-			zlog.Warn("build options", zap.String("error", err.Error()))
+			log.Warn().Err(err).Msg("registering ca")
 		}
 
 	}
@@ -97,7 +94,7 @@ func buildOptions(conf config.WorkerConfiguration, log logger.AppLogger) ([]grpc
 	return options, nil
 }
 
-func buildInterceptors(log logger.AppLogger) []grpc.ServerOption {
+func buildInterceptors(log *zerolog.Logger) []grpc.ServerOption {
 
 	lhandler := handlers.NewLogHandler(log)
 

@@ -1,135 +1,88 @@
 package journal
 
 import (
-	"os"
 	"testing"
 	"time"
 
-	"github.com/przebro/overseer/common/logger"
+	"github.com/przebro/databazaar/store"
+	"github.com/przebro/overseer/common/types/unique"
 	"github.com/przebro/overseer/datastore"
+	"github.com/przebro/overseer/datastore/mock"
 	"github.com/przebro/overseer/overseer/config"
-	"github.com/przebro/overseer/overseer/internal/events"
-	"github.com/przebro/overseer/overseer/internal/unique"
+	"github.com/stretchr/testify/suite"
 )
 
-type mockDisp struct {
+type JournalTestSuite struct {
+	suite.Suite
+	journal *TaskLogJournal
+	store   *mock.MockStore
 }
 
-var storeConfig config.StoreProviderConfiguration = config.StoreProviderConfiguration{
-	Store: []config.StoreConfiguration{
-		{ID: "teststore", ConnectionString: "local;/../../../data/tests"},
-	},
-	Collections: []config.CollectionConfiguration{
-		{Name: "journal", StoreID: "teststore"},
-	},
+func TestJournalTestSuite(t *testing.T) {
+	suite.Run(t, new(JournalTestSuite))
 }
 
-var conf = config.JournalConfiguration{LogCollection: "journal", SyncTime: 3600}
-var provider *datastore.Provider
-var jrnal TaskJournal
+func (s *JournalTestSuite) SetupSuite() {
 
-func init() {
-	f2, _ := os.Create("../../../data/tests/journal.json")
-	f2.Write([]byte(`{}`))
-	f2.Close()
+	s.store = &mock.MockStore{}
 
-	provider, _ = datastore.NewDataProvider(storeConfig, logger.NewTestLogger())
-	jrnal, _ = NewTaskJournal(conf, nil, provider, logger.NewTestLogger())
-}
+	collection := &mock.MockCollection{}
 
-func TestNewTaskJournal(t *testing.T) {
-	var err error
-	cfg := config.JournalConfiguration{LogCollection: "_invalid_collection", SyncTime: 3600}
+	s.store.On("Collection", "journal").Return(collection, nil)
 
-	_, err = NewTaskJournal(cfg, nil, provider, logger.NewTestLogger())
-	if err == nil {
-		t.Error("unexpected result:", err)
+	fn := func(opt store.ConnectionOptions) (store.DataStore, error) {
+
+		return s.store, nil
 	}
+
+	store.RegisterStoreFactory("mock", fn)
+
+	sconfig := config.StoreConfiguration{ID: "teststore", ConnectionString: "mock;;data/tests"}
+
+	provider, err := datastore.NewDataProvider(sconfig)
+	s.Nil(err)
+	j, err := NewTaskJournal(config.JournalConfiguration{SyncTime: 3600}, provider)
+	s.Nil(err)
+	s.journal = j
 }
 
-func TestReadWriteLog(t *testing.T) {
+func (s *JournalTestSuite) TestReadLog_NoLog_Succesfull() {
 
 	id := unique.TaskOrderID("12345")
-	tJrnal := jrnal.(*taskLogJournal)
-	tJrnal.store[id] = mLogModel{
-		TaskID: "12345", Entries: []LogEntry{}, Tstamp: time.Now(),
-	}
-
-	jrnal.WriteLog(id, LogEntry{ExecutionID: "ABCDEF", Time: time.Now(), Message: "message"})
-
-	if len(tJrnal.store[id].Entries) != 1 {
-		t.Error("unexpected result:")
-	}
-
-	entries := jrnal.ReadLog(id)
-	if len(entries) != 1 {
-		t.Error("unexpected result:")
-	}
-
-	id2 := unique.TaskOrderID("55555")
-	jrnal.WriteLog(id2, LogEntry{ExecutionID: "ABCDEF", Time: time.Now(), Message: "message"})
-	if len(tJrnal.store) != 2 {
-		t.Error("unexpected result:")
-	}
-
-	id3 := unique.TaskOrderID("66666")
-	entries = jrnal.ReadLog(id3)
-	if len(tJrnal.store) != 2 {
-		t.Error("unexpected result:", len(tJrnal.store))
-	}
-
-	if len(entries) != 0 {
-		t.Error("unexpected result:", len(entries))
-	}
-
+	entries := s.journal.ReadLog(id)
+	s.Equal(0, len(entries))
 }
 
-func TestProcess(t *testing.T) {
+func (s *JournalTestSuite) TestReadLog_Succesful() {
 
-	id := unique.TaskOrderID("12345")
-	tJrnal := jrnal.(*taskLogJournal)
-
-	tJrnal.Process(nil, events.RoutTaskJournal,
-		events.NewMsg(events.RouteJournalMsg{
-			OrderID:     id,
-			ExecutionID: "ABCDEF",
-			Time:        time.Now(),
-			Msg:         "message",
-		},
-		),
-	)
-
-	entries := jrnal.ReadLog(id)
-	if len(entries) != 2 {
-		t.Error("unexpected result:", len(entries))
+	s.journal.store[unique.TaskOrderID("ABCDE")] = mLogModel{
+		TaskID: "ABCDE", Entries: []LogEntry{
+			{ExecutionID: "ABCDEF", Time: time.Now(), Message: "message"},
+		}, Tstamp: time.Now(),
 	}
-
-	rcvr := events.NewActiveTaskReceiver()
-
-	go tJrnal.Process(rcvr, events.RoutTaskJournal, events.NewMsg("invalid data"))
-
-	if _, err := rcvr.WaitForResult(); err != events.ErrUnrecognizedMsgFormat {
-		t.Error("unexpected result:", err)
-	}
-
-	rcvr = events.NewActiveTaskReceiver()
-
-	go tJrnal.Process(rcvr, events.RouteChangeTaskState, events.NewMsg("invalid data"))
-
-	if _, err := rcvr.WaitForResult(); err != events.ErrInvalidRouteName {
-		t.Error("unexpected result:", err)
-	}
-
+	id := unique.TaskOrderID("ABCDE")
+	entries := s.journal.ReadLog(id)
+	s.Equal(1, len(entries))
 }
 
-func TestStartStop(t *testing.T) {
-	jrnal, _ := NewTaskJournal(conf, nil, provider, logger.NewTestLogger())
-	tjrnal := jrnal.(*taskLogJournal)
+func (s *JournalTestSuite) TestWriteLog_Succesful() {
 
-	jrnal.Start()
-	if tjrnal.done == nil {
-		t.Error("unexpected result")
+	s.journal.store[unique.TaskOrderID("55555")] = mLogModel{
+		TaskID: "ABCDE", Entries: []LogEntry{
+			{ExecutionID: "ABCDEF", Time: time.Now(), Message: "message"},
+		}, Tstamp: time.Now(),
 	}
+	s.journal.WriteLog(unique.TaskOrderID("55555"), LogEntry{ExecutionID: "ABCDEF", Time: time.Now(), Message: "message"})
+	s.Equal(2, len(s.journal.store[unique.TaskOrderID("55555")].Entries))
+}
 
-	jrnal.Shutdown()
+func (s *JournalTestSuite) TestPushJournalMessage_Succesful() {
+
+	s.journal.store[unique.TaskOrderID("66666")] = mLogModel{
+		TaskID: "ABCDE", Entries: []LogEntry{
+			{ExecutionID: "ABCDEF", Time: time.Now(), Message: "message"},
+		}, Tstamp: time.Now(),
+	}
+	s.journal.PushJournalMessage(unique.TaskOrderID("66666"), "ABCDE1", time.Now(), "message")
+	s.Equal(2, len(s.journal.store[unique.TaskOrderID("66666")].Entries))
 }

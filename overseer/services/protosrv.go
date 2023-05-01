@@ -5,26 +5,25 @@ import (
 	"net"
 
 	"github.com/przebro/overseer/common/cert"
-	"github.com/przebro/overseer/common/logger"
 	"github.com/przebro/overseer/common/types"
 	"github.com/przebro/overseer/overseer/config"
-	"github.com/przebro/overseer/overseer/internal/events"
 	"github.com/przebro/overseer/overseer/services/middleware"
 	"github.com/przebro/overseer/proto/services"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 
 	"google.golang.org/grpc"
 )
 
-//OvsGrpcServer - represents core grpc component
+// OvsGrpcServer - represents core grpc component
 type OvsGrpcServer struct {
 	conf       config.ServerConfiguration
 	grpcServer *grpc.Server
-	log        logger.AppLogger
-	dispatcher events.Dispatcher
+	log        *zerolog.Logger
 }
 
-//NewOvsGrpcServer - Creates new instance of a ovsGrpcServer
-func NewOvsGrpcServer(disp events.Dispatcher,
+// NewOvsGrpcServer - Creates new instance of a ovsGrpcServer
+func NewOvsGrpcServer(
 	r services.ResourceServiceServer,
 	d services.DefinitionServiceServer,
 	t services.TaskServiceServer,
@@ -32,7 +31,6 @@ func NewOvsGrpcServer(disp events.Dispatcher,
 	adm services.AdministrationServiceServer,
 	stat services.StatusServiceServer,
 	config config.ServerConfiguration,
-	log logger.AppLogger,
 
 ) *OvsGrpcServer {
 
@@ -41,7 +39,8 @@ func NewOvsGrpcServer(disp events.Dispatcher,
 
 	srv := &OvsGrpcServer{}
 	srv.conf = config
-	srv.log = log
+	lg := log.With().Str("component", "grpc-server").Logger()
+	srv.log = &lg
 
 	if options, err = buildOptions(config); err != nil {
 		return nil
@@ -54,22 +53,21 @@ func NewOvsGrpcServer(disp events.Dispatcher,
 	services.RegisterAuthenticateServiceServer(srv.grpcServer, a)
 	services.RegisterAdministrationServiceServer(srv.grpcServer, adm)
 	services.RegisterStatusServiceServer(srv.grpcServer, stat)
-	srv.dispatcher = disp
 
 	return srv
 }
 
-//Start - starts a service
+// Start - starts a service
 func (srv *OvsGrpcServer) Start() error {
 
 	conn := fmt.Sprintf("%s:%d", srv.conf.Host, srv.conf.Port)
 	l, err := net.Listen("tcp", conn)
 	if err != nil {
-		srv.log.Error(err)
+		srv.log.Error().Err(err).Msg("listener failed")
 		return err
 	}
 
-	srv.log.Info("starting grpc server:", conn)
+	srv.log.Info().Str("connection", conn).Msg("starting grpc server")
 
 	err = srv.grpcServer.Serve(l)
 	if err != nil {
@@ -79,7 +77,7 @@ func (srv *OvsGrpcServer) Start() error {
 	return nil
 }
 
-//Shutdown - shutdowns a service
+// Shutdown - shutdowns a service
 func (srv *OvsGrpcServer) Shutdown() error {
 
 	srv.grpcServer.GracefulStop()

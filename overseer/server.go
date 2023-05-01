@@ -4,49 +4,47 @@ import (
 	"path/filepath"
 
 	"github.com/przebro/overseer/common/core"
-	"github.com/przebro/overseer/common/logger"
 	"github.com/przebro/overseer/datastore"
 	"github.com/przebro/overseer/overseer/auth"
 	"github.com/przebro/overseer/overseer/config"
-	"github.com/przebro/overseer/overseer/internal/events"
 	"github.com/przebro/overseer/overseer/internal/journal"
 	"github.com/przebro/overseer/overseer/internal/pool"
+	"github.com/przebro/overseer/overseer/internal/proc"
 	"github.com/przebro/overseer/overseer/internal/resources"
 	"github.com/przebro/overseer/overseer/internal/taskdef"
 	"github.com/przebro/overseer/overseer/internal/work"
 	"github.com/przebro/overseer/overseer/services"
 	"github.com/przebro/overseer/overseer/services/handlers"
 	"github.com/przebro/overseer/overseer/services/middleware"
+	"github.com/rs/zerolog/log"
 )
 
-//Overseer - main  component
+// Overseer - main  component
 type Overseer struct {
 	conf             config.OverseerConfiguration
-	logger           logger.AppLogger
 	srvComponent     core.OverseerComponent
 	poolComponent    core.ComponentQuiescer
 	journalComponent core.OverseerComponent
 	resComponent     core.OverseerComponent
-	wmanager         work.WorkerManager
-	dispatcher       events.Dispatcher
+	wmanager         core.OverseerComponent
+	timer            core.OverseerComponent
 }
 
-//New - creates a new instance of Overseer
-func New(config config.OverseerConfiguration, lg logger.AppLogger, quiesce bool) (core.RunnableComponent, error) {
+// New - creates a new instance of Overseer
+func New(config config.OverseerConfiguration, quiesce bool) (core.RunnableComponent, error) {
 
 	var defPath string
 	var err error
 	var pl *pool.ActiveTaskPool
 	var pm *pool.ActiveTaskPoolManager
 	var dm taskdef.TaskDefinitionManager
-	var rm resources.ResourceManager
-	var jn journal.TaskJournal
+	var rm *resources.ResourceManagerImpl
+	var jn *journal.TaskLogJournal
 	var gs *services.OvsGrpcServer
-	var ds = events.NewDispatcher(lg)
 
-	dataProvider, err := datastore.NewDataProvider(config.StoreProvider, logger.NewTestLogger())
+	dataProvider, err := datastore.NewDataProvider(config.StoreConfiguration)
 	if err != nil {
-		lg.Error(err)
+		log.Err(err).Msg("Error creating data provider")
 		return nil, err
 	}
 
@@ -56,53 +54,60 @@ func New(config config.OverseerConfiguration, lg logger.AppLogger, quiesce bool)
 		defPath = config.DefinitionDirectory
 	}
 
-	if rm, err = resources.NewManager(ds, lg, config.Resources, dataProvider); err != nil {
+	wrunner := work.NewWorkerWorkManager(config.WorkerManager, config.Server.Security)
+
+	if rm, err = resources.NewManager(config.Resources, dataProvider); err != nil {
+		log.Err(err).Msg("Error creating resource manager")
 		return nil, err
 	}
 
-	if dm, err = taskdef.NewManager(defPath, lg); err != nil {
+	if dm, err = taskdef.NewManager(defPath); err != nil {
+		log.Err(err).Msg("Error creating task definition manager")
 		return nil, err
 	}
 
-	if pl, err = pool.NewTaskPool(ds, config.PoolConfiguration, dataProvider, !quiesce, lg, dm); err != nil {
+	if jn, err = journal.NewTaskJournal(config.Journal, dataProvider); err != nil {
+		log.Err(err).Msg("Error creating journal")
 		return nil, err
 	}
 
-	if pm, err = pool.NewActiveTaskPoolManager(ds, dm, pl, dataProvider, lg); err != nil {
+	if pl, err = pool.NewTaskPool(config.PoolConfiguration, dataProvider, !quiesce, dm, wrunner, rm, jn); err != nil {
+		log.Err(err).Msg("Error creating task pool")
 		return nil, err
 	}
 
-	if jn, err = journal.NewTaskJournal(config.Journal, ds, dataProvider, lg); err != nil {
+	if pm, err = pool.NewActiveTaskPoolManager(dm, pl, dataProvider); err != nil {
+		log.Err(err).Msg("Error creating task pool manager")
 		return nil, err
 	}
 
-	daily := pool.NewDailyExecutor(ds, pm, pl, lg)
+	daily := proc.NewDailyExecutor(pm, pl)
 
 	if config.PoolConfiguration.ForceNewDayProc {
 		daily.DailyProcedure()
 	}
 
-	wrunner := work.NewWorkerManager(ds, config.WorkerManager, lg, config.Server.Security)
-
-	if gs, err = createServiceServer(config.Server, ds, rm, dm, pm, pl, jn, dataProvider, config.Security, lg); err != nil {
+	if gs, err = createServiceServer(config.Server, rm, dm, pm, pl, jn, dataProvider, config.Security); err != nil {
 		return nil, err
 	}
 
+	tm := newTimer(config.TimeInterval)
+	tm.AddReceiver(pl)
+	tm.AddReceiver(daily)
+
 	ovs := &Overseer{
-		logger:           lg,
 		srvComponent:     gs,
 		poolComponent:    pl,
 		journalComponent: jn,
 		resComponent:     rm,
-		dispatcher:       ds,
 		conf:             config,
 		wmanager:         wrunner,
+		timer:            tm,
 	}
 	return ovs, nil
 }
 
 func createServiceServer(config config.ServerConfiguration,
-	disp events.Dispatcher,
 	rm resources.ResourceManager,
 	dm taskdef.TaskDefinitionManager,
 	tm *pool.ActiveTaskPoolManager,
@@ -110,31 +115,38 @@ func createServiceServer(config config.ServerConfiguration,
 	jrnl journal.TaskJournal,
 	provider *datastore.Provider,
 	sec config.SecurityConfiguration,
-	log logger.AppLogger,
 ) (*services.OvsGrpcServer, error) {
 
+	log := log.With().Str("component", "grpc-service").Logger()
 	tcv, err := services.NewTokenCreatorVerifier(sec)
 	if err != nil {
 		return nil, err
 	}
 
-	aservice, err := services.NewAuthenticateService(sec, tcv, provider, log)
+	authman, err := auth.NewAuthenticationManager(provider)
 	if err != nil {
 		return nil, err
 	}
 
-	authhandler, err := handlers.NewServiceAuthorizeHandler(sec, tcv, provider, log)
+	aservice, err := services.NewAuthenticateService(sec, tcv, authman)
+	if err != nil {
+		return nil, err
+	}
+
+	authhandler, err := handlers.NewServiceAuthorizeHandler(sec, tcv, provider)
 
 	if err != nil {
 		return nil, err
 	}
 
-	loghandler := handlers.NewServiceLoggerHandler(log)
+	loghandler := handlers.NewServiceLoggerHandler(&log)
 
 	middleware.RegisterHandler(authhandler)
 	middleware.RegisterStreamHandler(authhandler)
 	middleware.RegisterHandler(loghandler)
 	middleware.RegisterStreamHandler(loghandler)
+
+	auth.FirstRun(provider)
 
 	um, err := auth.NewUserManager(sec, provider)
 	if err != nil {
@@ -151,13 +163,13 @@ func createServiceServer(config config.ServerConfiguration,
 		return nil, err
 	}
 
-	rservice := services.NewResourceService(rm, log)
-	dservice := services.NewDefinistionService(dm, log)
-	tservice := services.NewTaskService(tm, pv, jrnl, log)
-	admservice := services.NewAdministrationService(um, rmn, am, log, pv)
-	statservice := services.NewStatusService(log)
+	rservice := services.NewResourceService(rm)
+	dservice := services.NewDefinistionService(dm)
+	tservice := services.NewTaskService(tm, pv, jrnl)
+	admservice := services.NewAdministrationService(um, rmn, am, pv)
+	statservice := services.NewStatusService()
 
-	grpcsrv := services.NewOvsGrpcServer(disp,
+	grpcsrv := services.NewOvsGrpcServer(
 		rservice,
 		dservice,
 		tservice,
@@ -165,49 +177,52 @@ func createServiceServer(config config.ServerConfiguration,
 		admservice,
 		statservice,
 		config,
-		log,
 	)
 
 	return grpcsrv, nil
 }
 
-//Start - starts service
+// Start - starts service
 func (s *Overseer) Start() error {
 
-	s.logger.Info("starting worker manager")
-	s.wmanager.Run()
+	lg := log.With().Str("component", "service").Logger()
 
-	timer := overseerTimer{s.logger}
-	timer.tickerFunc(s.dispatcher, s.conf.TimeInterval)
+	lg.Info().Msg("starting worker manager")
+	s.wmanager.Start()
+	s.timer.Start()
 
-	s.logger.Info("starting task journal")
+	lg.Info().Msg("starting task journal")
 	s.journalComponent.Start()
-	s.logger.Info("starting pool")
+	lg.Info().Msg("starting pool")
 	s.poolComponent.Start()
-	s.logger.Info("starting resource manager")
+	lg.Info().Msg("starting resource manager")
 	s.resComponent.Start()
-	s.logger.Info("starting grpc server")
+	lg.Info().Msg("starting grpc server")
 	s.srvComponent.Start()
 
 	return nil
 }
 
-//Shutdown - stops service
+// Shutdown - stops service
 func (s *Overseer) Shutdown() error {
 
-	s.logger.Info("Shutdown grpc")
+	lg := log.With().Str("component", "service").Logger()
+
+	lg.Info().Msg("Shutdown grpc")
 	s.srvComponent.Shutdown()
-	s.logger.Info("Shutdown pool")
+	lg.Info().Msg("Shutdown pool")
 	s.poolComponent.Shutdown()
-	s.logger.Info("Shutdown journal")
+	lg.Info().Msg("Shutdown journal")
 	s.journalComponent.Shutdown()
-	s.logger.Info("Shutdown resource")
+	lg.Info().Msg("Shutdown resource")
 	s.resComponent.Shutdown()
+	lg.Info().Msg("Shutdown worker manager")
+	s.wmanager.Shutdown()
 
 	return nil
 }
 
-//ServiceName - returns the name of a service
+// ServiceName - returns the name of a service
 func (s *Overseer) ServiceName() string {
 	return s.conf.Server.ServiceName
 }

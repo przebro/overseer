@@ -1,184 +1,101 @@
 package auth
 
 import (
-	"os"
+	"errors"
 	"testing"
 
-	"github.com/przebro/overseer/common/logger"
+	"github.com/przebro/databazaar/result"
+	"github.com/przebro/databazaar/store"
 	"github.com/przebro/overseer/datastore"
+	mockstore "github.com/przebro/overseer/datastore/mock"
 	"github.com/przebro/overseer/overseer/config"
+	"github.com/stretchr/testify/suite"
 )
 
-var rstorecfg = config.StoreProviderConfiguration{
-	Store: []config.StoreConfiguration{
-		{
-			ID:               "userstore",
-			ConnectionString: "local;/../../data/tests?synctime=0",
+type AuthRoleTestSuite struct {
+	suite.Suite
+	roleManager *RoleManager
+	store       *mockstore.MockStore
+}
+
+func TestAuthRoleTestSuite(t *testing.T) {
+	suite.Run(t, new(AuthRoleTestSuite))
+}
+
+func (suite *AuthRoleTestSuite) SetupSuite() {
+
+	suite.store = &mockstore.MockStore{}
+	roleCollection := &userMockCollection{}
+
+	roleCollection.On("Create", &dsRoleModel{
+		RoleModel: RoleModel{
+			Name:           "test_role",
+			Description:    "description",
+			Administration: true,
 		},
-	},
-	Collections: []config.CollectionConfiguration{
-		{
-			Name:    "authtest",
-			StoreID: "userstore",
+		ID: idFormatter(rolesNamespace, "test_role"),
+	}).Return(&result.BazaarResult{}, nil)
+
+	roleCollection.On("Create", &dsRoleModel{
+		RoleModel: RoleModel{
+			Name:           "role_exists",
+			Description:    "description",
+			Administration: true,
 		},
-	},
+		ID: idFormatter(rolesNamespace, "role_exists"),
+	}).Return(&result.BazaarResult{}, errors.New("role exists"))
+
+	roleCollection.On("Get", idFormatter(rolesNamespace, "test_role")).Return(nil)
+	roleCollection.On("Get", idFormatter(rolesNamespace, "role_not_exists")).Return(errors.New("not found"))
+
+	suite.store.On("Collection", "auth").Return(roleCollection, nil)
+
+	fn := func(opt store.ConnectionOptions) (store.DataStore, error) {
+
+		return suite.store, nil
+	}
+
+	store.RegisterStoreFactory("mock", fn)
+
+	conf := config.StoreConfiguration{ID: "userstore", ConnectionString: "mock;;data/tests?synctime=0"}
+	provider, err := datastore.NewDataProvider(conf)
+	suite.Nil(err)
+	authconf := config.SecurityConfiguration{AllowAnonymous: true}
+
+	suite.roleManager, err = NewRoleManager(authconf, provider)
+	suite.Nil(err)
 }
 
-var rconf = config.SecurityConfiguration{
-	AllowAnonymous: true,
-	Collection:     "authtest",
-}
-
-var rprovider *datastore.Provider
-
-func rprepare(t *testing.T) {
-
-	if provider != nil {
-		return
-	}
-
-	log := logger.NewTestLogger()
-
-	var err error
-	f, _ := os.Create("../../data/tests/authtest.json")
-	f.Write([]byte("{}"))
-	f.Close()
-
-	provider, err = datastore.NewDataProvider(rstorecfg, log)
-	if err != nil {
-		t.Fatal("unable to init store")
-	}
-}
-
-func TestNewRoleManager(t *testing.T) {
-
-	rprepare(t)
-
-	_, err := NewRoleManager(rconf, provider)
-	if err != nil {
-		t.Error("unexpected resutlt:", err)
-	}
-
-	cfg := config.SecurityConfiguration{Collection: "invalid_name"}
-	_, err = NewRoleManager(cfg, provider)
-	if err == nil {
-		t.Error("unexpected result")
-	}
-}
-
-func TestCreateRole(t *testing.T) {
-	m, err := NewRoleManager(conf, provider)
-	if err != nil {
-		t.Error("unexpected resutlt:", err)
-	}
+func (suite *AuthRoleTestSuite) TestCreateRole_Successful() {
 
 	model := RoleModel{
-		Name:           "testrole",
+		Name:           "test_role",
 		Description:    "description",
 		Administration: true,
 	}
 
-	err = m.Create(model)
-	if err != nil {
-		t.Error("unexpected result:", err)
-	}
-
-	err = m.Create(model)
-	if err == nil {
-		t.Error("unexpected result:", err)
-	}
+	err := suite.roleManager.Create(model)
+	suite.Nil(err)
 }
-
-func TestGetRole(t *testing.T) {
-	m, err := NewRoleManager(conf, provider)
-	if err != nil {
-		t.Error("unexpected resutlt:", err)
-	}
-
-	_, ok := m.Get("testrole")
-	if ok != true {
-		t.Error("unexpected result:", err)
-	}
-
-	_, ok = m.Get("testrole2")
-	if ok == true {
-		t.Error("unexpected result:", err)
-	}
-}
-
-func TestModifyRole(t *testing.T) {
-	m, err := NewRoleManager(conf, provider)
-	if err != nil {
-		t.Error("unexpected resutlt:", err)
-	}
+func (suite *AuthRoleTestSuite) TestCreateRole_AlreadyExists_Error() {
 
 	model := RoleModel{
-		Name:           "testrole2",
+		Name:           "role_exists",
 		Description:    "description",
 		Administration: true,
 	}
 
-	err = m.Modify(model)
-	if err == nil {
-		t.Error("unexpected result:", nil)
-	}
-
-	err = m.Create(model)
-	if err != nil {
-		t.Error("unexpected result:", err)
-	}
-
-	model.Administration = false
-	model.Description = "changed description"
-
-	err = m.Modify(model)
-
-	if err != nil {
-		t.Error("unexpected result:", nil)
-	}
-
-	nmodel, _ := m.Get("testrole2")
-
-	if nmodel.Description != "changed description" && nmodel.Administration != false {
-		t.Error("unexpected result:", nmodel.Description, nmodel.Administration, "expected:", model.Description, model.Administration)
-	}
-
+	err := suite.roleManager.Create(model)
+	suite.Error(err)
 }
 
-func TestGetAllRoles(t *testing.T) {
+func (suite *AuthRoleTestSuite) TestGetRole_Successful() {
 
-	m, err := NewRoleManager(conf, provider)
-	if err != nil {
-		t.Error("unexpected resutlt:", err)
-	}
-
-	r, err := m.All("")
-
-	if err != nil {
-		t.Error("unexpected resutlt:", err)
-	}
-
-	if len(r) != 2 {
-		t.Error("unexpected result:", len(r), "expected 2")
-	}
-
+	_, ok := suite.roleManager.Get("test_role")
+	suite.True(ok)
 }
-func TestDeleteRole(t *testing.T) {
+func (suite *AuthRoleTestSuite) TestGetRole_NotExists_Error() {
 
-	m, err := NewRoleManager(conf, provider)
-	if err != nil {
-		t.Error("unexpected resutlt:", err)
-	}
-
-	err = m.Delete("testrole2")
-	if err != nil {
-		t.Error("unexpected resutlt:", err)
-	}
-
-	err = m.Delete("testrole2")
-
-	if err != nil {
-		t.Error("unexpected resutlt:", err)
-	}
-
+	_, ok := suite.roleManager.Get("role_not_exists")
+	suite.False(ok)
 }

@@ -4,16 +4,16 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/przebro/overseer/common/logger"
 	"github.com/przebro/overseer/common/types/date"
 	"github.com/przebro/overseer/common/validator"
 	"github.com/przebro/overseer/overseer/auth"
 
 	"strings"
 
+	"github.com/przebro/overseer/common/types/unique"
+	"github.com/przebro/overseer/overseer/internal/events"
 	"github.com/przebro/overseer/overseer/internal/journal"
 	"github.com/przebro/overseer/overseer/internal/pool"
-	"github.com/przebro/overseer/overseer/internal/unique"
 	"github.com/przebro/overseer/overseer/taskdata"
 	"github.com/przebro/overseer/proto/services"
 
@@ -21,20 +21,36 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+type PoolManager interface {
+	OrderGroup(groupdata taskdata.GroupData, odate date.Odate, username string) ([]string, error)
+	Order(task taskdata.GroupNameData, odate date.Odate, username string) (string, error)
+	Force(task taskdata.GroupNameData, odate date.Odate, username string) (string, error)
+	Enforce(id unique.TaskOrderID, username string) (string, error)
+	Rerun(id unique.TaskOrderID, username string) (string, error)
+	Hold(id unique.TaskOrderID, username string) (string, error)
+	Free(id unique.TaskOrderID, username string) (string, error)
+	SetOk(id unique.TaskOrderID, username string) (string, error)
+	Confirm(id unique.TaskOrderID, username string) (string, error)
+}
+
+type TaskViewer interface {
+	Detail(unique.TaskOrderID) (events.TaskDetailResultMsg, error)
+	List(filter string) []events.TaskInfoResultMsg
+}
+
 type ovsActiveTaskService struct {
-	manager  *pool.ActiveTaskPoolManager
-	poolView pool.TaskViewer
+	manager  PoolManager
+	poolView TaskViewer
 	jrnal    journal.TaskLogReader
-	log      logger.AppLogger
 	services.UnimplementedTaskServiceServer
 }
 
 const errInvalidUser = "invalid user"
 
-//NewTaskService - New task service
-func NewTaskService(m *pool.ActiveTaskPoolManager, p pool.TaskViewer, j journal.TaskJournal, log logger.AppLogger) services.TaskServiceServer {
+// NewTaskService - New task service
+func NewTaskService(m PoolManager, p TaskViewer, j journal.TaskJournal) services.TaskServiceServer {
 
-	tservice := &ovsActiveTaskService{manager: m, poolView: p, log: log, jrnal: j}
+	tservice := &ovsActiveTaskService{manager: m, poolView: p, jrnal: j}
 
 	return tservice
 }
@@ -151,8 +167,11 @@ func (srv *ovsActiveTaskService) OrderTask(ctx context.Context, in *services.Tas
 
 	result, err := srv.manager.Order(data, odate, username)
 	if err != nil {
+		fmt.Println("TASK NOT ORDERED SUCCESSFULY")
 		return response, status.Error(codes.Internal, err.Error())
 	}
+
+	fmt.Println("TASK ORDERED SUCCESSFULY")
 
 	response.Message = fmt.Sprintf("TaskID:%s", result)
 	response.Success = true
@@ -461,7 +480,7 @@ func (srv *ovsActiveTaskService) TaskLog(ctx context.Context, in *services.TaskA
 	return response, nil
 }
 
-//GetAllowedAction - returns allowed action for given method. Implementation of handlers.AccessRestricter
+// GetAllowedAction - returns allowed action for given method. Implementation of handlers.AccessRestricter
 func (srv *ovsActiveTaskService) GetAllowedAction(method string) auth.UserAction {
 
 	var action auth.UserAction

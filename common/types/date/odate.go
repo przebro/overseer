@@ -8,10 +8,10 @@ import (
 	"time"
 )
 
-//Odate - helper type for order date format YYYYMMDD
+// Odate - helper type for order date format YYYYMMDD
 type Odate string
 
-//OdateValue - Holds possible odate values.
+// OdateValue - Holds possible odate values.
 type OdateValue string
 
 const (
@@ -37,38 +37,38 @@ var (
 	errOdateInvalidDay   = errors.New("Odate invalid day of month")
 )
 
-//ODATE -returns odate in format YYMMDD
+// ODATE -returns odate in format YYMMDD
 func (date Odate) ODATE() string {
 
 	return string(date[2:])
 }
 
-//Oday - returns day from odate
+// Oday - returns day from odate
 func (date Odate) Oday() string {
 	return string(date[6:])
 }
 
-//Omonth - returns month from odate
+// Omonth - returns month from odate
 func (date Odate) Omonth() string {
 	return string(date[4:6])
 }
 
-//Oyear - returns last two digits of year from odate
+// Oyear - returns last two digits of year from odate
 func (date Odate) Oyear() string {
 	return string(date[2:4])
 }
 
-//Ocent - returns century from odate
+// Ocent - returns century from odate
 func (date Odate) Ocent() string {
 	return string(date[0:2])
 }
 
-//FormatDate - formats odate into format YYYY-MM-DD
+// FormatDate - formats odate into format YYYY-MM-DD
 func (date Odate) FormatDate() string {
 	return fmt.Sprintf("%s-%s-%s", string(date[0:4]), string(date[4:6]), string(date[6:]))
 }
 
-//Ymd - Returns int values of given Odate
+// Ymd - Returns int values of given Odate
 func (date Odate) Ymd() (year, month, day int) {
 	year, _ = strconv.Atoi(string(date[0:4]))
 	month, _ = strconv.Atoi(string(date[4:6]))
@@ -77,7 +77,7 @@ func (date Odate) Ymd() (year, month, day int) {
 	return
 }
 
-//Doyear - returns the day of year from odate
+// Doyear - returns the day of year from odate
 func (date Odate) Doyear() int {
 	year, _ := strconv.Atoi(fmt.Sprintf("20%s", date.Oyear()))
 	month, _ := strconv.Atoi(date.Omonth())
@@ -87,7 +87,7 @@ func (date Odate) Doyear() int {
 	return t.YearDay()
 }
 
-//Woyear - returns week number from odate
+// Woyear - returns week number from odate
 func (date Odate) Woyear() int {
 	year, _ := strconv.Atoi(fmt.Sprintf("%s%s", date.Ocent(), date.Oyear()))
 	month, _ := strconv.Atoi(date.Omonth())
@@ -98,7 +98,7 @@ func (date Odate) Woyear() int {
 	return w
 }
 
-//Wday0 - returns a day of week from odate thist is 0 based where Sunday = 0
+// Wday0 - returns a day of week from odate thist is 0 based where Sunday = 0
 func (date Odate) Wday0() int {
 	year, _ := strconv.Atoi(fmt.Sprintf("20%s", date.Oyear()))
 	month, _ := strconv.Atoi(date.Omonth())
@@ -108,7 +108,7 @@ func (date Odate) Wday0() int {
 	return int(t.Weekday())
 }
 
-//Wday - returns a day of week from odate Sunday = 7
+// Wday - returns a day of week from odate Sunday = 7
 func (date Odate) Wday() int {
 	year, _ := strconv.Atoi(fmt.Sprintf("20%s", date.Oyear()))
 	month, _ := strconv.Atoi(date.Omonth())
@@ -122,13 +122,22 @@ func (date Odate) Wday() int {
 	return int(wday)
 }
 
-//Day - returns a day of week from odate
+// Day - returns a day of week from odate
 func (date Odate) Day() int {
 	day, _ := strconv.Atoi(date.Oday())
 	return day
 }
 
-//CurrentOdate - returns current odate in local time
+// ToUnix - returns odate as unix timestamp
+func (date Odate) ToUnix() int64 {
+	if v, err := time.Parse("2006-01-02", date.FormatDate()); err == nil {
+		return v.Unix()
+	}
+
+	return 0
+}
+
+// CurrentOdate - returns current odate in local time
 func CurrentOdate() Odate {
 	t := time.Now()
 	y, m, d := t.Date()
@@ -137,7 +146,7 @@ func CurrentOdate() Odate {
 	return Odate(odat)
 }
 
-//IsInDayOfWeek - check if tasks day of week is in odate
+// IsInDayOfWeek - check if tasks day of week is in odate
 func IsInDayOfWeek(odate Odate, values []int) bool {
 
 	wday := odate.Wday()
@@ -151,7 +160,7 @@ func IsInDayOfWeek(odate Odate, values []int) bool {
 	return false
 }
 
-//IsInDayOfMonth - check if day of execution is in odate
+// IsInDayOfMonth - check if day of execution is in odate
 func IsInDayOfMonth(odate Odate, values []int) bool {
 
 	day := odate.Day()
@@ -164,7 +173,7 @@ func IsInDayOfMonth(odate Odate, values []int) bool {
 	return false
 }
 
-//IsInFromEnd - check if day of execution is in odate
+// IsInFromEnd - check if day of execution is in odate
 func IsInFromEnd(odate Odate, values []int) bool {
 
 	y, m, _ := odate.Ymd()
@@ -179,7 +188,7 @@ func IsInFromEnd(odate Odate, values []int) bool {
 	return false
 }
 
-//IsInExactDate check if tasks execiution date is in odate
+// IsInExactDate check if tasks execiution date is in odate
 func IsInExactDate(odate Odate, values []string) bool {
 
 	dt := odate.FormatDate()
@@ -193,7 +202,7 @@ func IsInExactDate(odate Odate, values []string) bool {
 	return false
 }
 
-//IsInMonth - check if tasks month is in odate
+// IsInMonth - check if tasks month is in odate
 func IsInMonth(odate Odate, values []time.Month) bool {
 
 	mth, _ := strconv.Atoi(odate.Omonth())
@@ -208,7 +217,7 @@ func IsInMonth(odate Odate, values []time.Month) bool {
 	return false
 }
 
-//IsBeforeCurrent - checks if order date is before current day
+// IsBeforeCurrent - checks if order date is before current day
 func IsBeforeCurrent(odate Odate, currentOdate Odate) bool {
 
 	y, m, d := odate.Ymd()
@@ -219,7 +228,7 @@ func IsBeforeCurrent(odate Odate, currentOdate Odate) bool {
 	return otime.Before(otime2)
 }
 
-//AddDays - adds num days to given date and return new odate
+// AddDays - adds num days to given date and return new odate
 func AddDays(odate Odate, num int) Odate {
 
 	y, m, d := odate.Ymd()
@@ -232,7 +241,7 @@ func AddDays(odate Odate, num int) Odate {
 
 }
 
-//FromDateString - convert string date in format YYYY-MM-DD to Odate
+// FromDateString - convert string date in format YYYY-MM-DD to Odate
 func FromDateString(date string) Odate {
 
 	if len(date) != 10 {
@@ -246,9 +255,14 @@ func FromDateString(date string) Odate {
 	return odat
 }
 
-//FromTime - creates odate from time
+// FromTime - creates odate from time
 func FromTime(t time.Time) Odate {
 	y, m, d := t.Date()
 	odat := fmt.Sprintf("%d%02d%02d", y, m, d)
 	return Odate(odat)
+}
+
+// FromUnix - creates odate from unix timestamp
+func FromUnix(t int64) Odate {
+	return FromTime(time.Unix(t, 0))
 }

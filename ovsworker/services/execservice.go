@@ -8,15 +8,14 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/przebro/overseer/common/logger"
 	"github.com/przebro/overseer/common/types"
+	"github.com/rs/zerolog"
 
 	"github.com/przebro/overseer/ovsworker/jobs"
 	"github.com/przebro/overseer/ovsworker/msgheader"
 	"github.com/przebro/overseer/ovsworker/task"
 	"github.com/przebro/overseer/proto/wservices"
 
-	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	empty "google.golang.org/protobuf/types/known/emptypb"
@@ -41,15 +40,14 @@ var (
 )
 
 type workerExecutionService struct {
-	log       logger.AppLogger
 	te        *task.TaskRunnerManager
 	sysoutDir string
 	taskLimit int
 	wservices.UnimplementedTaskExecutionServiceServer
 }
 
-//NewWorkerExecutionService - creates a new instance of a workerExecutionService
-func NewWorkerExecutionService(sysoutDir string, limit int, log logger.AppLogger) (*workerExecutionService, error) {
+// NewWorkerExecutionService - creates a new instance of a workerExecutionService
+func NewWorkerExecutionService(sysoutDir string, limit int) (*workerExecutionService, error) {
 
 	var sysout string
 	var err error
@@ -72,7 +70,6 @@ func NewWorkerExecutionService(sysoutDir string, limit int, log logger.AppLogger
 	}
 
 	wservice := &workerExecutionService{
-		log:       log,
 		sysoutDir: sysout,
 		taskLimit: limit,
 	}
@@ -87,25 +84,21 @@ func (wsrvc *workerExecutionService) StartTask(ctx context.Context, msg *wservic
 	var response *wservices.TaskExecutionResponseMsg
 	var err error
 
+	log := zerolog.Ctx(ctx).With().Str("service", "exec").Logger()
+
 	if msg.Type == "" {
-		wsrvc.log.Desugar().Error("StartTask", zap.Uint32("code", uint32(codes.Aborted)),
-			zap.String("descr", codes.Aborted.String()),
-			zap.String("error", ErrEmptyMsgType.Error()))
+		log.Error().Str("code", codes.Aborted.String()).Err(ErrEmptyMsgType).Msg("StartTask")
 
 		return nil, status.Error(codes.Aborted, ErrEmptyMsgType.Error())
 	}
 	if msg.TaskID.TaskID == "" {
-		wsrvc.log.Desugar().Error("StartTask", zap.Uint32("code", uint32(codes.Aborted)),
-			zap.String("descr", codes.Aborted.String()),
-			zap.String("error", ErrEmptyTaskID.Error()))
+		log.Error().Str("code", codes.Aborted.String()).Err(ErrEmptyTaskID).Msg("StartTask")
 
 		return nil, status.Error(codes.Aborted, ErrEmptyTaskID.Error())
 	}
 
 	if msg.TaskID.ExecutionID == "" {
-		wsrvc.log.Desugar().Error("StartTask", zap.Uint32("code", uint32(codes.Aborted)),
-			zap.String("descr", codes.Aborted.String()),
-			zap.String("error", ErrEmptyTaskID.Error()))
+		log.Error().Str("code", codes.Aborted.String()).Err(ErrEmptyTaskID).Msg("StartTask")
 
 		return nil, status.Error(codes.Aborted, ErrEmptyExecutionID.Error())
 	}
@@ -119,25 +112,19 @@ func (wsrvc *workerExecutionService) StartTask(ctx context.Context, msg *wservic
 
 	var jobExec jobs.JobExecutor
 
-	if jobExec, err = jobs.NewJobExecutor(header, wsrvc.sysoutDir, msg.Command.Value, wsrvc.log); err != nil {
+	if jobExec, err = jobs.NewJobExecutor(ctx, header, wsrvc.sysoutDir, msg.Command.Value); err != nil {
 
-		wsrvc.log.Desugar().Error("StartTask", zap.Uint32("code", uint32(codes.Aborted)),
-			zap.String("descr", codes.Aborted.String()),
-			zap.String("error", err.Error()))
+		log.Error().Str("code", codes.Aborted.String()).Err(err).Msg("StartTask")
 
 		return nil, status.Error(codes.Aborted, err.Error())
 
 	}
 
-	wsrvc.log.Desugar().Info("StartTask",
-		zap.String("descr", "Executor Created"),
-		zap.String("type", string(header.Type)),
-		zap.String("taskID", header.TaskID),
-		zap.String("executionID", header.ExecutionID))
+	log.Info().Str("task_id", header.TaskID).Str("execution_id", header.ExecutionID).
+		Str("type", string(header.Type)).Msg("StartTask")
 
 	status, num := wsrvc.te.RunTask(jobExec)
-
-	wsrvc.log.Desugar().Info("StartTask", zap.Object("payload", &status))
+	log.Info().Interface("status", status).Msg("StartTask")
 
 	response = &wservices.TaskExecutionResponseMsg{
 		Status:     wservices.TaskExecutionResponseMsg_RECEIVED,
@@ -153,17 +140,16 @@ func (wsrvc *workerExecutionService) TaskStatus(ctx context.Context, msg *wservi
 	var response *wservices.TaskExecutionResponseMsg
 	result, num, ok := wsrvc.te.GetTaskStatus(msg.ExecutionID)
 
+	log := zerolog.Ctx(ctx).With().Str("service", "status").Logger()
+
 	if !ok {
 		msg := fmt.Sprintf("task:%s does not exists", msg.TaskID)
-
-		wsrvc.log.Desugar().Error("TaskStatus", zap.Uint32("code", uint32(codes.NotFound)),
-			zap.String("descr", codes.NotFound.String()),
-			zap.String("error", msg))
+		log.Error().Str("code", codes.NotFound.String()).Str("error", msg).Msg("TaskStatus")
 
 		return nil, status.Error(codes.NotFound, msg)
 	}
 
-	wsrvc.log.Desugar().Info("TaskStatus", zap.Object("payload", &result))
+	log.Info().Interface("status", result).Msg("StartTask")
 
 	response = &wservices.TaskExecutionResponseMsg{
 
@@ -179,16 +165,19 @@ func (wsrvc *workerExecutionService) TaskStatus(ctx context.Context, msg *wservi
 
 }
 
-func (wsrvc *workerExecutionService) TerminateTask(context.Context, *wservices.TaskIdMsg) (*wservices.WorkerActionMsg, error) {
+func (wsrvc *workerExecutionService) TerminateTask(ctx context.Context, msg *wservices.TaskIdMsg) (*wservices.WorkerActionMsg, error) {
+
+	log := zerolog.Ctx(ctx).With().Str("service", "termniate").Logger()
+	log.Error().Msg("not implemented")
+
 	return nil, status.Error(codes.Unimplemented, "not implemented")
 }
 func (wsrvc *workerExecutionService) CompleteTask(ctx context.Context, msg *wservices.TaskIdMsg) (*wservices.WorkerActionMsg, error) {
 
-	tasks := wsrvc.te.CleanupTask(msg.ExecutionID)
+	log := zerolog.Ctx(ctx).With().Str("service", "exec").Logger()
 
-	wsrvc.log.Desugar().Info("CompleteTask", zap.String("descr", "task removed"),
-		zap.String("taskID", msg.TaskID),
-		zap.String("executionID", msg.ExecutionID))
+	tasks := wsrvc.te.CleanupTask(msg.ExecutionID)
+	log.Info().Int("tasks", tasks).Str("task_id", msg.TaskID).Str("execution_id", msg.ExecutionID).Msg("task complete")
 
 	resp := &wservices.WorkerActionMsg{Message: "task removed", Success: true, Tasks: int32(tasks), TasksLimit: int32(wsrvc.taskLimit)}
 	return resp, nil

@@ -10,14 +10,13 @@ import (
 
 	"github.com/przebro/overseer/ovsworker/jobs"
 	"github.com/przebro/overseer/ovsworker/status"
+	"github.com/rs/zerolog"
 
 	"github.com/przebro/overseer/common/types"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
 	awstypes "github.com/aws/aws-sdk-go-v2/service/lambda/types"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
 type awsLambdaCaller struct {
@@ -28,8 +27,6 @@ type awsLambdaCaller struct {
 	function      string
 	alias         string
 }
-
-const logCallLambdaHeader = "call-lambda"
 
 func newLambdaCaller(conf aws.Config, job jobs.Job, functionName, alias string, payloadReader awsPayloadReader) awsServiceCaller {
 
@@ -42,18 +39,21 @@ func newLambdaCaller(conf aws.Config, job jobs.Job, functionName, alias string, 
 
 func (j *awsLambdaCaller) Call(ctx context.Context, stat chan<- status.JobExecutionStatus) status.JobExecutionStatus {
 
+	log := zerolog.Ctx(ctx)
 	fpath := filepath.Join(j.job.SysoutDir, j.job.ExecutionID)
 
 	file, err := os.Create(fpath)
 	if err != nil {
-		j.job.Log.Desugar().Error(logCallLambdaHeader, j.fields(zap.String("error", err.Error()), zap.String("path", fpath))...)
+		log.Error().Err(err).Str("path", fpath).Msg("newLambdaCaller")
+
 		return status.StatusFailed(j.job.TaskID, j.job.ExecutionID, err.Error())
 	}
 
 	payload, err := j.payloadReader.Read()
 
 	if err != nil {
-		j.job.Log.Desugar().Error(logCallLambdaHeader, j.fields(zap.String("error", err.Error()))...)
+		log.Error().Err(err).Msg("newLambdaCaller")
+
 		return status.StatusFailed(j.job.TaskID, j.job.ExecutionID, err.Error())
 	}
 
@@ -74,7 +74,7 @@ func (j *awsLambdaCaller) Call(ctx context.Context, stat chan<- status.JobExecut
 			})
 
 		if err != nil {
-			j.job.Log.Desugar().Error(logCallLambdaHeader, j.fields(zap.String("error", err.Error()))...)
+			log.Error().Err(err).Msg("newLambdaCaller")
 			stat <- status.StatusFailed(j.job.TaskID, j.job.ExecutionID, err.Error())
 			file.Write([]byte(err.Error()))
 
@@ -120,13 +120,13 @@ func (j *awsLambdaCaller) CancelJob() error {
 	return nil
 }
 
-//JobTaskID - returns ID of a task associated with this job.
+// JobTaskID - returns ID of a task associated with this job.
 func (j *awsLambdaCaller) JobTaskID() string {
 
 	return j.job.TaskID
 }
 
-//JobExecutionID - returns ExecutionID of a task
+// JobExecutionID - returns ExecutionID of a task
 func (j *awsLambdaCaller) JobExecutionID() string {
 
 	return j.job.ExecutionID
@@ -142,15 +142,4 @@ func creteCustomContextData(data map[string]string) string {
 	b, _ := json.Marshal(&customData)
 
 	return base64.RawStdEncoding.EncodeToString(b)
-}
-
-func (j *awsLambdaCaller) fields(fields ...zapcore.Field) []zap.Field {
-	f := []zapcore.Field{
-		zap.String("taskID", j.job.TaskID), zap.String("executionID", j.job.ExecutionID),
-		zap.String("functionName", j.function), zap.String("alias", j.alias),
-	}
-
-	fields = append(fields, f...)
-
-	return fields
 }

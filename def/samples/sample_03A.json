@@ -1,15 +1,17 @@
 {
-    "type" : "os",
-    "name" :"sample_03A",
-    "group" : "samples",
-    "description" :"sample os task definition",
-    "inticket" : [
+    "definition" :{
+        "type" : "os",
+        "name" :"sample_03A",
+        "group" : "samples",
+        "description" :"sample os task definition"
+    },
+    "in_tickets" : [
         {"name" : "IN-SAMPLE02C","odate" : "ODATE" },
         {"name" : "IN-SAMPLE02X","odate" : "ODATE" }
     ],
-    "relation" :"AND",
+    "expr" :"AND",
     "flags" : [],
-    "outticket" :[
+    "out_tickets" :[
         {"name" : "IN-SAMPLE02X","odate" : "ODATE" ,"action":"REM"},
         {"name" : "IN-SAMPLE04B","odate" : "ODATE" ,"action":"ADD"}
     ],

@@ -1,16 +1,18 @@
 {
-    "type" : "dummy",
-    "name" :"sample_04",
-    "group" : "samples",
-    "description" :"sample dummy task definition",
-    "inticket" : [
+    "definition" :{
+        "type" : "dummy",
+        "name" :"sample_04",
+        "group" : "samples",
+        "description" :"sample dummy task definition"
+    },
+    "in_tickets" : [
         {"name" : "IN-SAMPLE04A","odate" : "ODATE" },
         {"name" : "IN-SAMPLE04B","odate" : "ODATE" },
         {"name" : "IN-SAMPLE04C","odate" : "ODATE" }
     ],
-    "relation" :"AND",
+    "expr" :"AND",
     "flags" : [],
-    "outticket" :[
+    "out_tickets" :[
         {"name" : "IN-SAMPLE02C","odate" : "ODATE" ,"action":"REM"},
         {"name" : "IN-SAMPLE02X","odate" : "ODATE" ,"action":"REM"},
         {"name" : "IN-SAMPLE01A","odate" : "ODATE" ,"action":"REM"},

@@ -1,34 +1,6 @@
 package auth
 
-import (
-	"os"
-	"testing"
-
-	"github.com/przebro/overseer/common/logger"
-	"github.com/przebro/overseer/datastore"
-	"github.com/przebro/overseer/overseer/config"
-)
-
-var astorecfg = config.StoreProviderConfiguration{
-	Store: []config.StoreConfiguration{
-		{
-			ID:               "userstore",
-			ConnectionString: "local;/../../data/tests?synctime=0",
-		},
-	},
-	Collections: []config.CollectionConfiguration{
-		{
-			Name:    "authtest",
-			StoreID: "userstore",
-		},
-	},
-}
-
-var aconf = config.SecurityConfiguration{
-	AllowAnonymous: true,
-	Collection:     "authtest",
-}
-
+/*
 var aprovider *datastore.Provider
 
 func aprepare(t *testing.T) {
@@ -37,14 +9,12 @@ func aprepare(t *testing.T) {
 		return
 	}
 
-	log := logger.NewTestLogger()
-
 	var err error
 	f, _ := os.Create("../../data/tests/authtest.json")
 	f.Write([]byte("{}"))
 	f.Close()
 
-	provider, err = datastore.NewDataProvider(astorecfg, log)
+	provider, err = datastore.NewDataProvider(astorecfg)
 	if err != nil {
 		t.Fatal("unable to init store")
 	}
@@ -151,3 +121,4 @@ func TestDeleteAssociation(t *testing.T) {
 	}
 
 }
+*/

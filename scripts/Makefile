@@ -17,6 +17,10 @@ build:
 	go build -race -o bin cmd/ovsgate/ovsgate.go
 	go build -o bin/tools/ cmd/ovstools/ovscli.go
 	go build -o bin/chkprg chkprg/main.go
+arch:
+	GOOS=linux GOARCH=amd64 go build -o bin/ovs-linux-amd64 cmd/overseer/ovs.go
+	GOOS=linux GOARCH=amd64 go build -o bin/ovsgate-linux-amd64 cmd/ovsgate/ovsgate.go
+	GOOS=linux GOARCH=amd64 go build -o bin/ovswork-linux-amd64 cmd/ovswork/ovswork.go
 tests:
 	[ -d $(TESTDIR) ] || mkdir -p $(TESTDIR)
 	[ -d $(POOLDIRT) ] || mkdir -p $(POOLDIRT)
@@ -35,6 +39,7 @@ protoc:
 	 protoc -I ./proto --openapiv2_out ./www/swagger --openapiv2_opt logtostderr=true services.proto
 dockerbuild:
 	docker build -t overseer/mongodb -f docker/mongodb/Dockerfile .
+	docker build -t ovswork:latest . -f Dockerfile.worker
 start:
 	docker run -d -l ovsdbmongo --name mongo_ovs -p23017:27017 -v ${PWD}/docker/mongodb/etc:/etc/mongo \
 		-e MONGO_INITDB_ROOT_USERNAME=admin \

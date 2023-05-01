@@ -112,10 +112,13 @@ type ResourceServiceClient interface {
 	AddTicket(ctx context.Context, in *TicketActionMsg, opts ...grpc.CallOption) (*ActionResultMsg, error)
 	DeleteTicket(ctx context.Context, in *TicketActionMsg, opts ...grpc.CallOption) (*ActionResultMsg, error)
 	CheckTicket(ctx context.Context, in *TicketActionMsg, opts ...grpc.CallOption) (*ActionResultMsg, error)
+	//Should be deprecated new endpoint list resources
 	ListTickets(ctx context.Context, in *TicketActionMsg, opts ...grpc.CallOption) (ResourceService_ListTicketsClient, error)
 	SetFlag(ctx context.Context, in *FlagActionMsg, opts ...grpc.CallOption) (*ActionResultMsg, error)
 	DestroyFlag(ctx context.Context, in *FlagActionMsg, opts ...grpc.CallOption) (*ActionResultMsg, error)
+	//Should be deprecated new endpoint list resources
 	ListFlags(ctx context.Context, in *FlagActionMsg, opts ...grpc.CallOption) (ResourceService_ListFlagsClient, error)
+	ListResources(ctx context.Context, in *ListResourcesMsg, opts ...grpc.CallOption) (*ListResourcesResultMsg, error)
 }
 
 type resourceServiceClient struct {
@@ -235,6 +238,15 @@ func (x *resourceServiceListFlagsClient) Recv() (*FlagListResultMsg, error) {
 	return m, nil
 }
 
+func (c *resourceServiceClient) ListResources(ctx context.Context, in *ListResourcesMsg, opts ...grpc.CallOption) (*ListResourcesResultMsg, error) {
+	out := new(ListResourcesResultMsg)
+	err := c.cc.Invoke(ctx, "/proto.ResourceService/ListResources", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ResourceServiceServer is the server API for ResourceService service.
 // All implementations must embed UnimplementedResourceServiceServer
 // for forward compatibility
@@ -242,10 +254,13 @@ type ResourceServiceServer interface {
 	AddTicket(context.Context, *TicketActionMsg) (*ActionResultMsg, error)
 	DeleteTicket(context.Context, *TicketActionMsg) (*ActionResultMsg, error)
 	CheckTicket(context.Context, *TicketActionMsg) (*ActionResultMsg, error)
+	//Should be deprecated new endpoint list resources
 	ListTickets(*TicketActionMsg, ResourceService_ListTicketsServer) error
 	SetFlag(context.Context, *FlagActionMsg) (*ActionResultMsg, error)
 	DestroyFlag(context.Context, *FlagActionMsg) (*ActionResultMsg, error)
+	//Should be deprecated new endpoint list resources
 	ListFlags(*FlagActionMsg, ResourceService_ListFlagsServer) error
+	ListResources(context.Context, *ListResourcesMsg) (*ListResourcesResultMsg, error)
 	mustEmbedUnimplementedResourceServiceServer()
 }
 
@@ -273,6 +288,9 @@ func (UnimplementedResourceServiceServer) DestroyFlag(context.Context, *FlagActi
 }
 func (UnimplementedResourceServiceServer) ListFlags(*FlagActionMsg, ResourceService_ListFlagsServer) error {
 	return status.Errorf(codes.Unimplemented, "method ListFlags not implemented")
+}
+func (UnimplementedResourceServiceServer) ListResources(context.Context, *ListResourcesMsg) (*ListResourcesResultMsg, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListResources not implemented")
 }
 func (UnimplementedResourceServiceServer) mustEmbedUnimplementedResourceServiceServer() {}
 
@@ -419,6 +437,24 @@ func (x *resourceServiceListFlagsServer) Send(m *FlagListResultMsg) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _ResourceService_ListResources_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListResourcesMsg)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ResourceServiceServer).ListResources(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.ResourceService/ListResources",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ResourceServiceServer).ListResources(ctx, req.(*ListResourcesMsg))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ResourceService_ServiceDesc is the grpc.ServiceDesc for ResourceService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -445,6 +481,10 @@ var ResourceService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DestroyFlag",
 			Handler:    _ResourceService_DestroyFlag_Handler,
+		},
+		{
+			MethodName: "ListResources",
+			Handler:    _ResourceService_ListResources_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
@@ -1207,14 +1247,14 @@ var DefinitionService_ServiceDesc = grpc.ServiceDesc{
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AdministrationServiceClient interface {
 	CreateUser(ctx context.Context, in *CreateUserMsg, opts ...grpc.CallOption) (*ActionResultMsg, error)
-	ModifyUser(ctx context.Context, in *CreateUserMsg, opts ...grpc.CallOption) (*ActionResultMsg, error)
+	ModifyUser(ctx context.Context, in *ModifyUserMsg, opts ...grpc.CallOption) (*ActionResultMsg, error)
 	DeleteUser(ctx context.Context, in *UserMsg, opts ...grpc.CallOption) (*ActionResultMsg, error)
-	ListUsers(ctx context.Context, in *FilterMsg, opts ...grpc.CallOption) (*ListEntityResultMsg, error)
-	GetUser(ctx context.Context, in *UserMsg, opts ...grpc.CallOption) (*UserResultMsg, error)
+	ListUsers(ctx context.Context, in *FilterMsg, opts ...grpc.CallOption) (*ListUsersMsg, error)
+	GetUser(ctx context.Context, in *UserMsg, opts ...grpc.CallOption) (*UserInfoMsg, error)
 	CreateRole(ctx context.Context, in *RoleDefinitionMsg, opts ...grpc.CallOption) (*ActionResultMsg, error)
 	ModifyRole(ctx context.Context, in *RoleDefinitionMsg, opts ...grpc.CallOption) (*ActionResultMsg, error)
 	DeleteRole(ctx context.Context, in *RoleMsg, opts ...grpc.CallOption) (*ActionResultMsg, error)
-	ListRoles(ctx context.Context, in *FilterMsg, opts ...grpc.CallOption) (*ListEntityResultMsg, error)
+	ListRoles(ctx context.Context, in *FilterMsg, opts ...grpc.CallOption) (*ListRolesMsg, error)
 	GetRole(ctx context.Context, in *RoleMsg, opts ...grpc.CallOption) (*RoleResultMsg, error)
 	Quiesce(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*ActionResultMsg, error)
 	Resume(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*ActionResultMsg, error)
@@ -1237,7 +1277,7 @@ func (c *administrationServiceClient) CreateUser(ctx context.Context, in *Create
 	return out, nil
 }
 
-func (c *administrationServiceClient) ModifyUser(ctx context.Context, in *CreateUserMsg, opts ...grpc.CallOption) (*ActionResultMsg, error) {
+func (c *administrationServiceClient) ModifyUser(ctx context.Context, in *ModifyUserMsg, opts ...grpc.CallOption) (*ActionResultMsg, error) {
 	out := new(ActionResultMsg)
 	err := c.cc.Invoke(ctx, "/proto.AdministrationService/ModifyUser", in, out, opts...)
 	if err != nil {
@@ -1255,8 +1295,8 @@ func (c *administrationServiceClient) DeleteUser(ctx context.Context, in *UserMs
 	return out, nil
 }
 
-func (c *administrationServiceClient) ListUsers(ctx context.Context, in *FilterMsg, opts ...grpc.CallOption) (*ListEntityResultMsg, error) {
-	out := new(ListEntityResultMsg)
+func (c *administrationServiceClient) ListUsers(ctx context.Context, in *FilterMsg, opts ...grpc.CallOption) (*ListUsersMsg, error) {
+	out := new(ListUsersMsg)
 	err := c.cc.Invoke(ctx, "/proto.AdministrationService/ListUsers", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -1264,8 +1304,8 @@ func (c *administrationServiceClient) ListUsers(ctx context.Context, in *FilterM
 	return out, nil
 }
 
-func (c *administrationServiceClient) GetUser(ctx context.Context, in *UserMsg, opts ...grpc.CallOption) (*UserResultMsg, error) {
-	out := new(UserResultMsg)
+func (c *administrationServiceClient) GetUser(ctx context.Context, in *UserMsg, opts ...grpc.CallOption) (*UserInfoMsg, error) {
+	out := new(UserInfoMsg)
 	err := c.cc.Invoke(ctx, "/proto.AdministrationService/GetUser", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -1300,8 +1340,8 @@ func (c *administrationServiceClient) DeleteRole(ctx context.Context, in *RoleMs
 	return out, nil
 }
 
-func (c *administrationServiceClient) ListRoles(ctx context.Context, in *FilterMsg, opts ...grpc.CallOption) (*ListEntityResultMsg, error) {
-	out := new(ListEntityResultMsg)
+func (c *administrationServiceClient) ListRoles(ctx context.Context, in *FilterMsg, opts ...grpc.CallOption) (*ListRolesMsg, error) {
+	out := new(ListRolesMsg)
 	err := c.cc.Invoke(ctx, "/proto.AdministrationService/ListRoles", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -1341,14 +1381,14 @@ func (c *administrationServiceClient) Resume(ctx context.Context, in *emptypb.Em
 // for forward compatibility
 type AdministrationServiceServer interface {
 	CreateUser(context.Context, *CreateUserMsg) (*ActionResultMsg, error)
-	ModifyUser(context.Context, *CreateUserMsg) (*ActionResultMsg, error)
+	ModifyUser(context.Context, *ModifyUserMsg) (*ActionResultMsg, error)
 	DeleteUser(context.Context, *UserMsg) (*ActionResultMsg, error)
-	ListUsers(context.Context, *FilterMsg) (*ListEntityResultMsg, error)
-	GetUser(context.Context, *UserMsg) (*UserResultMsg, error)
+	ListUsers(context.Context, *FilterMsg) (*ListUsersMsg, error)
+	GetUser(context.Context, *UserMsg) (*UserInfoMsg, error)
 	CreateRole(context.Context, *RoleDefinitionMsg) (*ActionResultMsg, error)
 	ModifyRole(context.Context, *RoleDefinitionMsg) (*ActionResultMsg, error)
 	DeleteRole(context.Context, *RoleMsg) (*ActionResultMsg, error)
-	ListRoles(context.Context, *FilterMsg) (*ListEntityResultMsg, error)
+	ListRoles(context.Context, *FilterMsg) (*ListRolesMsg, error)
 	GetRole(context.Context, *RoleMsg) (*RoleResultMsg, error)
 	Quiesce(context.Context, *emptypb.Empty) (*ActionResultMsg, error)
 	Resume(context.Context, *emptypb.Empty) (*ActionResultMsg, error)
@@ -1362,16 +1402,16 @@ type UnimplementedAdministrationServiceServer struct {
 func (UnimplementedAdministrationServiceServer) CreateUser(context.Context, *CreateUserMsg) (*ActionResultMsg, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateUser not implemented")
 }
-func (UnimplementedAdministrationServiceServer) ModifyUser(context.Context, *CreateUserMsg) (*ActionResultMsg, error) {
+func (UnimplementedAdministrationServiceServer) ModifyUser(context.Context, *ModifyUserMsg) (*ActionResultMsg, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ModifyUser not implemented")
 }
 func (UnimplementedAdministrationServiceServer) DeleteUser(context.Context, *UserMsg) (*ActionResultMsg, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteUser not implemented")
 }
-func (UnimplementedAdministrationServiceServer) ListUsers(context.Context, *FilterMsg) (*ListEntityResultMsg, error) {
+func (UnimplementedAdministrationServiceServer) ListUsers(context.Context, *FilterMsg) (*ListUsersMsg, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListUsers not implemented")
 }
-func (UnimplementedAdministrationServiceServer) GetUser(context.Context, *UserMsg) (*UserResultMsg, error) {
+func (UnimplementedAdministrationServiceServer) GetUser(context.Context, *UserMsg) (*UserInfoMsg, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUser not implemented")
 }
 func (UnimplementedAdministrationServiceServer) CreateRole(context.Context, *RoleDefinitionMsg) (*ActionResultMsg, error) {
@@ -1383,7 +1423,7 @@ func (UnimplementedAdministrationServiceServer) ModifyRole(context.Context, *Rol
 func (UnimplementedAdministrationServiceServer) DeleteRole(context.Context, *RoleMsg) (*ActionResultMsg, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteRole not implemented")
 }
-func (UnimplementedAdministrationServiceServer) ListRoles(context.Context, *FilterMsg) (*ListEntityResultMsg, error) {
+func (UnimplementedAdministrationServiceServer) ListRoles(context.Context, *FilterMsg) (*ListRolesMsg, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListRoles not implemented")
 }
 func (UnimplementedAdministrationServiceServer) GetRole(context.Context, *RoleMsg) (*RoleResultMsg, error) {
@@ -1427,7 +1467,7 @@ func _AdministrationService_CreateUser_Handler(srv interface{}, ctx context.Cont
 }
 
 func _AdministrationService_ModifyUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CreateUserMsg)
+	in := new(ModifyUserMsg)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -1439,7 +1479,7 @@ func _AdministrationService_ModifyUser_Handler(srv interface{}, ctx context.Cont
 		FullMethod: "/proto.AdministrationService/ModifyUser",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AdministrationServiceServer).ModifyUser(ctx, req.(*CreateUserMsg))
+		return srv.(AdministrationServiceServer).ModifyUser(ctx, req.(*ModifyUserMsg))
 	}
 	return interceptor(ctx, in, info, handler)
 }

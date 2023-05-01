@@ -1,105 +1,129 @@
 package pool
 
 import (
+	"context"
 	"errors"
-	"fmt"
 	"sort"
 	"sync"
 	"time"
 
-	"github.com/przebro/overseer/common/logger"
 	"github.com/przebro/overseer/common/types"
 	"github.com/przebro/overseer/common/types/date"
+	"github.com/przebro/overseer/common/types/unique"
 	"github.com/przebro/overseer/datastore"
 	"github.com/przebro/overseer/overseer/config"
 	"github.com/przebro/overseer/overseer/internal/events"
-	"github.com/przebro/overseer/overseer/internal/unique"
+	"github.com/przebro/overseer/overseer/internal/pool/activetask"
+	"github.com/przebro/overseer/overseer/internal/pool/calc"
+	"github.com/przebro/overseer/overseer/internal/pool/models"
+	"github.com/przebro/overseer/overseer/internal/pool/readers"
+	"github.com/przebro/overseer/overseer/internal/pool/states"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
-//ActiveTaskPool - Holds tasks that are currently processed.
-type ActiveTaskPool struct {
-	config              config.ActivePoolConfiguration
-	dispatcher          events.Dispatcher
-	tasks               *Store
-	log                 logger.AppLogger
-	isProcActive        bool
-	processing          chan *activeTask
-	enforcedTasks       map[unique.TaskOrderID]bool
-	lock                sync.RWMutex
-	shutdown            chan struct{}
-	activate            chan bool
-	done                <-chan struct{}
-	activeDefinitionRWC ActiveDefinitionReadWriterRemover
+type ResourceManager interface {
+	CheckTickets([]types.CollectedTicketModel) []types.CollectedTicketModel
+	ProcessTicketAction([]types.TicketActionModel) bool
+	ProcessAcquireFlag([]types.FlagModel) (bool, []string)
+	ProcessReleaseFlag([]string) (bool, []string)
 }
 
-//TaskViewer - Provides a view for an active tasks in pool
+type WorkManager interface {
+	Push(ctx context.Context, t types.TaskDescription, vars types.EnvironmentVariableList) (types.WorkerTaskStatus, error)
+	Status(ctx context.Context, t types.WorkDescription) types.TaskExecutionStatus
+}
+
+// TaskViewer - Provides a view for an active tasks in pool
 type TaskViewer interface {
 	Detail(unique.TaskOrderID) (events.TaskDetailResultMsg, error)
 	List(filter string) []events.TaskInfoResultMsg
 }
 
-//NewTaskPool - creates new task pool
-func NewTaskPool(dispatcher events.Dispatcher,
+// ActiveTaskPool - Holds tasks that are currently processed.
+type ActiveTaskPool struct {
+	config              config.ActivePoolConfiguration
+	tasks               *Store
+	log                 zerolog.Logger
+	isProcActive        bool
+	processing          chan *activetask.TaskInstance
+	enforcedTasks       map[unique.TaskOrderID]bool
+	lock                sync.RWMutex
+	shutdown            chan struct{}
+	activate            chan bool
+	done                <-chan struct{}
+	activeDefinitionRWC readers.ActiveDefinitionReadWriterRemover
+	resourceManager     ResourceManager
+	workerManager       WorkManager
+	journal             readers.JournalWriter
+}
+
+// NewTaskPool - creates new task pool
+func NewTaskPool(
 	cfg config.ActivePoolConfiguration,
 	provider *datastore.Provider,
 	isProcActive bool,
-	log logger.AppLogger,
-	activeDefinitionRWC ActiveDefinitionReadWriterRemover) (*ActiveTaskPool, error) {
+	activeDefinitionRWC readers.ActiveDefinitionReadWriterRemover,
+	wm WorkManager,
+	rm ResourceManager,
+	jw readers.JournalWriter,
+) (*ActiveTaskPool, error) {
 
 	var store *Store
 	var err error
 
-	if store, err = NewStore(cfg.Collection, log, cfg.SyncTime, provider, activeDefinitionRWC); err != nil {
+	lg := log.With().Str("component", "pool").Logger()
+
+	if store, err = NewStore(lg, cfg.SyncTime, provider, activeDefinitionRWC); err != nil {
 		return nil, err
 	}
 
 	pool := &ActiveTaskPool{
 		tasks:               store,
-		dispatcher:          dispatcher,
 		config:              cfg,
 		isProcActive:        isProcActive,
-		log:                 log,
-		processing:          make(chan *activeTask, 8),
+		log:                 lg,
+		processing:          make(chan *activetask.TaskInstance, 8),
 		enforcedTasks:       map[unique.TaskOrderID]bool{},
 		lock:                sync.RWMutex{},
 		activate:            make(chan bool),
 		shutdown:            make(chan struct{}),
 		activeDefinitionRWC: activeDefinitionRWC,
-	}
-
-	if dispatcher != nil {
-		dispatcher.Subscribe(events.RouteTimeOut, pool)
+		resourceManager:     rm,
+		workerManager:       wm,
+		journal:             jw,
 	}
 
 	if pool.isProcActive {
-		pool.log.Info("Starting in ACTIVE mode")
+		pool.log.Info().Msg("Starting in ACTIVE mode")
 	} else {
-		pool.log.Info("Starting in QUIESCE mode")
+		pool.log.Info().Msg("Starting in QUIESCE mode")
 	}
 
 	return pool, nil
 }
 
-func (pool *ActiveTaskPool) cleanupCompletedTasks() int {
+func (pool *ActiveTaskPool) CleanupCompletedTasks() int {
 
-	pool.log.Info("Cleanup tasks")
+	pool.log.Info().Msg("Cleanup tasks")
 	var numDeleted = 0
 
-	pool.tasks.ForEach(func(k unique.TaskOrderID, v *activeTask) {
+	pool.tasks.ForEach(func(k unique.TaskOrderID, v *activetask.TaskInstance) {
 
-		cleanDate := date.AddDays(v.OrderDate(), v.Retention())
-		if v.State() == TaskStateEndedOk && date.IsBeforeCurrent(cleanDate, date.CurrentOdate()) {
+		cleanDate := date.AddDays(v.OrderDate(), 7) //:TODO: make it configurable
+		if v.State() == models.TaskStateEndedOk && date.IsBeforeCurrent(cleanDate, date.CurrentOdate()) {
 			delete(pool.tasks.store, v.OrderID())
 
 			numDeleted++
 		}
 	})
 
-	pool.log.Info(fmt.Sprintf("cleanup comlpete. %d tasks deleted.", numDeleted))
+	pool.log.Info().Int("deleted", numDeleted).Msg("cleanup comlpete")
 	return numDeleted
 }
 
 func (pool *ActiveTaskPool) enforceTask(taskID unique.TaskOrderID) {
+	pool.log.Info().Str("task_id", string(taskID)).Msg("Enforce task")
 	defer pool.lock.Unlock()
 	pool.lock.Lock()
 	pool.enforcedTasks[taskID] = true
@@ -108,20 +132,20 @@ func (pool *ActiveTaskPool) enforceTask(taskID unique.TaskOrderID) {
 func (pool *ActiveTaskPool) isEnforced(taskID unique.TaskOrderID) bool {
 	defer pool.lock.Unlock()
 	pool.lock.Lock()
-
+	pool.log.Debug().Str("task_id", string(taskID)).Bool("enforced", pool.enforcedTasks[taskID]).Msg("checking isEnforced")
 	enforced := pool.enforcedTasks[taskID]
 	delete(pool.enforcedTasks, taskID)
 
 	return enforced
 }
 
-func (pool *ActiveTaskPool) addTask(orderID unique.TaskOrderID, t *activeTask) {
+func (pool *ActiveTaskPool) addTask(orderID unique.TaskOrderID, t *activetask.TaskInstance) {
 
 	pool.tasks.add(orderID, t)
 }
 
-//task - Returns an active task with given id or error if the task was not found.
-func (pool *ActiveTaskPool) task(orderID unique.TaskOrderID) (*activeTask, error) {
+// task - Returns an active task with given id or error if the task was not found.
+func (pool *ActiveTaskPool) task(orderID unique.TaskOrderID) (*activetask.TaskInstance, error) {
 
 	var err error = nil
 
@@ -136,10 +160,10 @@ func (pool *ActiveTaskPool) task(orderID unique.TaskOrderID) (*activeTask, error
 
 func (pool *ActiveTaskPool) cycleTasks(t time.Time) {
 
-	tsart := time.Now()
+	//tsart := time.Now()
 	routines := 8
 
-	tchannel := make(chan *activeTask, pool.tasks.len())
+	tchannel := make(chan *activetask.TaskInstance, pool.tasks.len())
 	wg := sync.WaitGroup{}
 	wg.Add(routines)
 
@@ -147,56 +171,61 @@ func (pool *ActiveTaskPool) cycleTasks(t time.Time) {
 		go pool.processTaskState(tchannel, &wg, t)
 	}
 
-	pool.tasks.Over(func(k unique.TaskOrderID, v *activeTask) { tchannel <- v })
+	pool.tasks.Over(func(k unique.TaskOrderID, v *activetask.TaskInstance) { tchannel <- v })
 
 	close(tchannel)
 	wg.Wait()
-	pool.log.Info(time.Since(tsart))
+
+	//pool.log.Info().Int("total", pool.tasks.len()).Dur("duration", time.Since(tsart)).Msg("completed")
+
 }
 
-func (pool *ActiveTaskPool) processTaskState(ch <-chan *activeTask, wg *sync.WaitGroup, t time.Time) {
+func (pool *ActiveTaskPool) processTaskState(ch <-chan *activetask.TaskInstance, wg *sync.WaitGroup, t time.Time) {
 
 	for task := range ch {
 
-		executionState := getProcessState(task.State(), task.IsHeld())
+		executionState := pool.getProcessState(task.State(), task.IsHeld())
 		if executionState == nil {
 			continue
 		}
 
-		exCtx := &TaskExecutionContext{
-			odate:        date.CurrentOdate(),
-			task:         task,
-			time:         t,
-			maxRc:        pool.config.MaxOkReturnCode,
-			state:        executionState,
-			dispatcher:   pool.dispatcher,
-			log:          pool.log,
-			isEnforced:   pool.isEnforced(task.OrderID()),
-			isInTime:     false,
-			scheduleTime: pool.config.NewDayProc,
+		exCtx := &states.TaskExecutionContext{
+			Odate:      date.CurrentOdate(),
+			Task:       task,
+			Time:       t,
+			MaxRc:      pool.config.MaxOkReturnCode,
+			State:      executionState,
+			Log:        pool.log,
+			IsEnforced: pool.isEnforced(task.OrderID()),
+			IsInTime:   false,
+			Rmanager:   pool.resourceManager,
+			Wmanager:   pool.workerManager,
+			Journal:    pool.journal,
 		}
-		for exCtx.state.processState(exCtx) {
+		for exCtx.State.ProcessState(exCtx) {
 		}
 
-		n, g, _ := task.GetInfo()
-		pool.log.Debug(n, ":", g, " Task state:", task.State(), task.OrderID())
+		n, g := task.Definition.Name, task.Definition.Group
+
+		pool.log.Debug().Str("task_id", string(task.OrderID())).Str("group", g).Str("name", n).Str("state", task.State().String()).Msg("state")
+
 	}
 	wg.Done()
 
 }
 
-//Detail - Gets task details
+// Detail - Gets task details
 func (pool *ActiveTaskPool) Detail(orderID unique.TaskOrderID) (events.TaskDetailResultMsg, error) {
 
 	result := events.TaskDetailResultMsg{}
-	var t *activeTask
+	var t *activetask.TaskInstance
 	var exists bool
 
 	if t, exists = pool.tasks.get(orderID); !exists {
 		return result, ErrUnableFindTask
 	}
 
-	result.Name, result.Group, result.Description = t.GetInfo()
+	result.Name, result.Group, result.Description = t.Definition.Name, t.Definition.Group, t.Definition.Description
 	result.Odate = t.OrderDate()
 	result.TaskID = t.OrderID()
 	result.State = int32(t.State())
@@ -207,14 +236,14 @@ func (pool *ActiveTaskPool) Detail(orderID unique.TaskOrderID) (events.TaskDetai
 	result.RunNumber = int32(t.RunNumber())
 	result.Worker = t.WorkerName()
 
-	if c := t.CycleData(); c.IsCyclic {
+	if c := t.Cyclic; c.IsCycle {
 
 		result.TaskCycleMsg = events.TaskCycleMsg{
-			IsCyclic:    c.IsCyclic,
-			NextRun:     c.NextRun,
-			RunFrom:     c.RunFrom,
-			MaxRun:      c.MaxRun,
-			RunInterval: c.RunInterval,
+			IsCyclic:    c.IsCycle,
+			NextRun:     "", //c.NextRun,
+			RunFrom:     string(c.RunFrom),
+			MaxRun:      c.MaxRuns,
+			RunInterval: c.TimeInterval,
 		}
 	}
 	result.From, result.To = func(f, t types.HourMinTime) (string, string) { return string(f), string(t) }(t.TimeSpan())
@@ -225,24 +254,34 @@ func (pool *ActiveTaskPool) Detail(orderID unique.TaskOrderID) (events.TaskDetai
 		Fulfilled bool
 	}, 0)
 
-	for _, ticket := range t.Collected() {
+	tickets := make([]types.CollectedTicketModel, 0)
+
+	for _, e := range t.InTickets {
+
+		realOdat := calc.CalcRealOdate(t.OrderDate(), e.Odate, t.Schedule)
+		tickets = append(tickets, types.CollectedTicketModel{Odate: realOdat, Name: e.Name, Exists: false})
+	}
+
+	tickets = pool.resourceManager.CheckTickets(tickets)
+
+	for _, ticket := range tickets {
 		result.Tickets = append(result.Tickets, struct {
 			Name      string
 			Odate     date.Odate
 			Fulfilled bool
-		}{Name: ticket.name, Odate: date.Odate(ticket.odate), Fulfilled: ticket.fulfilled})
+		}{Name: ticket.Name, Odate: ticket.Odate, Fulfilled: ticket.Exists})
 	}
 
 	return result, nil
 
 }
 
-//List - Filters and Lists tasks in pool
+// List - Filters and Lists tasks in pool
 func (pool *ActiveTaskPool) List(filter string) []events.TaskInfoResultMsg {
 
 	result := make([]events.TaskInfoResultMsg, 0)
 
-	pool.tasks.Over(func(k unique.TaskOrderID, v *activeTask) {
+	pool.tasks.Over(func(k unique.TaskOrderID, v *activetask.TaskInstance) {
 		n, g, _ := v.GetInfo()
 		data := events.TaskInfoResultMsg{Group: g,
 			Name:      n,
@@ -261,49 +300,22 @@ func (pool *ActiveTaskPool) List(filter string) []events.TaskInfoResultMsg {
 	return result
 }
 
-//Process - receive notification from dispatcher
-func (pool *ActiveTaskPool) Process(receiver events.EventReceiver, routename events.RouteName, msg events.DispatchedMessage) {
-
-	switch routename {
-	case events.RouteTimeOut:
-		{
-			pool.log.Debug("task action message, route:", events.RouteTimeOut, "id:", msg.MsgID())
-
-			msgdata, istype := msg.Message().(events.RouteTimeOutMsgFormat)
-			if !istype {
-				er := events.ErrUnrecognizedMsgFormat
-				pool.log.Error(er)
-				events.ResponseToReceiver(receiver, er)
-				break
-			}
-			pool.log.Debug("Process time events")
-			pool.ProcessTimeEvent(msgdata)
-		}
-	default:
-		{
-			err := events.ErrInvalidRouteName
-			pool.log.Error(err)
-			events.ResponseToReceiver(receiver, err)
-		}
-	}
+func (pool *ActiveTaskPool) NewDayProc() types.HourMinTime {
+	return pool.config.NewDayProc
 }
 
-//ProcessTimeEvent - entry point for processing tasks
-func (pool *ActiveTaskPool) ProcessTimeEvent(data events.RouteTimeOutMsgFormat) {
-
-	t := time.Date(data.Year, time.Month(data.Month), data.Day, data.Hour, data.Min, data.Sec, 0, time.Local)
-
+func (pool *ActiveTaskPool) ProcessTimeEvent(t time.Time) {
 	pool.cycleTasks(t)
 }
 
-//Start - starts tasks processing
+// Start - starts tasks processing
 func (pool *ActiveTaskPool) Start() error {
 
 	defer pool.lock.Unlock()
 	pool.lock.Lock()
 
 	if pool.done == nil {
-		pool.log.Info("starting store watch:", pool.isProcActive)
+		pool.log.Info().Msg("starting store watch")
 		pool.done = pool.tasks.watch(pool.activate, pool.shutdown)
 	}
 
@@ -313,7 +325,7 @@ func (pool *ActiveTaskPool) Start() error {
 	return nil
 }
 
-//Shutdown - shutdowns task pool
+// Shutdown - shutdowns task pool
 func (pool *ActiveTaskPool) Shutdown() error {
 
 	defer pool.lock.Unlock()
@@ -325,7 +337,7 @@ func (pool *ActiveTaskPool) Shutdown() error {
 	return nil
 }
 
-//Resume - resumes tasks processing
+// Resume - resumes tasks processing
 func (pool *ActiveTaskPool) Resume() error {
 
 	defer pool.lock.Unlock()
@@ -338,7 +350,7 @@ func (pool *ActiveTaskPool) Resume() error {
 	return nil
 }
 
-//Quiesce - puts taskpool into sleep mode
+// Quiesce - puts taskpool into sleep mode
 func (pool *ActiveTaskPool) Quiesce() error {
 
 	defer pool.lock.Unlock()
@@ -350,4 +362,21 @@ func (pool *ActiveTaskPool) Quiesce() error {
 	<-pool.done
 
 	return nil
+}
+
+func (pool *ActiveTaskPool) getProcessState(state models.TaskState, isHeld bool) states.TaskExecutionState {
+
+	if isHeld {
+		return nil
+	}
+
+	if state == models.TaskStateWaiting {
+		return &states.OstateConfirm{}
+	}
+	if state == models.TaskStateExecuting {
+		return &states.OstateExecuting{}
+	}
+	//Any other case means that task should not be processed.
+	return nil
+
 }

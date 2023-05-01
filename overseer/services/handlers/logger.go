@@ -6,10 +6,9 @@ import (
 	"fmt"
 	"path"
 
-	"github.com/przebro/overseer/common/logger"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
 )
@@ -24,23 +23,27 @@ const (
 	messageKey    = "message"
 )
 
-//ServiceLoggerHandler -  provides both unary and stream handlers for middleware logging
+// ServiceLoggerHandler -  provides both unary and stream handlers for middleware logging
 type ServiceLoggerHandler struct {
-	log logger.AppLogger
+	log *zerolog.Logger
 }
 
-//NewServiceLoggerHandler - creates a new ServiceLoggerHandler
-func NewServiceLoggerHandler(log logger.AppLogger) *ServiceLoggerHandler {
+// NewServiceLoggerHandler - creates a new ServiceLoggerHandler
+func NewServiceLoggerHandler(log *zerolog.Logger) *ServiceLoggerHandler {
 
 	return &ServiceLoggerHandler{log: log}
 }
 
-//Log - a unary handler
+// Log - a unary handler
 func (lp *ServiceLoggerHandler) Log(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 
-	log := getLoggerWithFlds(lp.log, info.FullMethod)
+	nctx := log.Logger.With().Str("component", "grpc-server").Logger().WithContext(ctx)
+	//log := getLoggerWithFlds(lp.log, info.FullMethod)
+	log := zerolog.Ctx(nctx)
+	setMethodInContext(log, info.FullMethod)
+
 	logMessage(log, unaryRcvKey, req)
-	resp, err := handler(ctx, req)
+	resp, err := handler(nctx, req)
 	if err == nil {
 		logMessage(log, unarySendKey, resp)
 	}
@@ -48,7 +51,7 @@ func (lp *ServiceLoggerHandler) Log(ctx context.Context, req interface{}, info *
 	return resp, err
 }
 
-//StreamLog - a stream handler
+// StreamLog - a stream handler
 func (lp *ServiceLoggerHandler) StreamLog(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 
 	wstream := wrapLogServerStream(ss, lp.log, info.FullMethod)
@@ -56,35 +59,37 @@ func (lp *ServiceLoggerHandler) StreamLog(srv interface{}, ss grpc.ServerStream,
 	return handler(srv, wstream)
 }
 
-//GetUnaryHandler - gets a unary handler
+// GetUnaryHandler - gets a unary handler
 func (lp *ServiceLoggerHandler) GetUnaryHandler() grpc.UnaryServerInterceptor {
 
 	return lp.Log
 }
 
-//GetStreamHandler - gets a stream handler
+// GetStreamHandler - gets a stream handler
 func (lp *ServiceLoggerHandler) GetStreamHandler() grpc.StreamServerInterceptor {
 	return lp.StreamLog
 }
 
-func wrapLogServerStream(stream grpc.ServerStream, log logger.AppLogger, method string) *wrappedLogServerStream {
+func wrapLogServerStream(stream grpc.ServerStream, log *zerolog.Logger, method string) *wrappedLogServerStream {
 
-	return &wrappedLogServerStream{ServerStream: stream, log: log, method: method, WrappedContext: stream.Context()}
+	nctx := log.With().Str("component", "grpc-server").Logger().WithContext(stream.Context())
+
+	return &wrappedLogServerStream{ServerStream: stream, method: method, WrappedContext: nctx}
 
 }
 
 type wrappedLogServerStream struct {
 	grpc.ServerStream
-	log            logger.AppLogger
 	method         string
 	WrappedContext context.Context
 }
 
 func (w *wrappedLogServerStream) SendMsg(m interface{}) error {
 
+	log := zerolog.Ctx(w.WrappedContext)
 	err := w.ServerStream.SendMsg(m)
 	if err == nil {
-		log := getLoggerWithFlds(w.log, w.method)
+		setMethodInContext(log, w.method)
 		logMessage(log, streamSendKey, m)
 	}
 
@@ -93,10 +98,12 @@ func (w *wrappedLogServerStream) SendMsg(m interface{}) error {
 
 func (w *wrappedLogServerStream) RecvMsg(m interface{}) error {
 
+	log := zerolog.Ctx(w.WrappedContext)
 	err := w.ServerStream.RecvMsg(m)
 
 	if err == nil {
-		log := getLoggerWithFlds(w.log, w.method)
+
+		setMethodInContext(log, w.method)
 		logMessage(log, streamRcvKey, m)
 	}
 
@@ -107,29 +114,24 @@ func (w *wrappedLogServerStream) Context() context.Context {
 	return w.WrappedContext
 }
 
-func getLoggerWithFlds(log logger.AppLogger, method string) *zap.Logger {
+func setMethodInContext(log *zerolog.Logger, method string) {
 
-	return log.Desugar().With(
-		zap.String(serviceKey, path.Dir(method)[1:]),
-		zap.String(methodKey, path.Base(method)),
-	)
+	log.UpdateContext(func(c zerolog.Context) zerolog.Context {
+		return c.Str("service", path.Dir(method)[1:]).Str("method", path.Base(method))
+	})
 }
 
-func logMessage(log *zap.Logger, key string, gmsg interface{}) {
+func logMessage(log *zerolog.Logger, key string, gmsg interface{}) {
 
 	if m, ok := gmsg.(proto.Message); ok {
-
-		log.Check(zapcore.InfoLevel, "grpc-info-level").Write(zap.Object(key, &jsonMarshaller{protomsg: m}))
+		js := &jsonMarshaller{protomsg: m}
+		bytes, _ := js.MarshalJSON()
+		log.Info().RawJSON("payload", bytes).Msg("grpc-info-level")
 	}
 }
 
 type jsonMarshaller struct {
 	protomsg proto.Message
-}
-
-func (j *jsonMarshaller) MarshalLogObject(e zapcore.ObjectEncoder) error {
-
-	return e.AddReflected(messageKey, j)
 }
 
 func (j *jsonMarshaller) MarshalJSON() ([]byte, error) {

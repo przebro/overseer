@@ -1,51 +1,46 @@
 package resources
 
-import (
-	"github.com/przebro/overseer/common/types/date"
-)
-
 type (
+	ResourceType string
 
-	//FlagResourcePolicy - type of flag
-	FlagResourcePolicy int8
+	ResourceModel struct {
+		ID    string       `json:"_id" bson:"_id"`
+		Type  ResourceType `json:"type" bson:"type"`
+		Value int64        `json:"value"`
+	}
 
-	//TicketResource - Condition resources
-	TicketResource struct {
-		Name  string     `json:"name" bson:"name" validate:"required,max=32"`
-		Odate date.Odate `json:"odate" bson:"odate"`
+	FlagFilterOptions struct {
+		FlagPolicy []uint8
 	}
-	//FlagResource - Semaphore like resources
-	FlagResource struct {
-		Name   string             `json:"name" bson:"name" validate:"required,max=32"`
-		Policy FlagResourcePolicy `json:"policy" bson:"policy"`
-		Count  int                `json:"count" bson:"count"`
+	TicketFilterOptions struct {
+		Odate         string
+		OrderDateFrom string
+		OrderDateTo   string
 	}
-	//TicketsResourceModel - tickets model
-	TicketsResourceModel struct {
-		ID      string           `json:"_id" bson:"_id"`
-		REV     string           `json:"_rev" bson:"_rev"`
-		Tickets []TicketResource `json:"tickets" bson:"tickets"`
-	}
-	//FlagsResourceModel - flags model
-	FlagsResourceModel struct {
-		ID    string         `json:"_id" bson:"_id"`
-		REV   string         `json:"_rev" bson:"_rev"`
-		Flags []FlagResource `json:"flags" bson:"flags"`
+
+	ResourceFilter struct {
+		Name string
+		Type []ResourceType
+		*FlagFilterOptions
+		*TicketFilterOptions
 	}
 )
 
 const (
 	//FlagPolicyShared  - task can run together with other tasks that share this resources
-	FlagPolicyShared FlagResourcePolicy = 0
+	FlagPolicyShared uint8 = 0
 	//FlagPolicyExclusive - only one task can run with exclusive policy
-	FlagPolicyExclusive FlagResourcePolicy = 1
+	FlagPolicyExclusive uint8 = 1
+
+	ResourceTypeTicket ResourceType = "ticket"
+	ResourceTypeFlag   ResourceType = "flag"
 )
 
-type ticketSorter struct{ list []TicketResource }
+type ticketSorter struct{ list []ResourceModel }
 
 func (s ticketSorter) Len() int      { return len(s.list) }
 func (s ticketSorter) Swap(i, j int) { s.list[i], s.list[j] = s.list[j], s.list[i] }
 
 func (s ticketSorter) Less(i, j int) bool {
-	return s.list[i].Name < s.list[j].Name
+	return s.list[i].ID < s.list[j].ID
 }

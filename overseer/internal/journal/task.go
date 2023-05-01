@@ -6,16 +6,16 @@ import (
 	"time"
 
 	"github.com/przebro/overseer/common/core"
-	"github.com/przebro/overseer/common/logger"
+	"github.com/przebro/overseer/common/types/unique"
 	"github.com/przebro/overseer/datastore"
 	"github.com/przebro/overseer/overseer/config"
-	"github.com/przebro/overseer/overseer/internal/events"
-	"github.com/przebro/overseer/overseer/internal/unique"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 
 	"github.com/przebro/databazaar/collection"
 )
 
-//Enumeration of task's messages that will be sent to journal when a specific event occurs
+// Enumeration of task's messages that will be sent to journal when a specific event occurs
 const (
 	TaskHeld              = "TASK HELD, user:%s"
 	TaskFreed             = "TASK FREED, user:%s"
@@ -35,6 +35,8 @@ const (
 	TaskEndedNOK          = "ENDED NOT OK, RC:%d, STATUS:%d"
 	TaskEndedOK           = "ENDED OK, RC:%d, STATUS:%d"
 	TaskPostProc          = "TASK POST PROCESSING ends"
+
+	collectionName = "journal"
 )
 
 type mLogModel struct {
@@ -43,68 +45,64 @@ type mLogModel struct {
 	Tstamp  time.Time  `json:"time" bson:"time"`
 }
 
-//LogEntry - represents a single task event
+// LogEntry - represents a single task event
 type LogEntry struct {
 	Time        time.Time `json:"time" bson:"time"`
 	ExecutionID string    `json:"eid"  bson:"eid"`
 	Message     string    `json:"data" bson:"data"`
 }
 
-//TaskLogReader -reads task log
+// TaskLogReader -reads task log
 type TaskLogReader interface {
 	ReadLog(id unique.TaskOrderID) []LogEntry
 }
 
-//TaskLogWriter - wrties task log
+// TaskLogWriter - wrties task log
 type TaskLogWriter interface {
 	WriteLog(id unique.TaskOrderID, entry LogEntry)
 }
 
-//TaskJournal - writes and reads task journal data
+// TaskJournal - writes and reads task journal data
 type TaskJournal interface {
 	TaskLogReader
 	TaskLogWriter
 	core.OverseerComponent
 }
 
-type taskLogJournal struct {
+type TaskLogJournal struct {
 	conf     config.JournalConfiguration
 	col      collection.DataCollection
 	store    map[unique.TaskOrderID]mLogModel
 	lock     sync.Mutex
-	log      logger.AppLogger
+	log      zerolog.Logger
 	shutdown chan struct{}
 	done     <-chan struct{}
 }
 
-//NewTaskJournal - creates a new instance of a TaskJournal
-func NewTaskJournal(conf config.JournalConfiguration, dispatcher events.Dispatcher, provider *datastore.Provider, log logger.AppLogger) (TaskJournal, error) {
+// NewTaskJournal - creates a new instance of a TaskJournal
+func NewTaskJournal(conf config.JournalConfiguration, provider *datastore.Provider) (*TaskLogJournal, error) {
 
 	var err error
 	var col collection.DataCollection
 
-	if col, err = provider.GetCollection(conf.LogCollection); err != nil {
+	if col, err = provider.GetCollection(context.Background(), collectionName); err != nil {
 		return nil, err
 	}
 
 	sch := make(chan struct{})
 
-	journal := &taskLogJournal{col: col,
+	journal := &TaskLogJournal{col: col,
 		store:    map[unique.TaskOrderID]mLogModel{},
 		lock:     sync.Mutex{},
-		log:      log,
+		log:      log.With().Str("component", "journal").Logger(),
 		conf:     conf,
 		shutdown: sch,
-	}
-
-	if dispatcher != nil {
-		dispatcher.Subscribe(events.RoutTaskJournal, journal)
 	}
 
 	return journal, nil
 }
 
-func (journal *taskLogJournal) ReadLog(id unique.TaskOrderID) []LogEntry {
+func (journal *TaskLogJournal) ReadLog(id unique.TaskOrderID) []LogEntry {
 
 	var entries []LogEntry = []LogEntry{}
 	var logs mLogModel = mLogModel{}
@@ -123,13 +121,11 @@ func (journal *taskLogJournal) ReadLog(id unique.TaskOrderID) []LogEntry {
 		logs.Tstamp = time.Now()
 	}
 
-	for _, n := range logs.Entries {
-		entries = append(entries, n)
-	}
+	entries = append(entries, logs.Entries...)
 
 	return entries
 }
-func (journal *taskLogJournal) WriteLog(id unique.TaskOrderID, entry LogEntry) {
+func (journal *TaskLogJournal) WriteLog(id unique.TaskOrderID, entry LogEntry) {
 
 	logs := mLogModel{}
 	var err error
@@ -150,7 +146,7 @@ func (journal *taskLogJournal) WriteLog(id unique.TaskOrderID, entry LogEntry) {
 	journal.store[id] = logs
 }
 
-func (journal *taskLogJournal) watch(interval int, shutdown <-chan struct{}) <-chan struct{} {
+func (journal *TaskLogJournal) watch(interval int, shutdown <-chan struct{}) <-chan struct{} {
 
 	inform := make(chan struct{})
 
@@ -160,7 +156,6 @@ func (journal *taskLogJournal) watch(interval int, shutdown <-chan struct{}) <-c
 			<-sc
 			journal.sync(interval, time.Now())
 			close(inf)
-			return
 
 		}(shutdown, inform)
 
@@ -191,7 +186,7 @@ func (journal *taskLogJournal) watch(interval int, shutdown <-chan struct{}) <-c
 
 }
 
-func (journal *taskLogJournal) sync(interval int, t time.Time) {
+func (journal *TaskLogJournal) sync(interval int, t time.Time) {
 
 	journal.lock.Lock()
 
@@ -205,44 +200,22 @@ func (journal *taskLogJournal) sync(interval int, t time.Time) {
 	journal.lock.Unlock()
 }
 
-//Process - receive notification from dispatcher
-func (journal *taskLogJournal) Process(receiver events.EventReceiver, routename events.RouteName, msg events.DispatchedMessage) {
-
-	switch routename {
-	case events.RoutTaskJournal:
-		{
-			var ok bool
-			var msgdata events.RouteJournalMsg
-			if msgdata, ok = msg.Message().(events.RouteJournalMsg); !ok {
-				journal.log.Error(events.ErrUnrecognizedMsgFormat)
-				events.ResponseToReceiver(receiver, events.ErrUnrecognizedMsgFormat)
-				break
-			}
-
-			journal.WriteLog(msgdata.OrderID, LogEntry{Time: msgdata.Time, ExecutionID: msgdata.ExecutionID, Message: msgdata.Msg})
-			events.ResponseToReceiver(receiver, "")
-		}
-	default:
-		{
-			err := events.ErrInvalidRouteName
-			journal.log.Error(err)
-			events.ResponseToReceiver(receiver, err)
-		}
-	}
-}
-
-func (journal *taskLogJournal) Start() error {
+func (journal *TaskLogJournal) Start() error {
 
 	journal.done = journal.watch(journal.conf.SyncTime, journal.shutdown)
 
 	return nil
 }
 
-func (journal *taskLogJournal) Shutdown() error {
+func (journal *TaskLogJournal) Shutdown() error {
 
 	journal.shutdown <- struct{}{}
 	<-journal.done
 	close(journal.shutdown)
 
 	return nil
+}
+
+func (journal *TaskLogJournal) PushJournalMessage(ID unique.TaskOrderID, execID string, t time.Time, msg string) {
+	journal.WriteLog(ID, LogEntry{Time: t, ExecutionID: execID, Message: msg})
 }

@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/przebro/overseer/common/logger"
 	"github.com/przebro/overseer/ovsworker/task"
 	"github.com/przebro/overseer/proto/actions"
 	"github.com/przebro/overseer/proto/wservices"
@@ -20,37 +19,35 @@ import (
 )
 
 var exservice *workerExecutionService
-var lg = logger.NewTestLogger()
 
 func init() {
 
 	os.Mkdir("../../data/tests/sysout", os.ModePerm)
 	exservice = &workerExecutionService{
-		log:       lg,
 		te:        task.NewTaskRunnerManager(),
 		sysoutDir: "../../data/tests/sysout",
 	}
 
 }
 func TestCreateInstance(t *testing.T) {
-	inst, _ := NewWorkerExecutionService("../../data/tests/sysout", 0, lg)
+	inst, _ := NewWorkerExecutionService("../../data/tests/sysout", 0)
 	if inst == nil {
 		t.Error("create instance")
 	}
 
-	_, err := NewWorkerExecutionService("../../data/tests/tasks.json", 0, lg)
+	_, err := NewWorkerExecutionService("../../data/tests/tasks.json", 0)
 	if err == nil {
 		t.Error("create instance")
 	}
 
-	_, err = NewWorkerExecutionService("../../data/not_exists/sysout", 0, lg)
+	_, err = NewWorkerExecutionService("../../data/not_exists/sysout", 0)
 	if err == nil {
 		t.Error("create instance")
 	}
 
 	s, _ := os.Getwd()
 
-	inst, _ = NewWorkerExecutionService(s, 0, lg)
+	inst, _ = NewWorkerExecutionService(s, 0)
 	if inst == nil {
 		t.Error("create instance:", err)
 	}
@@ -100,7 +97,7 @@ func TestStartTaskDummy(t *testing.T) {
 
 func TestStartTaskOS(t *testing.T) {
 
-	cmd, _ := anypb.New(&actions.OsTaskAction{Type: actions.OsTaskAction_command, CommandLine: "ls -l"})
+	cmd, _ := anypb.New(&actions.OsTaskAction{CommandLine: "ls -l"})
 	msg := &wservices.StartTaskMsg{
 		TaskID:    &wservices.TaskIdMsg{TaskID: "00010", ExecutionID: "1234555"},
 		Type:      "os",
@@ -124,7 +121,7 @@ func TestStartTask_Program(t *testing.T) {
 
 	t.SkipNow()
 
-	cmd, _ := anypb.New(&actions.OsTaskAction{Type: actions.OsTaskAction_command, CommandLine: "../../bin/chkprg"})
+	cmd, _ := anypb.New(&actions.OsTaskAction{CommandLine: "../../bin/chkprg"})
 	taskID := &wservices.TaskIdMsg{TaskID: "00010", ExecutionID: "1234999"}
 	msg := &wservices.StartTaskMsg{
 		TaskID:    taskID,

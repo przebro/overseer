@@ -7,14 +7,14 @@ message DummyTaskAction {
     string data = 1;
 }
 
+message OsStepDefinition{
+    string stepName = 1;
+    string command = 2;
+}
 message OsTaskAction {
-    enum OsType{
-        command = 0;
-        script = 1;
-    }
-    OsType type = 1;
     string commandLine  = 2;
     string runas = 3;
+    repeated OsStepDefinition steps = 4;
 }
 
 

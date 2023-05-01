@@ -1,0 +1,5 @@
+FROM alpine:latest
+EXPOSE 7054
+COPY ./bin/ovsgate-linux-amd64 overseer/ovsgate-linux-amd64
+COPY ./config/gateway_config.json overseer/gateway.json
+CMD ["/overseer/ovsgate-linux-amd64","--config","/overseer/gateway.json"]

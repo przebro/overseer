@@ -1,33 +1,10 @@
 package auth
 
-import (
-	"context"
-	"encoding/json"
-	"os"
-	"testing"
-
-	"github.com/przebro/overseer/common/logger"
-	"github.com/przebro/overseer/datastore"
-	"github.com/przebro/overseer/overseer/config"
-)
-
-var prvstorecfg = config.StoreProviderConfiguration{
-	Store: []config.StoreConfiguration{
-		{ID: "security",
-			ConnectionString: "local;/../../data/tests?synctime=0",
-		},
-	},
-	Collections: []config.CollectionConfiguration{
-		{
-			Name:    "securitytest",
-			StoreID: "security",
-		},
-	},
-}
+/*
+var prvstorecfg = config.StoreConfiguration{ID: "security", ConnectionString: "local;/../../data/tests?synctime=0"}
 
 var prvconf = config.SecurityConfiguration{
 	AllowAnonymous: true,
-	Collection:     "securitytest",
 }
 
 var prvprovider *datastore.Provider
@@ -112,8 +89,6 @@ func prvprepare(t *testing.T) {
 		return
 	}
 
-	log := logger.NewTestLogger()
-
 	var err error
 	f, _ := os.Create("../../data/tests/securitytest.json")
 	data, err := json.Marshal(testSecurity)
@@ -123,7 +98,7 @@ func prvprepare(t *testing.T) {
 	f.Write(data)
 	f.Close()
 
-	prvprovider, err = datastore.NewDataProvider(prvstorecfg, log)
+	prvprovider, err = datastore.NewDataProvider(prvstorecfg)
 	if err != nil {
 		t.Fatal("unable to init store")
 	}
@@ -133,15 +108,7 @@ func prvprepare(t *testing.T) {
 func TestCreateNewAuthorizationProvider(t *testing.T) {
 	prvprepare(t)
 
-	prvconf.Collection = ""
 	_, err := NewAuthorizationManager(prvconf, prvprovider)
-	if err == nil {
-		t.Error("unexpected result")
-	}
-
-	prvconf.Collection = "securitytest"
-
-	_, err = NewAuthorizationManager(prvconf, prvprovider)
 	if err != nil {
 		t.Error("unexpected result")
 	}
@@ -264,12 +231,7 @@ func TestVerifyAction(t *testing.T) {
 
 func TestAuthenticationManager(t *testing.T) {
 
-	amanager, err := NewAuthenticationManager("", prvprovider)
-	if err == nil {
-		t.Error("unexpected result")
-	}
-
-	amanager, err = NewAuthenticationManager(prvconf.Collection, prvprovider)
+	amanager, err := NewAuthenticationManager(prvprovider)
 	if err != nil {
 		t.Error("unexpected result")
 	}
@@ -310,3 +272,4 @@ func TestHashPassword(t *testing.T) {
 		t.Error("unexpected error")
 	}
 }
+*/

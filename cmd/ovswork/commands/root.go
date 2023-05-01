@@ -11,6 +11,7 @@ import (
 	"github.com/przebro/overseer/common/validator"
 	"github.com/przebro/overseer/ovsworker"
 	"github.com/przebro/overseer/ovsworker/config"
+	"github.com/rs/zerolog/log"
 
 	"github.com/spf13/cobra"
 )
@@ -36,7 +37,7 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-//Setup - performs setup
+// Setup - performs setup
 func Setup() {
 	rootCmd.Flags().StringVar(&configFile, "config", "", "path to configuration file")
 	rootCmd.Flags().StringVar(&hostAddr, "host", "", "overseer address")
@@ -44,7 +45,7 @@ func Setup() {
 	rootCmd.Flags().BoolVar(&profile, "profile", false, "starts profiling")
 }
 
-//Execute - executes commands
+// Execute - executes commands
 func Execute(args []string) error {
 
 	rootCmd.SetArgs(args)
@@ -58,7 +59,6 @@ func startWorker() {
 	var err error
 	var worker core.RunnableComponent
 	var conf config.OverseerWorkerConfiguration
-	var log logger.AppLogger
 
 	if rootPath, progPath, err = helpers.GetDirectories(os.Args[0]); err != nil {
 		fmt.Println(err)
@@ -76,31 +76,36 @@ func startWorker() {
 		logcfg.LogDirectory = filepath.Join(rootPath, logcfg.LogDirectory)
 	}
 
-	if log, err = logger.NewLogger(logcfg); err != nil {
-		fmt.Println(err)
-		os.Exit(16)
+	if _, err := os.Stat(logcfg.LogDirectory); os.IsNotExist(err) {
+		os.MkdirAll(logcfg.LogDirectory, 0755)
 	}
+
+	logger.Configure("ovs_worker", logcfg)
 
 	if !filepath.IsAbs(conf.Worker.SysoutDirectory) {
 		conf.Worker.SysoutDirectory = filepath.Join(rootPath, conf.Worker.SysoutDirectory)
 	}
 
-	if worker, err = ovsworker.NewWorkerService(conf, log); err != nil {
-		log.Error(err)
+	if _, err := os.Stat(conf.Worker.SysoutDirectory); os.IsNotExist(err) {
+		os.MkdirAll(conf.Worker.SysoutDirectory, 0755)
+	}
+
+	if worker, err = ovsworker.NewWorkerService(conf); err != nil {
+		log.Error().Err(err).Msg("error creating worker")
 		os.Exit(8)
 	}
 
-	log.Info("starting runner")
+	log.Info().Msg("starting runner")
 
 	if profile == true {
-		helpers.StartProfiler(log, profFileName)
+		helpers.StartProfiler(log.Logger, profFileName)
 	}
 
 	runner := core.NewRunner(worker)
 	runner.Run()
 
 	if err != nil {
-		log.Error(err)
+		log.Error().Err(err).Msg("error starting worker")
 		os.Exit(8)
 	}
 
