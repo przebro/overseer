@@ -2,6 +2,7 @@ package resources
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/przebro/databazaar/collection"
 	"github.com/przebro/databazaar/selector"
@@ -14,6 +15,7 @@ type resourceReadWriter struct {
 
 func newResourceReadWriter(collectionName string, provider datastore.CollectionProvider) (*resourceReadWriter, error) {
 
+	fmt.Println("is provider nil:", provider)
 	col, err := provider.GetCollection(context.Background(), collectionName)
 	if err != nil {
 		return nil, err

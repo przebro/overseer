@@ -142,6 +142,8 @@ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZb
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/przebro/badgerstore v0.0.0-20230403122611-c4c6c660dd51 h1:5zRekOojGILAIXhHcI/pZShVnctotmBA9xcEFgvLVjU=
 github.com/przebro/badgerstore v0.0.0-20230403122611-c4c6c660dd51/go.mod h1:V3BkwV2SH2Beij5t8Jj3jBFKVBqOeaK9IiPf3pdJBjk=
+github.com/przebro/badgerstore v0.0.0-20230501135214-9b89c423221b h1:IfFjryvvgViU0SUy9Xh1lUw3yY201Lt0Ep3WQ99tTRU=
+github.com/przebro/badgerstore v0.0.0-20230501135214-9b89c423221b/go.mod h1:V3BkwV2SH2Beij5t8Jj3jBFKVBqOeaK9IiPf3pdJBjk=
 github.com/przebro/databazaar v0.0.0-20230319220817-4d9d50355aa0 h1:L5eE50g7PvgbEQkkJjdu7580tMZl0kYeSanQiyGWwWk=
 github.com/przebro/databazaar v0.0.0-20230319220817-4d9d50355aa0/go.mod h1:9zkSQ5MlRyGmvwn23zJicQ95yCOIFmR3kstPXRQ2K+M=
 github.com/przebro/expr v0.0.0-20230412200030-db7850725555 h1:DXDNtDd9KhnYLG1S7Mku/NzTSRyRF0v+wCJJD5Jd9Vc=

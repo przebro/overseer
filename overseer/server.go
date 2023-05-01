@@ -44,7 +44,7 @@ func New(config config.OverseerConfiguration, quiesce bool) (core.RunnableCompon
 
 	dataProvider, err := datastore.NewDataProvider(config.StoreConfiguration)
 	if err != nil {
-		log.Err(err).Msg("Error creating data provider")
+		log.Err(err).Str("connection_string", config.StoreConfiguration.ConnectionString).Msg("Error creating data provider")
 		return nil, err
 	}
 

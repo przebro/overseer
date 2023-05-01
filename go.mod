@@ -25,7 +25,7 @@ require (
 )
 
 require (
-	github.com/przebro/badgerstore v0.0.0-20230403122611-c4c6c660dd51
+	github.com/przebro/badgerstore v0.0.0-20230501135214-9b89c423221b
 	github.com/przebro/expr v0.0.0-20230412200030-db7850725555
 	github.com/stretchr/testify v1.8.2
 
