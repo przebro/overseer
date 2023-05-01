@@ -24,8 +24,6 @@ require (
 	google.golang.org/protobuf v1.28.1
 )
 
-replace github.com/przebro/badgerstore => ../badgerstore
-
 require (
 	github.com/przebro/badgerstore v0.0.0-20230403122611-c4c6c660dd51
 	github.com/przebro/expr v0.0.0-20230412200030-db7850725555
@@ -80,5 +78,5 @@ require (
 	go.mongodb.org/mongo-driver v1.11.2 // indirect
 	golang.org/x/sync v0.1.0 // indirect
 	golang.org/x/text v0.7.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
+	gopkg.in/yaml.v3 v3.0.1
 )
